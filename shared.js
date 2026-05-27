@@ -220,12 +220,23 @@ function hideUploadProgress() {
     }
 }
 /**
- * Renders consistent Header
+ * Renders consistent Header with Universal Navigation
+ * @param {string} title - Page title
+ * @param {function} backAction - Optional function to trigger on back click
  */
-function renderHeader(title) {
+function renderHeader(title, backAction = null) {
+    const backBtnHtml = backAction 
+        ? `<button id="header-back-btn" class="w-10 h-10 -ml-2 flex items-center justify-center text-white active:scale-90 transition-transform mr-1">
+             <i class="fas fa-arrow-left text-lg"></i>
+           </button>` 
+        : '';
+
     const headerHtml = `
-        <div class="flex justify-between items-center w-full">
-            <h1 id="page-title" class="text-lg font-bold">${title}</h1>
+        <div class="flex items-center justify-between w-full">
+            <div class="flex items-center">
+                ${backBtnHtml}
+                <h1 id="page-title" class="text-lg font-bold truncate max-w-[200px]">${title}</h1>
+            </div>
             <div class="flex items-center gap-3">
                 <i class="fas fa-bell text-xl"></i>
                 <button onclick="handleLogout()" class="text-white hover:text-red-200 active:scale-95 transition-transform ml-2">
@@ -234,9 +245,13 @@ function renderHeader(title) {
             </div>
         </div>
     `;
+    
     const headerEl = document.getElementById('main-header');
     if (headerEl) {
         headerEl.innerHTML = headerHtml;
+        if (backAction) {
+            document.getElementById('header-back-btn').onclick = backAction;
+        }
     }
 }
 

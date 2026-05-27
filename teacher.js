@@ -358,8 +358,11 @@ const teacherViews = {
 function teacherRouter(viewName) {
     const view = teacherViews[viewName] || teacherViews.dashboard;
     
+    // Universal Back Button: Sub-views return to Dashboard
+    const backAction = (viewName !== 'dashboard') ? () => teacherRouter('dashboard') : null;
+
     // Render standardized header and perform view slides
-    renderHeader(view.title);
+    renderHeader(view.title, backAction);
     triggerViewTransition();
 
     // Render targeted view template

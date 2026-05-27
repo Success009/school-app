@@ -691,7 +691,10 @@ const adminViews = {
 function adminRouter(viewName) {
     const view = adminViews[viewName] || adminViews.dashboard;
     
-    renderHeader(view.title);
+    // Provide universal back button logic: all sub-views return to 'dashboard'
+    const backAction = (viewName !== 'dashboard') ? () => adminRouter('dashboard') : null;
+    
+    renderHeader(view.title, backAction);
     triggerViewTransition();
 
     document.getElementById('main-content').innerHTML = view.render();
