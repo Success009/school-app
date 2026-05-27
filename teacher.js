@@ -601,9 +601,6 @@ async function startSequentialEntry() {
         const snapExam = await db.ref('school/exam_windows/' + activeExamId).once('value');
         const examDetails = snapExam.val();
         if (examDetails) {
-            activeFM = parseInt(examDetails.defaultFullMarks) || 100;
-            activePM = parseInt(examDetails.defaultPassMarks) || 40;
-
             // Date verification & lockout checks
             const now = new Date();
             const start = new Date(examDetails.openingDate);
@@ -612,9 +609,9 @@ async function startSequentialEntry() {
             let isLocked = false;
             let lockReason = "";
 
-            if (examDetails.status !== 'Active') {
+            if (examDetails.status !== 'Active' && examDetails.status !== 'Published') {
                 isLocked = true;
-                lockReason = `This exam window status is '${examDetails.status}' (not Active).`;
+                lockReason = `This exam window status is '${examDetails.status}'.`;
             } else if (now < start) {
                 isLocked = true;
                 lockReason = `This exam window opens on ${examDetails.openingDate}.`;
@@ -627,16 +624,77 @@ async function startSequentialEntry() {
                 alert(`[DEADLINE LOCKOUT] ${lockReason}\n\nScores can be reviewed but modifications are disabled.`);
                 window.activeExamLocked = true;
             }
-        } else {
-            activeFM = 100;
-            activePM = 40;
         }
     } catch (err) {
         console.error("Deadline lookup error:", err);
-        activeFM = 100;
-        activePM = 40;
     }
 
+    // Step 2: Show Configuration Modal if not locked
+    if (!window.activeExamLocked) {
+        showMarksConfigModal();
+    } else {
+        // Default values for viewing
+        activeFM = 100;
+        activePM = 40;
+        proceedToSequentialLoading();
+    }
+}
+
+function showMarksConfigModal() {
+    const modalId = 'teacher-marks-config-modal';
+    let modal = document.getElementById(modalId);
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-300';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-fade-in text-center">
+            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fas fa-sliders-h"></i>
+            </div>
+            <h3 class="text-lg font-black text-gray-800 mb-1">Subject Scale</h3>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-6">${activeSubjectId} | Class ${activeClassId}</p>
+            
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div>
+                    <label class="text-[8px] font-black text-gray-400 uppercase block mb-1 text-left ml-2">Full Marks</label>
+                    <input type="number" id="config-fm" class="w-full p-4 bg-gray-50 border-none rounded-2xl text-base font-bold focus:ring-2 focus:ring-indigo-500 outline-none" value="100">
+                </div>
+                <div>
+                    <label class="text-[8px] font-black text-gray-400 uppercase block mb-1 text-left ml-2">Pass Marks</label>
+                    <input type="number" id="config-pm" class="w-full p-4 bg-gray-50 border-none rounded-2xl text-base font-bold focus:ring-2 focus:ring-indigo-500 outline-none" value="40">
+                </div>
+            </div>
+
+            <button onclick="confirmMarksConfig()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-transform">
+                Start Grading
+            </button>
+            <button onclick="document.getElementById('teacher-marks-config-modal').remove()" class="w-full text-gray-400 font-bold py-2 text-xs mt-2">Cancel</button>
+        </div>
+    `;
+}
+
+function confirmMarksConfig() {
+    const fm = parseInt(document.getElementById('config-fm').value);
+    const pm = parseInt(document.getElementById('config-pm').value);
+
+    if (isNaN(fm) || isNaN(pm) || fm <= 0) {
+        alert("Please enter valid numeric values for scaling.");
+        return;
+    }
+
+    activeFM = fm;
+    activePM = pm;
+    
+    document.getElementById('teacher-marks-config-modal').remove();
+    proceedToSequentialLoading();
+}
+
+async function proceedToSequentialLoading() {
+    const examSelect = document.getElementById('marks-exam-select');
     const configPanel = document.getElementById('marks-config-panel');
     const seqPanel = document.getElementById('sequential-entry-panel');
     
@@ -705,12 +763,14 @@ async function startSequentialEntry() {
 
         // Listen for the Enter key on the Obtained Marks input box
         const obtainedInput = document.getElementById('seq-obtained');
-        obtainedInput.onkeydown = function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                nextSequenceStudent();
-            }
-        };
+        if (obtainedInput) {
+            obtainedInput.onkeydown = function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    nextSequenceStudent();
+                }
+            };
+        }
 
     } catch (e) {
         console.error(e);
@@ -781,16 +841,6 @@ async function showSequenceStudent() {
     }, 100);
 }
 
-function previewSequenceGrade() {
-    const obtainedVal = document.getElementById('seq-obtained').value;
-    const preview = document.getElementById('seq-grade-preview');
-
-    if (obtainedVal === '') {
-        preview.innerText = 'N/A';
-        preview.className = 'text-sm font-black text-blue-600 mt-1 block';
-        return;
-    }
-
     const obtained = parseFloat(obtainedVal);
     if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
         preview.innerText = 'Error';
@@ -812,6 +862,45 @@ function previewSequenceGrade() {
     preview.innerText = `${grade} (${percentage.toFixed(0)}%)`;
     preview.className = `text-sm font-black mt-1 block ${colorClass}`;
 }
+
+async function saveActiveSequenceStudentScore() {
+    if (activeSeqIndex < 0 || activeSeqIndex >= activeSeqRoster.length) return false;
+
+    const student = activeSeqRoster[activeSeqIndex];
+    const obtainedVal = document.getElementById('seq-obtained').value;
+
+    // If empty, we can allow skipped or treat as unrecorded draft
+    if (obtainedVal === '') return true;
+
+    if (window.activeExamLocked) {
+        alert("Deadline Lockout: Further grade submissions for this closed exam window are locked.");
+        return false;
+    }
+
+    const obtained = parseFloat(obtainedVal);
+    if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
+        alert("Invalid score entered! Score must be between 0 and Full Marks.");
+        return false;
+    }
+
+    const percentage = (obtained / activeFM) * 100;
+    let grade = 'E';
+    if (percentage >= 90) grade = 'A+';
+    else if (percentage >= 80) grade = 'A';
+    else if (percentage >= 70) grade = 'B+';
+    else if (percentage >= 60) grade = 'B';
+    else if (percentage >= 50) grade = 'C+';
+    else if (percentage >= 40) grade = 'C';
+
+    const markData = {
+        subject: activeSubjectId,
+        total: activeFM,
+        pass: activePM,
+        obtained,
+        grade,
+        recordedBy: currentUser?.name || "Teacher Staff",
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
 
 async function saveActiveSequenceStudentScore() {
     if (activeSeqIndex < 0 || activeSeqIndex >= activeSeqRoster.length) return false;

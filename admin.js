@@ -1212,40 +1212,6 @@ async function viewTeacherProfileDetails(teacherId) {
                     <i class="fas fa-save mr-2"></i> Save Faculty Settings
                 </button>
             </div>
-
-            <div class="mobile-card space-y-4">
-                <h4 class="text-xs font-black uppercase text-purple-600 mb-2 tracking-wider">Workload Assignments</h4>
-                <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase">Assigned Classes</p>
-                    <p class="font-bold text-gray-700 mt-1">${SafeResolvers.text(data.assignedClasses ? data.assignedClasses.join(', ') : 'N/A')}</p>
-                </div>
-                <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase">Primary Subjects</p>
-                    <p class="font-bold text-gray-700 mt-1">${SafeResolvers.text(data.subjects ? data.subjects.join(', ') : 'N/A')}</p>
-                </div>
-            </div>
-
-            <div class="mobile-card space-y-4">
-                <h4 class="text-xs font-black uppercase text-purple-600 mb-2 tracking-wider">Qualifications & ID Info</h4>
-                <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase">Highest Qualification</p>
-                    <p class="font-bold text-gray-700 mt-1">${SafeResolvers.text(data.qualification)}</p>
-                </div>
-                <hr class="border-gray-50">
-                <div>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase">${SafeResolvers.text(data.governmentIdType, 'Government ID')}</p>
-                    <p class="font-bold text-gray-700 mt-1">${SafeResolvers.text(data.governmentIdNumber)}</p>
-                </div>
-            </div>
-
-            <button onclick="deleteTeacher('${teacherId}')" class="w-full mt-4 bg-red-50 text-red-600 p-4 rounded-xl text-xs font-black active:scale-95 transition-all">
-                <i class="fas fa-trash-alt mr-2"></i> Terminate Faculty Contract
-            </button>
-
-            <button onclick="adminRouter('viewTeachers')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Faculty List
-            </button>
-        `;
     } catch (e) {
         container.innerHTML = `<div class="text-center py-10 text-red-400">Error fetching teacher profile: ${e.message}</div>`;
     }
