@@ -98,8 +98,10 @@ const accountantViews = {
 function accountantRouter(viewName) {
     const view = accountantViews[viewName] || accountantViews.dashboard;
     
-    // Header title and transition
-    renderHeader(view.title);
+    const backAction = (viewName !== 'dashboard') ? () => accountantRouter('dashboard') : null;
+
+    renderHeader(view.title, backAction);
+    triggerViewTransition();
     triggerViewTransition();
 
     // Render contents into main

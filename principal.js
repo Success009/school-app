@@ -115,8 +115,10 @@ const principalViews = {
 function principalRouter(viewName) {
     const view = principalViews[viewName] || principalViews.dashboard;
     
-    // Header title and transition
-    renderHeader(view.title);
+    const backAction = (viewName !== 'dashboard') ? () => principalRouter('dashboard') : null;
+
+    renderHeader(view.title, backAction);
+    triggerViewTransition();
     triggerViewTransition();
 
     // Render contents into main

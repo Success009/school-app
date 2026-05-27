@@ -437,10 +437,10 @@ const parentViews = {
 function parentRouter(viewName) {
     const view = parentViews[viewName] || parentViews.dashboard;
     
-    // Header title and transition
-    renderHeader(view.title);
-    triggerViewTransition();
+    const backAction = (viewName !== 'dashboard') ? () => parentRouter('dashboard') : null;
 
+    renderHeader(view.title, backAction);
+    triggerViewTransition();
     // Render contents into main
     document.getElementById('main-content').innerHTML = view.render();
 
