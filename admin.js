@@ -1212,6 +1212,7 @@ async function viewTeacherProfileDetails(teacherId) {
                     <i class="fas fa-save mr-2"></i> Save Faculty Settings
                 </button>
             </div>
+        `;
     } catch (e) {
         container.innerHTML = `<div class="text-center py-10 text-red-400">Error fetching teacher profile: ${e.message}</div>`;
     }

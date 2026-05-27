@@ -797,22 +797,59 @@ async function showSequenceStudent() {
     } else {
         nextBtn.innerHTML = `Next / Save <i class="fas fa-chevron-right text-[10px]"></i>`;
     }
+    const percentage = (obtained / activeFM) * 100;
+    let grade = 'E';
+    let colorClass = 'text-red-500';
 
-    const input = document.getElementById('seq-obtained');
-    input.value = '';
+    if (percentage >= 90) { grade = 'A+'; colorClass = 'text-green-600'; }
+    else if (percentage >= 80) { grade = 'A'; colorClass = 'text-green-600'; }
+    else if (percentage >= 70) { grade = 'B+'; colorClass = 'text-teal-600'; }
+    else if (percentage >= 60) { grade = 'B'; colorClass = 'text-blue-600'; }
+    else if (percentage >= 50) { grade = 'C+'; colorClass = 'text-yellow-600'; }
+    else if (percentage >= 40) { grade = 'C'; colorClass = 'text-yellow-600'; }
+
+    preview.innerText = `${grade} (${percentage.toFixed(0)}%)`;
+    preview.className = `text-sm font-black mt-1 block ${colorClass}`;
+}
+
+async function saveActiveSequenceStudentScore() {
+    if (activeSeqIndex < 0 || activeSeqIndex >= activeSeqRoster.length) return false;
+
+    const student = activeSeqRoster[activeSeqIndex];
+    const obtainedVal = document.getElementById('seq-obtained').value;
+
+    // If empty, we can allow skipped or treat as unrecorded draft
+    if (obtainedVal === '') return true;
+
     if (window.activeExamLocked) {
-        input.disabled = true;
-        input.placeholder = "Locked";
-    } else {
-        input.disabled = false;
-        input.placeholder = "Out of " + activeFM;
+        alert("Deadline Lockout: Further grade submissions for this closed exam window are locked.");
+        return false;
     }
-    document.getElementById('seq-grade-preview').innerText = 'N/A';
-    document.getElementById('seq-grade-preview').className = 'text-sm font-black text-blue-600 mt-1 block';
 
-    // Query if there is an existing draft/final mark in results node or drafts node
-    try {
-        const snap = await db.ref(`school/draft_results/${student.id}/${activeExamId}/${activeSubjectId}`).once('value');
+    const obtained = parseFloat(obtainedVal);
+    if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
+        alert("Invalid score entered! Score must be between 0 and Full Marks.");
+        return false;
+    }
+
+    const percentage = (obtained / activeFM) * 100;
+    let grade = 'E';
+    if (percentage >= 90) grade = 'A+';
+    else if (percentage >= 80) grade = 'A';
+    else if (percentage >= 70) grade = 'B+';
+    else if (percentage >= 60) grade = 'B';
+    else if (percentage >= 50) grade = 'C+';
+    else if (percentage >= 40) grade = 'C';
+
+    const markData = {
+        subject: activeSubjectId,
+        total: activeFM,
+        pass: activePM,
+        obtained,
+        grade,
+        recordedBy: currentUser?.name || "Teacher Staff",
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
         if (snap.exists()) {
             const data = snap.val();
             if (data.obtained !== undefined) {

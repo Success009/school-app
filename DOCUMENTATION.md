@@ -32,7 +32,13 @@ The codebase separates concerns across isolated role controllers, which mitigate
 *   **Setting Controls:** Administrators can update operational availability, department alignments, division ranks, joined years, and HOD status flags seamlessly via the teacher profile settings form in `admin.js`.
 
 ### 2.3 Exam Configuration & Entry Lockout (Iteration 3 & 4)
-*   **Exam Scheduler:** Administrators configure active exam terms (e.g., `First Terminal Exam 2026`), specifying default scale settings (Full Marks and Pass Marks) and active evaluation date windows (`openingDate` and `closingDate`).
+*   **Exam Scheduler:** Administrators configure active exam terms (e.g., `First Terminal Exam 2026`) and set evaluation date windows (`openingDate` and `closingDate`). Full Marks and Pass Marks are now managed dynamically by teachers.
+### 2.8 Academic Subject Management (Iteration 7)
+*   **Class Subject Configuration:** Admins can define compulsory and up to 5 optional subject groups per class via the Subject Manager.
+*   **Dynamic Student Enrollment:** During registration, selecting a class dynamically loads that class's subjects, allowing for personalized elective selection per pupil.
+### 2.9 Media Performance Engine
+*   **Image Normalization:** The app now locally converts all profile and document uploads to high-quality JPGs before transmission, ensuring high clarity with minimal storage footprint.
+*   **Real-time Progress UI:** All file uploads now feature a global backdrop-blurred progress ring, providing visual feedback during multi-file registration.
 *   **Date Enforcement & Lockout:** The teacher portal validates deadlines on entry. If the evaluation dates are exceeded or if the status is marked closed, the system triggers a **Deadline Lockout** mode. This allows teachers to audit existing grades but locks all edit boxes and blocks draft submissions.
 
 ### 2.4 Sequential Marks Submission Sheet (Iteration 4)
