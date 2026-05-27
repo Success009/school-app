@@ -67,6 +67,8 @@ const accountantViews = {
                     <label class="text-[10px] font-bold text-gray-400 uppercase">Sort by Class</label>
                     <select id="def-class-select" onchange="loadDefaultersList()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
                         <option value="all">All Classes</option>
+                        <option value="12-A">Grade 12-A</option>
+                        <option value="11-A">Grade 11-A</option>
                         <option value="10-A">Class 10-A</option>
                         <option value="9-B">Class 9-B</option>
                     </select>

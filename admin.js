@@ -57,8 +57,10 @@ const adminViews = {
                                 <option value="">- Choose -</option>
                                 <option value="1">Class 1</option><option value="2">Class 2</option><option value="3">Class 3</option>
                                 <option value="4">Class 4</option><option value="5">Class 5</option><option value="6">Class 6</option>
-                                <option value="7">Class 7</option><option value="8">Class 8</option><option value="9">Class 9</option>
+                                <option value="7">Class 7</option>                                <option value="8">Class 8</option><option value="9">Class 9</option>
                                 <option value="10">Class 10</option>
+                                <option value="11">Grade 11 (College)</option>
+                                <option value="12">Grade 12 (College)</option>
                             </select>
                         </div>
                         <div>
@@ -164,8 +166,12 @@ const adminViews = {
                 </div>
                 <div class="mobile-card flex items-center justify-between !py-2 bg-white">
                     <label class="text-[10px] font-bold text-gray-400 uppercase">Sort by Class</label>
-                    <select id="class-sort-select" onchange="loadStudentsList()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                                            <select id="class-sort-select" onchange="loadStudentsList()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
                         <option value="all">All Classes</option>
+                        <option value="12-A">Grade 12-A</option>
+                        <option value="12-B">Grade 12-B</option>
+                        <option value="11-A">Grade 11-A</option>
+                        <option value="11-B">Grade 11-B</option>
                         <option value="10-A">Class 10-A</option>
                         <option value="9-B">Class 9-B</option>
                     </select>
@@ -624,7 +630,7 @@ const adminViews = {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Assigned Classes</label>
-                                <input type="text" id="tch-classes" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="10-A, 9-B">
+                                <input type="text" id="tch-classes" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="12-Science, 11-A, 10-B">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Primary Subjects</label>

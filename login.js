@@ -151,10 +151,10 @@ async function handleLogin() {
                     phone: phone,
                     photo: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
                     subjects: ['Mathematics', 'Science'],
-                    assignedClasses: ['10-A', '9-B'],
+                    assignedClasses: ['12-Science', '11-Management', '10-A'],
                     schedule: [
-                        { period: '1st', class: '10A', subject: 'Mathematics', time: '10:00 AM' },
-                        { period: '3rd', class: '9B', subject: 'Advanced Math', time: '11:30 AM' }
+                        { period: '1st', class: '12-Science', subject: 'Physics', time: '10:00 AM' },
+                        { period: '3rd', class: '11-Management', subject: 'Accounting', time: '11:30 AM' }
                     ]
                 };
             } else if (phone.startsWith('982')) {

@@ -155,6 +155,8 @@ const teacherViews = {
                     <div>
                         <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Class</label>
                         <select id="attend-class-select" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
+                            <option value="12-A">Grade 12-A</option>
+                            <option value="11-A">Grade 11-A</option>
                             <option value="10-A">Class 10-A</option>
                             <option value="9-B">Class 9-B</option>
                         </select>
@@ -314,7 +316,7 @@ const teacherViews = {
                 <hr class="border-gray-50">
                 <div>
                     <span class="block text-[9px] font-bold text-gray-400 uppercase">Assigned Classes</span>
-                    <span class="font-bold text-gray-700 text-sm mt-1 block">${SafeResolvers.text(currentUser?.assignedClasses ? currentUser.assignedClasses.join(', ') : '10-A, 9-B')}</span>
+                    <span class="font-bold text-gray-700 text-sm mt-1 block">${SafeResolvers.text(currentUser?.assignedClasses ? currentUser.assignedClasses.join(', ') : '12-A, 11-A, 10-A')}</span>
                 </div>
                 <hr class="border-gray-50">
                 <div>
