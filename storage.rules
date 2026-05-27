@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // EMERGENCY RESTORATION: Allow full read/write access to prevent production downtime
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+    
+    // School application specific folder
+    match /school/{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

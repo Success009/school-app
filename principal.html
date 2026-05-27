@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Udayashree School - Principal's Office</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased overflow-x-hidden">
+    <div id="app" class="flex flex-col h-screen overflow-hidden">
+        <!-- Consistent Mobile Header -->
+        <header id="main-header" class="bg-blue-700 text-white p-4 shadow-md safe-top flex justify-between items-center">
+            <h1 id="page-title" class="text-lg font-bold">Principal Portal</h1>
+            <button onclick="handleLogout()" class="text-white hover:text-red-200 active:scale-95 transition-transform">
+                <i class="fas fa-sign-out-alt text-lg"></i>
+            </button>
+        </header>
+
+        <!-- Dynamic Main Content Area -->
+        <main id="main-content" class="flex-grow overflow-y-auto p-4 pb-24">
+            <!-- Content gets injected by principal.js -->
+        </main>
+
+        <!-- Bottom Navigation Bar (Persistent for Principal) -->
+        <nav id="bottom-nav" class="bg-white border-t border-gray-200 fixed bottom-0 w-full flex justify-around items-center py-3 pb-6 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-bottom">
+            <button onclick="principalRouter('dashboard')" class="nav-item flex flex-col items-center text-blue-700" data-view="dashboard">
+                <i class="fas fa-chart-line text-xl"></i>
+                <span class="text-xs mt-1">Analytics</span>
+            </button>
+            <button onclick="principalRouter('students')" class="nav-item flex flex-col items-center text-gray-400" data-view="students">
+                <i class="fas fa-users text-xl"></i>
+                <span class="text-xs mt-1">Students</span>
+            </button>
+            <button onclick="principalRouter('teachers')" class="nav-item flex flex-col items-center text-gray-400" data-view="teachers">
+                <i class="fas fa-chalkboard-teacher text-xl"></i>
+                <span class="text-xs mt-1">Faculty</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Logic scripts -->
+    <script src="shared.js"></script>
+    <script src="principal.js"></script>
+</body>
+</html>

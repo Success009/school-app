@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Udayashree School App - Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased overflow-x-hidden">
+    <!-- Startup Splash Screen -->
+    <div id="splash-screen" class="fixed inset-0 z-[100] bg-blue-700 flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="w-32 h-32 mb-4 animate-bounce-slow">
+            <img src="logo.png" class="w-full h-full object-contain drop-shadow-2xl" alt="Logo">
+        </div>
+        <div class="text-white text-center">
+            <h2 class="text-xl font-black tracking-widest uppercase">Udayashree</h2>
+            <p class="text-[10px] font-bold opacity-60 tracking-[0.3em] mt-1">SCHOOL APP</p>
+        </div>
+        <div class="absolute bottom-12">
+            <div class="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+        </div>
+    </div>
+
+    <!-- Login Area -->
+    <div id="app" class="flex flex-col h-screen overflow-hidden opacity-0 transition-opacity duration-500 max-w-md mx-auto p-4 justify-center">
+        <div id="login-container" class="flex flex-col items-center justify-center min-h-[80vh]">
+            <div class="w-24 h-24 mb-6 drop-shadow-xl">
+                <img src="logo.png" class="w-full h-full object-contain" alt="School Logo">
+            </div>
+            <h2 id="login-title" class="text-2xl font-bold text-gray-800 mb-2">School Login</h2>
+            <p id="login-desc" class="text-gray-500 mb-8 text-center px-6">
+                Enter your registered mobile number to receive an OTP
+            </p>
+            
+            <div class="w-full space-y-4">
+                <!-- Step 1 View -->
+                <div id="step-1-view">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Mobile Number</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">+977</span>
+                            <input type="tel" id="login-phone" class="w-full p-4 pl-16 bg-white border border-gray-100 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="98XXXXXXXX">
+                        </div>
+                    </div>
+                    <button onclick="sendOTP()" class="w-full bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform mt-4 flex items-center justify-center">
+                        Send OTP <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Step 2 View -->
+                <div id="step-2-view" class="hidden space-y-4">
+                    <div class="flex justify-center gap-3">
+                        <input type="number" class="otp-input w-14 h-14 text-center text-xl font-bold bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" maxlength="1">
+                        <input type="number" class="otp-input w-14 h-14 text-center text-xl font-bold bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" maxlength="1">
+                        <input type="number" class="otp-input w-14 h-14 text-center text-xl font-bold bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" maxlength="1">
+                        <input type="number" class="otp-input w-14 h-14 text-center text-xl font-bold bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" maxlength="1">
+                    </div>
+                    <button onclick="handleLogin()" class="w-full bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform mt-6">
+                        Verify & Login
+                    </button>
+                    <button onclick="showStep1()" class="w-full text-gray-400 font-bold py-2 text-sm">
+                        Change Number
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core App Logic -->
+    <script src="shared.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>

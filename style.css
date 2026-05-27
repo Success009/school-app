@@ -1,0 +1,84 @@
+/* Mobile-First App Styles */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.safe-top {
+    padding-top: calc(1rem + var(--safe-area-inset-top));
+}
+
+.safe-bottom {
+    padding-bottom: calc(1.5rem + var(--safe-area-inset-bottom));
+}
+
+/* Custom Scrollbar for clean mobile look */
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+/* Navigation Active State */
+.nav-item.active {
+    color: #1d4ed8; /* blue-700 */
+}
+
+/* Card shadows for mobile app feel */
+.mobile-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.mobile-card:active {
+    transform: scale(0.98);
+}
+
+/* Larger text for better readability for older parents */
+h1, h2, h3 {
+    letter-spacing: -0.025em;
+}
+
+.text-xs { font-size: 0.85rem !important; }
+.text-[10px] { font-size: 0.75rem !important; }
+
+/* Prevent accidental zooming on inputs in iOS */
+input, select, textarea {
+    font-size: 16px !important;
+}
+
+@keyframes bounce-slow {
+    0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+    50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
+}
+
+.animate-bounce-slow {
+    animation: bounce-slow 2s infinite;
+}
+
+/* Native-like view transitions */
+.view-enter {
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Premium OTP Input Focus */
+.otp-input:focus {
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+    transform: translateY(-2px);
+}
