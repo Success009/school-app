@@ -105,14 +105,120 @@ function previewImage(input, previewId) {
 }
 
 /**
- * Global file upload to storage helper
+ * Image Normalization Utility
+ * Converts any image format to JPG with 0.9 quality to balance speed and clarity.
  */
-async function uploadFile(file, path) {
-    const storageRef = storage.ref(path);
-    const snapshot = await storageRef.put(file);
-    return await snapshot.ref.getDownloadURL();
+async function processImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1200; // Cap resolution for speed, still high quality
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], "image.jpg", { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.9);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
+/**
+ * Enhanced Global file upload with Progress tracking
+ */
+async function uploadFile(file, path) {
+    // Show global progress UI
+    showUploadProgress(0, "Preparing...");
+    
+    // Process image if it's an image file
+    let fileToUpload = file;
+    if (file.type.startsWith('image/')) {
+        showUploadProgress(5, "Optimizing Image...");
+        fileToUpload = await processImage(file);
+    }
+
+    const storageRef = storage.ref(path);
+    const uploadTask = storageRef.put(fileToUpload);
+
+    return new Promise((resolve, reject) => {
+        uploadTask.on('state_changed', 
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 90 + 10;
+                showUploadProgress(progress, `Uploading: ${Math.round(progress)}%`);
+            }, 
+            (error) => {
+                hideUploadProgress();
+                reject(error);
+            }, 
+            async () => {
+                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                showUploadProgress(100, "Finalizing...");
+                setTimeout(hideUploadProgress, 500);
+                resolve(downloadURL);
+            }
+        );
+    });
+}
+
+function showUploadProgress(percent, label) {
+    let overlay = document.getElementById('global-upload-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'global-upload-overlay';
+        overlay.className = 'fixed inset-0 z-[20000] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-8 transition-opacity duration-300';
+        overlay.innerHTML = `
+            <div class="w-full max-w-xs space-y-4 text-center">
+                <div class="relative w-24 h-24 mx-auto">
+                    <svg class="w-full h-full transform -rotate-90">
+                        <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-700" />
+                        <circle id="progress-circle" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-blue-500 transition-all duration-300" />
+                    </svg>
+                    <div id="progress-text" class="absolute inset-0 flex items-center justify-center text-white font-black text-sm">0%</div>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-white font-bold text-base">Processing Files</h3>
+                    <p id="progress-label" class="text-gray-400 text-[10px] font-black uppercase tracking-widest">${label}</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    const circle = document.getElementById('progress-circle');
+    const text = document.getElementById('progress-text');
+    const labelEl = document.getElementById('progress-label');
+    
+    if (circle) {
+        const offset = 251.2 - (percent / 100) * 251.2;
+        circle.style.strokeDashoffset = offset;
+    }
+    if (text) text.innerText = `${Math.round(percent)}%`;
+    if (labelEl) labelEl.innerText = label;
+}
+
+function hideUploadProgress() {
+    const overlay = document.getElementById('global-upload-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 300);
+    }
+}
 /**
  * Renders consistent Header
  */

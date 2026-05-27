@@ -44,6 +44,47 @@ const adminViews = {
             </div>`;
         }
     },
+    subjectManager: {
+        title: 'Subject Configuration',
+        render: () => `
+            <div class="space-y-6">
+                <div class="mobile-card">
+                    <h3 class="text-xs font-black uppercase text-indigo-600 mb-4 tracking-wider">Configure Class Subjects</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Select Class</label>
+                            <select id="subj-class-select" onchange="loadClassSubjects()" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
+                                <option value="">- Choose -</option>
+                                <option value="1">Class 1</option><option value="2">Class 2</option><option value="3">Class 3</option>
+                                <option value="4">Class 4</option><option value="5">Class 5</option><option value="6">Class 6</option>
+                                <option value="7">Class 7</option><option value="8">Class 8</option><option value="9">Class 9</option>
+                                <option value="10">Class 10</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Subject Type</label>
+                            <select id="subj-type" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
+                                <option value="compulsory">Compulsory</option>
+                                <option value="optional_1">Optional I</option>
+                                <option value="optional_2">Optional II</option>
+                                <option value="optional_3">Optional III</option>
+                                <option value="optional_4">Optional IV</option>
+                                <option value="optional_5">Optional V</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="subj-name-input" class="flex-grow p-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-bold" placeholder="Subject Name (e.g. Science)">
+                        <button onclick="addSubjectToClass()" class="bg-indigo-600 text-white px-6 rounded-xl font-black text-xs active:scale-95 transition-transform">ADD</button>
+                    </div>
+                </div>
+
+                <div id="class-subjects-display" class="space-y-4 pb-20">
+                    <div class="text-center py-10 text-gray-300 text-xs italic">Select a class to view/manage subjects</div>
+                </div>
+            </div>
+        `
+    },
     dashboard: {
         title: 'Central Command',
         render: () => `
@@ -86,6 +127,10 @@ const adminViews = {
                 <button onclick="adminRouter('principalConfig')" class="mobile-card flex flex-col items-center justify-center p-6 text-purple-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-user-tie text-xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase">Principal Settings</span>
+                </button>
+                <button onclick="adminRouter('subjectManager')" class="mobile-card flex flex-col items-center justify-center p-6 text-indigo-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-book text-xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase">Subject Manager</span>
                 </button>
             </div>
 
@@ -214,15 +259,8 @@ const adminViews = {
                                 <input type="date" id="exam-closing" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" value="${new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0]}">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Full Marks (Default)</label>
-                                <input type="number" id="exam-fm" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-sm font-bold" value="100">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Pass Marks (Default)</label>
-                                <input type="number" id="exam-pm" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-sm font-bold" value="40">
-                            </div>
+                        <div class="p-3 bg-orange-50 rounded-xl border border-orange-100">
+                            <p class="text-[10px] text-orange-700 font-bold leading-tight"><i class="fas fa-info-circle mr-1"></i> Marks Scaling: Full Marks and Pass Marks are now managed dynamically by Teachers during grading.</p>
                         </div>
                         <button onclick="saveExamWindow()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-all text-xs">
                             <i class="fas fa-save mr-1"></i> Save Exam Window
@@ -382,7 +420,7 @@ const adminViews = {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Admitted Class-Section</label>
-                                <input type="text" id="std-class" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="10-A">
+                                <input type="text" id="std-class" onchange="loadSubjectsForRegistration(this.value)" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="10-A">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Admission Join Year</label>
@@ -399,6 +437,17 @@ const adminViews = {
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Transfer Certificate</label>
                                 <input type="file" id="std-transfer-input" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" accept="image/*">
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Academic Subjects -->
+                <div class="mobile-card">
+                    <h3 class="text-xs font-black uppercase text-indigo-600 mb-3 tracking-wider">5. Class Subjects & Electives</h3>
+                    <p class="text-[10px] text-gray-400 mb-3">Select the specific subjects this student is enrolled in for this academic year.</p>
+                    <div id="registration-subjects-container" class="space-y-4">
+                        <div class="text-center py-4 bg-gray-50 rounded-xl border border-gray-100">
+                             <p class="text-[10px] text-gray-400 font-bold uppercase italic">Select Class Above to Load Subjects</p>
                         </div>
                     </div>
                 </div>
@@ -690,7 +739,94 @@ function adminRouter(viewName) {
         loadHelpDeskTicketsList();
     }
 
+    if (viewName === 'subjectManager') {
+        loadClassSubjects();
+    }
+
     document.getElementById('main-content').scrollTop = 0;
+}
+
+/**
+ * Class Subject Manager Logic
+ */
+async function loadClassSubjects() {
+    const classId = document.getElementById('subj-class-select').value;
+    const container = document.getElementById('class-subjects-display');
+    if (!classId) {
+        container.innerHTML = `<div class="text-center py-10 text-gray-300 text-xs italic">Select a class to view/manage subjects</div>`;
+        return;
+    }
+
+    container.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching Subject Configuration...</div>`;
+
+    try {
+        const snap = await db.ref(`school/class_configs/${classId}/subjects`).once('value');
+        const config = snap.val() || { };
+        
+        const types = [
+            { id: 'compulsory', label: 'Compulsory Subjects', color: 'blue' },
+            { id: 'optional_1', label: 'Optional I Group', color: 'purple' },
+            { id: 'optional_2', label: 'Optional II Group', color: 'indigo' },
+            { id: 'optional_3', label: 'Optional III Group', color: 'pink' },
+            { id: 'optional_4', label: 'Optional IV Group', color: 'teal' },
+            { id: 'optional_5', label: 'Optional V Group', color: 'orange' }
+        ];
+
+        container.innerHTML = types.map(t => {
+            const subjects = config[t.id] ? Object.entries(config[t.id]) : [ ];
+            return `
+                <div class="mobile-card !p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-[10px] font-black uppercase text-${t.color}-600 tracking-wider">${t.label}</h4>
+                        <span class="px-2 py-0.5 bg-${t.color}-50 text-${t.color}-600 rounded-full text-[8px] font-black">${subjects.length} Items</span>
+                    </div>
+                    <div class="space-y-2">
+                        ${subjects.length === 0 ? `<p class="text-[10px] text-gray-300 italic">No subjects added</p>` : subjects.map(([sid, name]) => `
+                            <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="text-xs font-bold text-gray-700">${name}</span>
+                                <button onclick="removeSubjectFromClass('${classId}', '${t.id}', '${sid}')" class="text-red-400 active:scale-90 transition-transform">
+                                    <i class="fas fa-times-circle text-xs"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Failed to load subjects: ${e.message}</div>`;
+    }
+}
+
+async function addSubjectToClass() {
+    const classId = document.getElementById('subj-class-select').value;
+    const type = document.getElementById('subj-type').value;
+    const name = document.getElementById('subj-name-input').value.trim();
+
+    if (!classId || !name) {
+        showToast("Select Class and enter Subject Name!", "error");
+        return;
+    }
+
+    try {
+        await db.ref(`school/class_configs/${classId}/subjects/${type}`).push(name);
+        document.getElementById('subj-name-input').value = '';
+        showToast("Subject added successfully!", "success");
+        loadClassSubjects();
+    } catch (e) {
+        showToast("Action failed: " + e.message, "error");
+    }
+}
+
+async function removeSubjectFromClass(classId, type, sid) {
+    if (!confirm("Remove this subject from the class configuration?")) return;
+    try {
+        await db.ref(`school/class_configs/${classId}/subjects/${type}/${sid}`).remove();
+        loadClassSubjects();
+    } catch (e) {
+        showToast("Failed to remove subject", "error");
+    }
 }
 
 function filterList(input, listId) {
@@ -1164,6 +1300,12 @@ async function saveStudent() {
     const phoneInput = document.getElementById('std-phone').value.trim();
     const email = document.getElementById('std-email').value.trim();
     const className = document.getElementById('std-class').value.trim();
+    
+    // Academic Subjects
+    const selectedSubjects = [ ];
+    document.querySelectorAll('.reg-subj-checkbox:checked').forEach(cb => {
+        selectedSubjects.push(cb.value);
+    });
 
     // Address current
     const cStreet = document.getElementById('std-curr-street').value.trim();
@@ -1234,6 +1376,10 @@ async function saveStudent() {
             photo: photoUrl,
             birthCertificate: birthUrl,
             transferCertificate: transferUrl,
+            academic: {
+                subjects: selectedSubjects,
+                session: joinYear
+            },
             createdAt: firebase.database.ServerValue.TIMESTAMP
         };
 
@@ -1255,7 +1401,63 @@ async function saveStudent() {
         adminRouter('dashboard');
     } catch (e) {
         console.error(e);
+        hideUploadProgress(); // Ensure progress UI is cleared on error
         alert("Error saving student record: " + e.message);
+    }
+}
+
+/**
+ * Registration Helper: Load subjects when class is chosen
+ */
+async function loadSubjectsForRegistration(classInput) {
+    const container = document.getElementById('registration-subjects-container');
+    if (!classInput) return;
+    
+    const classId = classInput.split('-')[0].trim();
+    if (!classId) return;
+
+    try {
+        const snap = await db.ref(`school/class_configs/${classId}/subjects`).once('value');
+        const config = snap.val();
+        
+        if (!config) {
+            container.innerHTML = `<div class="text-center py-4 bg-orange-50 rounded-xl border border-orange-100"><p class="text-[10px] text-orange-600 font-bold uppercase italic">No subjects configured for Class ${classId} yet.</p></div>`;
+            return;
+        }
+
+        let html = '';
+        const groups = [
+            { id: 'compulsory', label: 'Compulsory' },
+            { id: 'optional_1', label: 'Optional I' },
+            { id: 'optional_2', label: 'Optional II' },
+            { id: 'optional_3', label: 'Optional III' },
+            { id: 'optional_4', label: 'Optional IV' },
+            { id: 'optional_5', label: 'Optional V' }
+        ];
+
+        groups.forEach(g => {
+            if (config[g.id]) {
+                const subjs = Object.values(config[g.id]);
+                html += `
+                    <div>
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">${g.label}</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${subjs.map(s => `
+                                <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer active:bg-blue-50 transition-colors">
+                                    <input type="checkbox" class="reg-subj-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="${s}" ${g.id === 'compulsory' ? 'checked' : ''}>
+                                    <span class="text-xs font-bold text-gray-700">${s}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        container.innerHTML = html || `<p class="text-[10px] text-gray-400 italic">No subjects configured.</p>`;
+
+    } catch (e) {
+        console.error(e);
     }
 }
 
@@ -1465,9 +1667,6 @@ async function saveExamWindow() {
     const status = document.getElementById('exam-status').value;
     const openingDate = document.getElementById('exam-opening').value;
     const closingDate = document.getElementById('exam-closing').value;
-    const defaultFullMarks = parseInt(document.getElementById('exam-fm').value) || 100;
-    const defaultPassMarks = parseInt(document.getElementById('exam-pm').value) || 40;
-
     if (!title || !openingDate || !closingDate) {
         alert("Please enter title and dates.");
         return;
@@ -1481,8 +1680,6 @@ async function saveExamWindow() {
         status,
         openingDate,
         closingDate,
-        defaultFullMarks,
-        defaultPassMarks,
         createdAt: firebase.database.ServerValue.TIMESTAMP
     };
 
@@ -1524,7 +1721,6 @@ async function loadExamWindowsList() {
                             <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${badgeStyle}">${item.status}</span>
                         </div>
                         <p class="text-[9px] text-gray-400 font-bold uppercase mt-1 tracking-wider">Dates: ${item.openingDate} to ${item.closingDate}</p>
-                        <p class="text-[9px] text-gray-400 font-bold uppercase">Scale: FM ${item.defaultFullMarks} | PM ${item.defaultPassMarks}</p>
                     </div>
                     <div class="flex gap-2">
                         <button onclick="publishExamResults('${examId}')" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-90 transition-transform" title="Publish Results">
