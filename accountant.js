@@ -386,12 +386,12 @@ async function recordOfflinePayment(studentId, invoiceId, amount) {
         updates[`school/payment_history/${studentId}/${paymentId}`] = paymentRecord;
 
         await db.ref().update(updates);
-        alert(`Payment recorded manually!\nReceipt ID: ${paymentId}`);
+        await alert(`Payment recorded manually!\nReceipt ID: ${paymentId}`);
         viewStudentLedgerDetails(studentId);
 
     } catch (e) {
         console.error(e);
-        alert("Failed to record payment: " + e.message);
+        await alert("Failed to record payment: " + e.message);
     }
 }
 
@@ -407,7 +407,7 @@ async function billManualInvoice(studentId) {
     const deadline = dateInput.value;
 
     if (!title || isNaN(amount) || amount <= 0 || !deadline) {
-        alert("Please fill in invoice title, amount, and deadline!");
+        await alert("Please fill in invoice title, amount, and deadline!");
         return;
     }
 
@@ -438,12 +438,12 @@ async function billManualInvoice(studentId) {
         updates[`school/fee_ledgers/${studentId}/balance`] = (ledger.balance || 0) + amount;
 
         await db.ref().update(updates);
-        alert(`Manual debit invoice successfully billed to student!`);
+        await alert(`Manual debit invoice successfully billed to student!`);
         viewStudentLedgerDetails(studentId);
 
     } catch (e) {
         console.error(e);
-        alert("Failed to bill invoice: " + e.message);
+        await alert("Failed to bill invoice: " + e.message);
     }
 }
 
@@ -455,7 +455,7 @@ async function batchGenerateTuitionBills() {
         const students = stuSnap.val();
 
         if (!students) {
-            alert("No registered students found in database to bill!");
+            await alert("No registered students found in database to bill!");
             return;
         }
 
@@ -492,11 +492,11 @@ async function batchGenerateTuitionBills() {
         }
 
         await db.ref().update(updates);
-        alert(`Batch billing completed! Generated ${billedCount} tuition bills of Rs. 3,000 each!`);
+        await alert(`Batch billing completed! Generated ${billedCount} tuition bills of Rs. 3,000 each!`);
         loadAccountantDashboard();
 
     } catch (e) {
         console.error(e);
-        alert("Batch billing failed: " + e.message);
+        await alert("Batch billing failed: " + e.message);
     }
 }

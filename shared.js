@@ -2,14 +2,14 @@
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAHOiriisWOpuVLAdcYun_mCkOhbYfB5y4",
-  authDomain: "deep-freehold-389006.firebaseapp.com",
-  databaseURL: "https://deep-freehold-389006-default-rtdb.firebaseio.com",
-  projectId: "deep-freehold-389006",
+  apiKey: "AIzaSyD_I7LQ8sed3tLsHF56B7hnpUGTTpXiCQc",
+  authDomain: "mydb-7cfc4.firebaseapp.com",
+  databaseURL: "https://mydb-7cfc4-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mydb-7cfc4",
   storageBucket: "deep-freehold-389006.appspot.com",
-  messagingSenderId: "76562961838",
-  appId: "1:76562961838:web:4d18b2f79d7eb9fd88243f",
-  measurementId: "G-VZC36FJC24"
+  messagingSenderId: "567104467605",
+  appId: "1:567104467605:web:4d3cf3b46d7a2f828fa19c",
+  measurementId: "G-GJQQWDZWS5"
 };
 
 // Initialize Firebase
@@ -141,15 +141,16 @@ async function processImage(file) {
 
 /**
  * Enhanced Global file upload with Progress tracking
+ * @param {File} file - The file to upload
+ * @param {string} path - Storage path
+ * @param {string} taskLabel - User-friendly label (e.g., "Adding Student")
  */
-async function uploadFile(file, path) {
-    // Show global progress UI
-    showUploadProgress(0, "Preparing...");
+async function uploadFile(file, path, taskLabel = "Processing") {
+    showUploadProgress(0, taskLabel, "Initializing...");
     
-    // Process image if it's an image file
     let fileToUpload = file;
     if (file.type.startsWith('image/')) {
-        showUploadProgress(5, "Optimizing Image...");
+        showUploadProgress(5, taskLabel, "Optimizing Graphics...");
         fileToUpload = await processImage(file);
     }
 
@@ -159,64 +160,68 @@ async function uploadFile(file, path) {
     return new Promise((resolve, reject) => {
         uploadTask.on('state_changed', 
             (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 90 + 10;
-                showUploadProgress(progress, `Uploading: ${Math.round(progress)}%`);
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 80 + 10;
+                showUploadProgress(progress, taskLabel, `Transferring Data... ${Math.round(progress)}%`);
             }, 
             (error) => {
                 hideUploadProgress();
                 reject(error);
             }, 
             async () => {
+                showUploadProgress(95, taskLabel, "Finalizing Sync...");
                 const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                showUploadProgress(100, "Finalizing...");
-                setTimeout(hideUploadProgress, 500);
+                showUploadProgress(100, taskLabel, "Verified!");
+                setTimeout(hideUploadProgress, 800);
                 resolve(downloadURL);
             }
         );
     });
 }
 
-function showUploadProgress(percent, label) {
+function showUploadProgress(percent, title, stepLabel) {
     let overlay = document.getElementById('global-upload-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'global-upload-overlay';
-        overlay.className = 'fixed inset-0 z-[20000] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-8 transition-opacity duration-300';
+        overlay.className = 'fixed inset-0 z-[20000] bg-black/60 backdrop-blur-xl flex flex-col items-center justify-center p-8 transition-all duration-500 opacity-0 pointer-events-none';
         overlay.innerHTML = `
-            <div class="w-full max-w-xs space-y-4 text-center">
-                <div class="relative w-24 h-24 mx-auto">
+            <div class="w-full max-w-sm bg-white rounded-[40px] p-8 shadow-2xl scale-95 transition-transform duration-500 text-center space-y-6 border border-white/20">
+                <div class="relative w-32 h-32 mx-auto">
                     <svg class="w-full h-full transform -rotate-90">
-                        <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-700" />
-                        <circle id="progress-circle" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-blue-500 transition-all duration-300" />
+                        <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-100" />
+                        <circle id="progress-circle" cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="364.4" stroke-dashoffset="364.4" stroke-linecap="round" class="text-blue-600 transition-all duration-500 ease-out" />
                     </svg>
-                    <div id="progress-text" class="absolute inset-0 flex items-center justify-center text-white font-black text-sm">0%</div>
+                    <div id="progress-text" class="absolute inset-0 flex items-center justify-center text-gray-900 font-black text-xl">0%</div>
                 </div>
-                <div class="space-y-1">
-                    <h3 class="text-white font-bold text-base">Processing Files</h3>
-                    <p id="progress-label" class="text-gray-400 text-[10px] font-black uppercase tracking-widest">${label}</p>
+                <div class="space-y-2">
+                    <h3 id="progress-title" class="text-gray-900 font-black text-lg tracking-tight">Processing</h3>
+                    <p id="progress-step" class="text-blue-600 text-[10px] font-black uppercase tracking-widest animate-pulse">Initializing...</p>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
+        void overlay.offsetWidth; // Reflow
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        overlay.querySelector('div').classList.remove('scale-95');
     }
     
     const circle = document.getElementById('progress-circle');
     const text = document.getElementById('progress-text');
-    const labelEl = document.getElementById('progress-label');
+    const titleEl = document.getElementById('progress-title');
+    const stepEl = document.getElementById('progress-step');
     
-    if (circle) {
-        const offset = 251.2 - (percent / 100) * 251.2;
-        circle.style.strokeDashoffset = offset;
-    }
+    if (circle) circle.style.strokeDashoffset = 364.4 - (percent / 100) * 364.4;
     if (text) text.innerText = `${Math.round(percent)}%`;
-    if (labelEl) labelEl.innerText = label;
+    if (titleEl) titleEl.innerText = title;
+    if (stepEl) stepEl.innerText = stepLabel;
 }
 
 function hideUploadProgress() {
     const overlay = document.getElementById('global-upload-overlay');
     if (overlay) {
-        overlay.style.opacity = '0';
-        setTimeout(() => overlay.remove(), 300);
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        overlay.querySelector('div').classList.add('scale-95');
+        setTimeout(() => overlay.remove(), 500);
     }
 }
 /**
@@ -270,6 +275,38 @@ function triggerViewTransition() {
 // ==========================================
 // FOUNDATIONAL UPGRADES & DATABASE SCHEMAS
 // ==========================================
+
+/**
+ * Dynamic Metadata Discovery
+ * Scans students database to extract unique classes and sections.
+ * Ensures filters and dropdowns are always synchronized with actual data.
+ */
+async function getSchoolMetadata() {
+    try {
+        const snap = await db.ref('school/students').once('value');
+        const students = snap.val() || { };
+        
+        const classes = new Set();
+        const sections = new Set();
+        
+        Object.values(students).forEach(s => {
+            if (s.class) classes.add(String(s.class));
+            if (s.section) sections.add(String(s.section));
+        });
+
+        // Add defaults if empty
+        if (classes.size === 0) [1,2,3,4,5,6,7,8,9,10,11,12].forEach(c => classes.add(String(c)));
+        if (sections.size === 0) ['A', 'B', 'C'].forEach(s => sections.add(s));
+
+        return {
+            classes: Array.from(classes).sort((a, b) => parseInt(a) - parseInt(b)),
+            sections: Array.from(sections).sort()
+        };
+    } catch (e) {
+        console.error("Metadata discovery failed", e);
+        return { classes: ['10', '11', '12'], sections: ['A', 'B'] };
+    }
+}
 
 /**
  * Dynamic Student ID Generator
@@ -440,7 +477,7 @@ function filterSharedTeachers(containerId) {
     const teachers = JSON.parse(rawData);
     const options = rawOptions ? JSON.parse(rawOptions) : { };
 
-    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
     const dept = deptSelect ? deptSelect.value : 'All';
 
     const filteredTeachers = { };
@@ -606,57 +643,47 @@ document.addEventListener('DOMContentLoaded', () => {
     injectDebugMenu();
     setupGlobalNotificationUI();
 });
-
-// ==========================================
-// CUSTOM VISUAL NOTIFICATION & DIALOG SYSTEMS
-// ==========================================
-
 function setupGlobalNotificationUI() {
-    // Redefine window.alert dynamically to render as a smooth native-like modal overlay
+    /**
+     * Polished Global Alert Interceptor
+     * Replaces standard browser alerts with a high-fidelity modal.
+     */
     window.alert = function(message) {
+        const cleanMsg = (typeof message === 'string') ? message : JSON.stringify(message);
         const modalId = 'custom-ui-alert-modal';
         let modal = document.getElementById(modalId);
+        
         if (!modal) {
             modal = document.createElement('div');
             modal.id = modalId;
-            modal.className = 'fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none';
+            modal.className = 'fixed inset-0 z-[30000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md transition-all duration-500 opacity-0 pointer-events-none';
             document.body.appendChild(modal);
         }
 
         modal.innerHTML = `
-            <div class="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full transform scale-90 transition-transform duration-300 relative text-center">
-                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
-                    <i class="fas fa-info-circle"></i>
+            <div class="bg-white rounded-[32px] p-8 shadow-2xl max-w-sm w-full transform scale-90 transition-all duration-500 relative text-center border border-gray-100">
+                <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl shadow-inner">
+                    <i class="fas fa-bell"></i>
                 </div>
-                <h4 class="font-black text-gray-800 text-base mb-2">School Message</h4>
-                <p class="text-xs text-gray-500 leading-relaxed mb-6">${message.replace(/\n/g, '<br>')}</p>
-                <button id="custom-alert-close-btn" class="w-full bg-blue-700 hover:bg-blue-800 active:scale-95 text-white font-black py-3.5 rounded-2xl text-xs transition-transform shadow-md outline-none">
-                    Dismiss
+                <h4 class="font-black text-gray-900 text-lg mb-2 tracking-tight">System Message</h4>
+                <p class="text-sm text-gray-500 leading-relaxed mb-8 font-medium">${cleanMsg.replace(/\n/g, '<br>')}</p>
+                <button id="custom-alert-close-btn" class="w-full bg-gray-900 hover:bg-black active:scale-95 text-white font-black py-4 rounded-2xl text-sm transition-all shadow-xl outline-none">
+                    Got it
                 </button>
             </div>
         `;
 
-        // Trigger transition animation
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             modal.classList.remove('opacity-0', 'pointer-events-none');
-            const box = modal.querySelector('div');
-            if (box) box.classList.remove('scale-90');
-        }, 50);
+            modal.querySelector('div').classList.remove('scale-90');
+        });
 
         return new Promise((resolve) => {
-            const btn = document.getElementById('custom-alert-close-btn');
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    modal.classList.add('opacity-0', 'pointer-events-none');
-                    const box = modal.querySelector('div');
-                    if (box) box.classList.add('scale-90');
-                    setTimeout(() => {
-                        resolve();
-                    }, 300);
-                });
-            } else {
-                resolve();
-            }
+            document.getElementById('custom-alert-close-btn').onclick = () => {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                modal.querySelector('div').classList.add('scale-90');
+                setTimeout(resolve, 500);
+            };
         });
     };
 }

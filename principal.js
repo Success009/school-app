@@ -69,41 +69,52 @@ const principalViews = {
                 </div>
             </div>
             
-            <button onclick="alert('Compiling school metrics report...')" class="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg mt-6 active:scale-95 transition-all">
+            <button onclick="await alert('Compiling school metrics report...')" class="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg mt-6 active:scale-95 transition-all">
                 <i class="fas fa-file-export mr-2"></i> Export Monthly Report
             </button>
         `
     },
     students: {
         title: "Students Directory",
-        render: () => `
+        render: () => {
+            setTimeout(async () => {
+                const { classes, sections } = await getSchoolMetadata();
+                const lvlSel = document.getElementById('filter-lvl');
+                const secSel = document.getElementById('filter-sec');
+                if (lvlSel) classes.forEach(c => lvlSel.add(new Option(`Class ${c}`, c)));
+                if (secSel) sections.forEach(s => secSel.add(new Option(s, s)));
+                loadPrincipalStudents();
+            }, 50);
+            return `
             <div class="mb-4 space-y-3">
                 <div class="relative">
                     <input type="text" id="p-std-search" onkeyup="filterStudentList()" class="w-full p-4 bg-white border border-gray-100 rounded-xl shadow-sm outline-none pl-12 text-sm" placeholder="Search pupils by name...">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
                 </div>
-                
-                <div class="mobile-card flex items-center justify-between !py-2 bg-white">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Sort by Class</label>
-                    <select id="p-class-sort-select" onchange="loadPrincipalStudents()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
-                        <option value="all">All Classes</option>
-                        <option value="12-A">Grade 12-A</option>
-                        <option value="11-A">Grade 11-A</option>
-                        <option value="10-A">Class 10-A</option>
-                        <option value="9-B">Class 9-B</option>
-                    </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="mobile-card flex items-center justify-between !py-2 bg-white">
+                        <label class="text-[8px] font-black text-gray-400 uppercase">Lvl</label>
+                        <select id="filter-lvl" onchange="loadPrincipalStudents()" class="p-2 bg-gray-50 border-none rounded-lg text-[10px] font-black outline-none">
+                            <option value="all">ALL</option>
+                        </select>
+                    </div>
+                    <div class="mobile-card flex items-center justify-between !py-2 bg-white">
+                        <label class="text-[8px] font-black text-gray-400 uppercase">Sec</label>
+                        <select id="filter-sec" onchange="loadPrincipalStudents()" class="p-2 bg-gray-50 border-none rounded-lg text-[10px] font-black outline-none">
+                            <option value="all">ALL</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-
             <div id="p-student-list" class="space-y-3">
                 <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading Students...</div>
             </div>
-        `
+            `;
+        }
     },
     teachers: {
         title: "Faculty Directory",
         render: () => `
-            <div class="mb-4">
                 <p class="text-xs text-gray-500">Real-time status check of all instructional departments</p>
             </div>
             
@@ -171,7 +182,8 @@ function principalRouter(viewName) {
 
 async function loadPrincipalStudents() {
     const list = document.getElementById('p-student-list');
-    const sortVal = document.getElementById('p-class-sort-select').value;
+    const lvlFilter = document.getElementById('filter-lvl')?.value || 'all';
+    const secFilter = document.getElementById('filter-sec')?.value || 'all';
     
     if (!list) return;
 
@@ -188,22 +200,15 @@ async function loadPrincipalStudents() {
 
         let studentEntries = Object.entries(students);
 
-        // Sort dynamically if class is specified
-        if (sortVal !== 'all') {
-            let targetClass = sortVal;
-            let targetSection = "General";
-            if (sortVal.includes('-')) {
-                const parts = sortVal.split('-');
-                targetClass = parts[0];
-                targetSection = parts[1];
-            }
-            studentEntries = studentEntries.filter(([id, data]) => {
-                return data.class === targetClass && data.section === targetSection;
-            });
-        }
+        // Advanced Dual-Filter Logic
+        studentEntries = studentEntries.filter(([id, data]) => {
+            const matchesLvl = (lvlFilter === 'all') || (String(data.class) === String(lvlFilter));
+            const matchesSec = (secFilter === 'all') || (String(data.section) === String(secFilter));
+            return matchesLvl && matchesSec;
+        });
 
         if (studentEntries.length === 0) {
-            list.innerHTML = `<div class="text-center py-8 text-yellow-600 bg-yellow-50 rounded-xl text-xs p-4 border border-yellow-100">No students found matching Class ${sortVal}.</div>`;
+            list.innerHTML = `<div class="text-center py-8 text-yellow-600 bg-yellow-50 rounded-xl text-xs p-4 border border-yellow-100">No students found matching Level: ${lvlFilter} | Section: ${secFilter}.</div>`;
             return;
         }
 

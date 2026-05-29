@@ -533,11 +533,11 @@ async function submitAttendance() {
         });
 
         await db.ref().update(batchUpdates);
-        alert(`Attendance roster for Class ${classVal} submitted successfully!\nDate: ${dateVal}`);
+        await alert(`Attendance roster for Class ${classVal} submitted successfully!\nDate: ${dateVal}`);
         teacherRouter('dashboard');
     } catch (e) {
         console.error(e);
-        alert("Failed to submit attendance roster: " + e.message);
+        await alert("Failed to submit attendance roster: " + e.message);
     }
 }
 
@@ -594,7 +594,7 @@ async function startSequentialEntry() {
     activeSubjectId = subjectSelect.value;
 
     if (activeExamId === 'loading' || activeExamId === 'none') {
-        alert("Please select a valid exam window.");
+        await alert("Please select a valid exam window.");
         return;
     }
 
@@ -626,7 +626,7 @@ async function startSequentialEntry() {
             }
 
             if (isLocked) {
-                alert(`[DEADLINE LOCKOUT] ${lockReason}\n\nScores can be reviewed but modifications are disabled.`);
+                await alert(`[DEADLINE LOCKOUT] ${lockReason}\n\nScores can be reviewed but modifications are disabled.`);
                 window.activeExamLocked = true;
             }
         }
@@ -682,15 +682,14 @@ function showMarksConfigModal() {
     `;
 }
 
-function confirmMarksConfig() {
+async function confirmMarksConfig() {
     const fm = parseInt(document.getElementById('config-fm').value);
     const pm = parseInt(document.getElementById('config-pm').value);
 
     if (isNaN(fm) || isNaN(pm) || fm <= 0) {
-        alert("Please enter valid numeric values for scaling.");
+        await alert("Please enter valid numeric values for scaling.");
         return;
     }
-
     activeFM = fm;
     activePM = pm;
     
@@ -709,7 +708,7 @@ async function proceedToSequentialLoading() {
         const students = snapStudents.val();
 
         if (!students) {
-            alert("No students registered in the database.");
+            await alert("No students registered in the database.");
             return;
         }
 
@@ -748,7 +747,7 @@ async function proceedToSequentialLoading() {
         });
 
         if (activeSeqRoster.length === 0) {
-            alert(`No students found registered for Class ${activeClassId}.`);
+            await alert(`No students found registered for Class ${activeClassId}.`);
             return;
         }
 
@@ -779,7 +778,7 @@ async function proceedToSequentialLoading() {
 
     } catch (e) {
         console.error(e);
-        alert("Failed to query student registry: " + e.message);
+        await alert("Failed to query student registry: " + e.message);
     }
 }
 
@@ -795,66 +794,21 @@ async function showSequenceStudent() {
     document.getElementById('seq-student-roll').innerText = `Roll Number: ${student.roll}`;
     document.getElementById('seq-student-photo').src = SafeResolvers.photo(student.photo);
 
-    // Update next button label
     const nextBtn = document.getElementById('seq-next-btn');
     if (activeSeqIndex === activeSeqRoster.length - 1) {
         nextBtn.innerHTML = `Save & Finish <i class="fas fa-flag-checkered text-[10px]"></i>`;
     } else {
         nextBtn.innerHTML = `Next / Save <i class="fas fa-chevron-right text-[10px]"></i>`;
     }
-    const percentage = (obtained / activeFM) * 100;
-    let grade = 'E';
-    let colorClass = 'text-red-500';
 
-    if (percentage >= 90) { grade = 'A+'; colorClass = 'text-green-600'; }
-    else if (percentage >= 80) { grade = 'A'; colorClass = 'text-green-600'; }
-    else if (percentage >= 70) { grade = 'B+'; colorClass = 'text-teal-600'; }
-    else if (percentage >= 60) { grade = 'B'; colorClass = 'text-blue-600'; }
-    else if (percentage >= 50) { grade = 'C+'; colorClass = 'text-yellow-600'; }
-    else if (percentage >= 40) { grade = 'C'; colorClass = 'text-yellow-600'; }
+    const input = document.getElementById('seq-obtained');
+    input.value = '';
+    const preview = document.getElementById('seq-grade-preview');
+    preview.innerText = 'Not Entered';
+    preview.className = 'text-sm font-black text-gray-400 mt-1 block';
 
-    preview.innerText = `${grade} (${percentage.toFixed(0)}%)`;
-    preview.className = `text-sm font-black mt-1 block ${colorClass}`;
-}
-
-async function saveActiveSequenceStudentScore() {
-    if (activeSeqIndex < 0 || activeSeqIndex >= activeSeqRoster.length) return false;
-
-    const student = activeSeqRoster[activeSeqIndex];
-    const obtainedVal = document.getElementById('seq-obtained').value;
-
-    // If empty, we can allow skipped or treat as unrecorded draft
-    if (obtainedVal === '') return true;
-
-    if (window.activeExamLocked) {
-        alert("Deadline Lockout: Further grade submissions for this closed exam window are locked.");
-        return false;
-    }
-
-    const obtained = parseFloat(obtainedVal);
-    if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
-        alert("Invalid score entered! Score must be between 0 and Full Marks.");
-        return false;
-    }
-
-    const percentage = (obtained / activeFM) * 100;
-    let grade = 'E';
-    if (percentage >= 90) grade = 'A+';
-    else if (percentage >= 80) grade = 'A';
-    else if (percentage >= 70) grade = 'B+';
-    else if (percentage >= 60) grade = 'B';
-    else if (percentage >= 50) grade = 'C+';
-    else if (percentage >= 40) grade = 'C';
-
-    const markData = {
-        subject: activeSubjectId,
-        total: activeFM,
-        pass: activePM,
-        obtained,
-        grade,
-        recordedBy: currentUser?.name || "Teacher Staff",
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
+    try {
+        const snap = await db.ref(`school/draft_results/${student.id}/${activeExamId}/${activeSubjectId}`).once('value');
         if (snap.exists()) {
             const data = snap.val();
             if (data.obtained !== undefined) {
@@ -883,6 +837,11 @@ async function saveActiveSequenceStudentScore() {
     }, 100);
 }
 
+function previewSequenceGrade() {
+    const obtainedVal = document.getElementById('seq-obtained').value;
+    const preview = document.getElementById('seq-grade-preview');
+    if (!preview) return;
+
     const obtained = parseFloat(obtainedVal);
     if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
         preview.innerText = 'Error';
@@ -904,7 +863,6 @@ async function saveActiveSequenceStudentScore() {
     preview.innerText = `${grade} (${percentage.toFixed(0)}%)`;
     preview.className = `text-sm font-black mt-1 block ${colorClass}`;
 }
-
 async function saveActiveSequenceStudentScore() {
     if (activeSeqIndex < 0 || activeSeqIndex >= activeSeqRoster.length) return false;
 
@@ -915,52 +873,13 @@ async function saveActiveSequenceStudentScore() {
     if (obtainedVal === '') return true;
 
     if (window.activeExamLocked) {
-        alert("Deadline Lockout: Further grade submissions for this closed exam window are locked.");
+        await alert("Deadline Lockout: Further grade submissions for this closed exam window are locked.");
         return false;
     }
 
     const obtained = parseFloat(obtainedVal);
     if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
-        alert("Invalid score entered! Score must be between 0 and Full Marks.");
-        return false;
-    }
-
-    const percentage = (obtained / activeFM) * 100;
-    let grade = 'E';
-    if (percentage >= 90) grade = 'A+';
-    else if (percentage >= 80) grade = 'A';
-    else if (percentage >= 70) grade = 'B+';
-    else if (percentage >= 60) grade = 'B';
-    else if (percentage >= 50) grade = 'C+';
-    else if (percentage >= 40) grade = 'C';
-
-    const markData = {
-        subject: activeSubjectId,
-        total: activeFM,
-        pass: activePM,
-        obtained,
-        grade,
-        recordedBy: currentUser?.name || "Teacher Staff",
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
-
-async function saveActiveSequenceStudentScore() {
-    if (activeSeqIndex < 0 || activeSeqIndex >= activeSeqRoster.length) return false;
-
-    const student = activeSeqRoster[activeSeqIndex];
-    const obtainedVal = document.getElementById('seq-obtained').value;
-
-    // If empty, we can allow skipped or treat as unrecorded draft
-    if (obtainedVal === '') return true;
-
-    if (window.activeExamLocked) {
-        alert("Deadline Lockout: Further grade submissions for this closed exam window are locked.");
-        return false;
-    }
-
-    const obtained = parseFloat(obtainedVal);
-    if (isNaN(obtained) || obtained < 0 || obtained > activeFM) {
-        alert("Invalid score entered! Score must be between 0 and Full Marks.");
+        await alert("Invalid score entered! Score must be between 0 and Full Marks.");
         return false;
     }
 
@@ -989,7 +908,7 @@ async function saveActiveSequenceStudentScore() {
         return true;
     } catch (e) {
         console.error(e);
-        alert("Failed to auto-save score: " + e.message);
+        await alert("Failed to auto-save score: " + e.message);
         return false;
     }
 }
@@ -999,7 +918,7 @@ async function nextSequenceStudent() {
     if (!isSaved) return;
 
     if (activeSeqIndex === activeSeqRoster.length - 1) {
-        alert("Roster completed! All entered marks have been auto-saved as drafts.\nThese scores are now ready for Administrator archiving and parent publication.");
+        await alert("Roster completed! All entered marks have been auto-saved as drafts.\nThese scores are now ready for Administrator archiving and parent publication.");
         exitSequentialEntry();
     } else {
         activeSeqIndex++;

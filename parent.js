@@ -7,6 +7,14 @@ if (checkAuth([ROLES.PARENT])) {
     });
 }
 
+function getStudentFullName(nameObj) {
+    if (!nameObj) return 'Student';
+    if (typeof nameObj === 'object') {
+        return `${nameObj.first || ''} ${nameObj.middle || ''} ${nameObj.last || ''}`.replace(/\s+/g, ' ').trim();
+    }
+    return nameObj;
+}
+
 const parentViews = {
     dashboard: {
         title: 'Parent Dashboard',
@@ -28,7 +36,7 @@ const parentViews = {
                 <div class="flex items-center justify-between mb-6 relative z-10">
                     <div>
                         <p class="text-xs text-blue-100 uppercase font-bold tracking-widest mb-1">Student Profile</p>
-                        <h3 class="text-2xl font-black">${currentUser?.student.name || 'Student Name'}</h3>
+                        <h3 class="text-2xl font-black">${getStudentFullName(currentUser?.student.name)}</h3>
                     </div>
                     <div class="w-16 h-16 bg-white rounded-2xl overflow-hidden border-2 border-white/50 shadow-lg ring-4 ring-white/10">
                         <img src="${currentUser?.student.photo}" class="w-full h-full object-cover" alt="Student">
@@ -48,7 +56,7 @@ const parentViews = {
                     <div class="text-right">
                         <p class="text-[10px] text-blue-200 uppercase font-bold">Roll No: ${currentUser?.student.roll || '01'}</p>
                         <p class="text-[10px] text-blue-100 uppercase font-bold">ID: ${currentUser?.student.id || 'N/A'}</p>
-                        <p class="text-sm font-bold mt-1">${currentUser?.student.classTeacher || 'Teacher Name'}</p>
+                        <p class="text-sm font-bold mt-1">Father: ${currentUser?.student.fatherName || 'N/A'}</p>
                     </div>
                 </div>
             </div>
@@ -78,12 +86,12 @@ const parentViews = {
                     <span class="text-sm font-bold text-gray-800 leading-tight">Class<br>Routine</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Routine</span>
                 </div>
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('fees')">
-                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-3 group-active:scale-90 transition-transform">
-                        <i class="fas fa-wallet text-lg"></i>
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('results')">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-active:scale-90 transition-transform">
+                        <i class="fas fa-file-signature text-lg"></i>
                     </div>
-                    <span class="text-sm font-bold text-gray-800 leading-tight">Fee<br>Payment</span>
-                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Accounting</span>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">Exam<br>Results</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Academics</span>
                 </div>
             </div>
 
@@ -100,7 +108,6 @@ const parentViews = {
         `
     },
     attendance: {
-        title: 'Attendance Details',
         render: () => `
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6 flex items-center justify-between">
                 <div>
@@ -278,48 +285,34 @@ const parentViews = {
             </button>
         `
     },
+    results: {
         title: 'Report Card',
-        render: () => `
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-2xl font-black text-gray-800">Examination Results</h2>
-                        <p class="text-xs text-blue-600 font-bold uppercase tracking-widest mt-1">First Terminal Examination</p>
-                    </div>
-                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">Passed</span>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead>
-                            <tr class="text-[10px] text-gray-400 uppercase font-black border-b border-gray-100">
-                                <th class="pb-2">Subject</th>
-                                <th class="pb-2 text-center">Full Marks</th>
-                                <th class="pb-2 text-center">Pass Marks</th>
-                                <th class="pb-2 text-right">Obtained</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-table-body" class="divide-y divide-gray-50">
-                            <!-- Marks are injected here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase">Total Average</p>
-                        <h4 id="results-average" class="text-xl font-black text-gray-800">...</h4>
-                    </div>
-                    <button onclick="printReportCard()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold active:scale-95 transition-all">
-                        <i class="fas fa-print mr-1"></i> Print / PDF
-                    </button>
-                </div>
-            </div>
+        render: () => {
+            // Trigger load with the currently selected term on load (default to "Term 1")
+            setTimeout(() => { 
+                const selector = document.getElementById('results-term-select');
+                if (selector) loadParentResults(selector.value); 
+            }, 50);
 
-            <div id="results-remarks" class="mobile-card border-l-4 border-yellow-500">
-                 <!-- Teacher Remarks loaded here -->
-            </div>
-        `
+            return `
+                <div class="mb-4 space-y-3">
+                    <div class="mobile-card flex items-center justify-between !py-2.5 bg-white shadow-sm border border-gray-100">
+                        <label class="text-[10px] font-black text-gray-400 uppercase pl-1 tracking-wider">Select Exam Term</label>
+                        <select id="results-term-select" onchange="loadParentResults(this.value)" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                            <option value="Term 1" selected>First Terminal Exam</option>
+                            <option value="Term 2">Second Terminal Exam</option>
+                            <option value="Term 3">Third Terminal Exam</option>
+                            <option value="Finals">Final Examination</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="results-display-container" class="space-y-4">
+                    <!-- Loaded dynamically by loadParentResults() -->
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading results...</div>
+                </div>
+            `;
+        }
     },
     profile: {
         title: 'My Profile',
@@ -335,12 +328,7 @@ const parentViews = {
             <div class="mobile-card !p-0 overflow-hidden divide-y divide-gray-50">
                 <div onclick="parentRouter('results')" class="p-4 flex items-center active:bg-gray-50 cursor-pointer">
                     <i class="fas fa-child text-gray-400 mr-4 w-5"></i>
-                    <span class="text-sm font-medium">Student Info: ${currentUser?.student.name}</span>
-                    <i class="fas fa-chevron-right ml-auto text-gray-300 text-xs"></i>
-                </div>
-                <div onclick="parentRouter('fees')" class="p-4 flex items-center active:bg-gray-50 cursor-pointer">
-                    <i class="fas fa-file-invoice-dollar text-gray-400 mr-4 w-5"></i>
-                    <span class="text-sm font-medium">Fee Payment</span>
+                    <span class="text-sm font-medium">Student Info: ${getStudentFullName(currentUser?.student.name)}</span>
                     <i class="fas fa-chevron-right ml-auto text-gray-300 text-xs"></i>
                 </div>
                 <div onclick="parentRouter('routine')" class="p-4 flex items-center active:bg-gray-50 cursor-pointer">
@@ -519,7 +507,7 @@ async function loadDashboardAttendancePercent() {
     const studentClass = `${currentUser?.student.grade}-${currentUser?.student.section}`;
 
     if (!studentId || !studentClass) {
-        el.innerText = "95%"; // Mock default
+        el.innerText = "0%"; // Defend and default to 0%
         return;
     }
 
@@ -528,7 +516,7 @@ async function loadDashboardAttendancePercent() {
         const days = snap.val();
 
         if (!days) {
-            el.innerText = "100%"; // Starting perfect stats
+            el.innerText = "0%"; // Starting 0% if no database logs
             return;
         }
 
@@ -543,14 +531,14 @@ async function loadDashboardAttendancePercent() {
         });
 
         if (totalDays === 0) {
-            el.innerText = "100%";
+            el.innerText = "0%";
         } else {
             const pct = (presentDays / totalDays) * 100;
             el.innerText = `${pct.toFixed(0)}%`;
         }
 
     } catch (e) {
-        el.innerText = "95%";
+        el.innerText = "0%";
     }
 }
 
@@ -565,10 +553,9 @@ async function loadAttendanceHistoryAndStats() {
     const studentClass = `${currentUser?.student.grade}-${currentUser?.student.section}`;
 
     if (!studentId || !studentClass) {
-        // Fallback mockup
-        parentScore.innerText = "95.4%";
-        parentGauge.setAttribute('stroke-dasharray', '95, 100');
-        historyContainer.innerHTML = `<div class="text-center py-6 text-gray-300">Mock stats fallback loaded.</div>`;
+        parentScore.innerText = "0.0%";
+        parentGauge.setAttribute('stroke-dasharray', '0, 100');
+        historyContainer.innerHTML = `<div class="text-center py-6 text-gray-300">No records found.</div>`;
         return;
     }
 
@@ -577,12 +564,12 @@ async function loadAttendanceHistoryAndStats() {
         const days = snap.val();
         
         if (!days) {
-            parentScore.innerText = "100.0%";
-            parentGauge.setAttribute('stroke-dasharray', '100, 100');
+            parentScore.innerText = "0.0%";
+            parentGauge.setAttribute('stroke-dasharray', '0, 100');
             historyContainer.innerHTML = `
-                <div class="text-center py-8 text-green-600 bg-green-50 rounded-2xl text-xs p-4 border border-green-100">
-                    <i class="fas fa-check-circle text-lg mb-1 block"></i>
-                    No class absences registered yet. Showing 100.0% perfect attendance!
+                <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-2xl text-xs p-4 border border-gray-100">
+                    <i class="fas fa-info-circle text-lg mb-1 block text-gray-400"></i>
+                    No attendance logs registered in the database for this class yet.
                 </div>
             `;
             return;
@@ -606,20 +593,16 @@ async function loadAttendanceHistoryAndStats() {
         });
 
         if (totalLogs === 0) {
-            parentScore.innerText = "100.0%";
-            parentGauge.setAttribute('stroke-dasharray', '100, 100');
+            parentScore.innerText = "0.0%";
+            parentGauge.setAttribute('stroke-dasharray', '0, 100');
             historyContainer.innerHTML = `
-                <div class="text-center py-8 text-green-600 bg-green-50 rounded-2xl text-xs p-4 border border-green-100">
-                    No logs registered for your ID yet. Displaying perfect score.
+                <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-2xl text-xs p-4 border border-gray-100">
+                    <i class="fas fa-info-circle text-lg mb-1 block text-gray-400"></i>
+                    No attendance logs registered for your student ID yet.
                 </div>
             `;
             return;
         }
-
-        const rate = (presentLogs / totalLogs) * 100;
-        parentScore.innerText = SafeResolvers.attendance(rate);
-        parentGauge.setAttribute('stroke-dasharray', `${rate.toFixed(0)}, 100`);
-
         historyContainer.innerHTML = historyList.reverse().map(h => {
             const dateParts = h.date.split('-');
             const dayStr = dateParts[2] || "01";
@@ -693,47 +676,31 @@ async function loadParentNotices() {
     }
 }
 
-async function loadParentResults() {
-    const tableBody = document.getElementById('results-table-body');
-    const averageEl = document.getElementById('results-average');
-    const remarksEl = document.getElementById('results-remarks');
+async function loadParentResults(term = "Term 1") {
+    const container = document.getElementById('results-display-container');
+    if (!container) return;
     
-    if (!tableBody) return;
+    container.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching academic record...</div>`;
     
     const studentId = currentUser?.student.id;
-    const term = "Term 1"; // Display first terminal marks by default
+    if (!studentId) {
+        container.innerHTML = `<div class="text-center py-10 text-red-500 font-bold">Error: Student profile not resolved.</div>`;
+        return;
+    }
 
     try {
         const snap = await db.ref(`school/results/${studentId}/${term}`).once('value');
         const marks = snap.val();
 
         if (!marks) {
-            // Placement safe fallbacks
-            tableBody.innerHTML = `
-                <tr>
-                    <td class="py-3 font-bold text-gray-700">Mathematics</td>
-                    <td class="py-3 text-center text-gray-400">100</td>
-                    <td class="py-3 text-center text-gray-400">40</td>
-                    <td class="py-3 text-right">
-                        <span class="font-black text-gray-800">95</span>
-                        <span class="text-[10px] font-bold text-blue-600 ml-1">A+</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="py-3 font-bold text-gray-700">Science</td>
-                    <td class="py-3 text-center text-gray-400">100</td>
-                    <td class="py-3 text-center text-gray-400">40</td>
-                    <td class="py-3 text-right">
-                        <span class="font-black text-gray-800">88</span>
-                        <span class="text-[10px] font-bold text-blue-600 ml-1">A</span>
-                    </td>
-                </tr>
-            `;
-            averageEl.innerText = "91.5%";
-            remarksEl.innerHTML = `
-                <h4 class="text-sm font-bold text-gray-800">Teacher's Remarks</h4>
-                <p class="text-xs text-gray-500 italic mt-1">"Excellent progress shown. Very attentive in classes and math practicals."</p>
-                <p class="text-[9px] font-bold text-gray-400 mt-2 uppercase">— Ms. Sunita Rai</p>
+            container.innerHTML = `
+                <div class="text-center py-12 px-6 bg-white border border-gray-100 rounded-2xl shadow-sm text-gray-400">
+                    <div class="w-16 h-16 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <h4 class="font-black text-gray-800 text-sm mb-1">No Published Results</h4>
+                    <p class="text-[10px] text-gray-400 leading-relaxed font-bold uppercase tracking-wider">No results have been published for this exam term yet.</p>
+                </div>
             `;
             return;
         }
@@ -741,35 +708,82 @@ async function loadParentResults() {
         let totalFull = 0;
         let totalObtained = 0;
         let subjectsCount = 0;
+        let isPassed = true;
 
-        tableBody.innerHTML = Object.entries(marks).map(([subject, m]) => {
-            totalFull += parseFloat(m.total);
-            totalObtained += parseFloat(m.obtained);
+        const tableRowsHtml = Object.entries(marks).map(([subject, m]) => {
+            const fm = parseFloat(m.total) || 100;
+            const pm = parseFloat(m.pass) || 40;
+            const ob = parseFloat(m.obtained) || 0;
+            totalFull += fm;
+            totalObtained += ob;
             subjectsCount++;
+            
+            if (ob < pm) isPassed = false;
+
             return `
                 <tr>
                     <td class="py-3 font-bold text-gray-700">${subject}</td>
-                    <td class="py-3 text-center text-gray-400">${m.total}</td>
-                    <td class="py-3 text-center text-gray-400">${m.pass}</td>
+                    <td class="py-3 text-center text-gray-400 font-bold">${fm}</td>
+                    <td class="py-3 text-center text-gray-400 font-bold">${pm}</td>
                     <td class="py-3 text-right">
-                        <span class="font-black text-gray-800">${m.obtained}</span>
-                        <span class="text-[10px] font-bold text-blue-600 ml-1">${m.grade}</span>
+                        <span class="font-black text-gray-800 mr-1">${ob}</span>
+                        <span class="text-[10px] font-black text-blue-600">${m.grade || 'E'}</span>
                     </td>
                 </tr>
             `;
         }).join('');
 
-        const average = (totalObtained / totalFull) * 100;
-        averageEl.innerText = `${average.toFixed(1)}%`;
+        const average = totalFull > 0 ? (totalObtained / totalFull) * 100 : 0;
         
-        remarksEl.innerHTML = `
-            <h4 class="text-sm font-bold text-gray-800">Teacher's Remarks</h4>
-            <p class="text-xs text-gray-500 italic mt-1">"Report cards are synchronized dynamically from school faculty records. Keep up the consistent effort!"</p>
-            <p class="text-[9px] font-bold text-gray-400 mt-2 uppercase">— Academic Office</p>
+        container.innerHTML = `
+            <div class="mobile-card bg-white shadow-sm border border-gray-100">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 class="text-lg font-black text-gray-800 uppercase tracking-tight">Academic Report</h2>
+                        <p class="text-[9px] text-blue-600 font-black uppercase tracking-widest mt-1">${term === 'Finals' ? 'Final Examination' : term + ' Evaluation'}</p>
+                    </div>
+                    <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase ${isPassed ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}">
+                        ${isPassed ? 'Passed' : 'Failed'}
+                    </span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="text-[9px] text-gray-400 uppercase font-black border-b border-gray-100">
+                                <th class="pb-2">Subject</th>
+                                <th class="pb-2 text-center">Full</th>
+                                <th class="pb-2 text-center">Pass</th>
+                                <th class="pb-2 text-right">Obtained</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            ${tableRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
+                    <div>
+                        <p class="text-[9px] text-gray-400 font-black uppercase tracking-wider">Total Average</p>
+                        <h4 class="text-xl font-black text-gray-800">${average.toFixed(1)}%</h4>
+                    </div>
+                    <button onclick="printReportCard('${term}')" class="bg-gray-800 text-white px-4 py-2.5 rounded-xl text-xs font-black active:scale-95 transition-all shadow-sm">
+                        <i class="fas fa-print mr-1"></i> Print / PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="mobile-card border-l-4 border-yellow-500 bg-white">
+                <h4 class="text-xs font-black text-gray-800 uppercase tracking-wide">Teacher's Remarks</h4>
+                <p class="text-xs text-gray-500 italic mt-1">"Report cards are synchronized dynamically from school faculty records. Keep up the consistent effort!"</p>
+                <p class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">— Academic Office</p>
+            </div>
         `;
 
     } catch (e) {
         console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400">Failed to render academic report: ${e.message}</div>`;
     }
 }
 
@@ -777,9 +791,8 @@ async function loadParentResults() {
 // BUSINESS LOGIC: CLIENT-SIDE MARKSHEET PRINTING
 // ==========================================
 
-function printReportCard() {
+function printReportCard(term = "Term 1") {
     const studentId = currentUser?.student.id;
-    const term = "Term 1"; // Default
     
     db.ref(`school/results/${studentId}/${term}`).once('value', (snap) => {
         const marks = snap.val();
@@ -804,20 +817,13 @@ function printReportCard() {
                 `;
             }).join('');
         } else {
-            totalFull = 200;
-            totalObtained = 183;
+            totalFull = 100;
+            totalObtained = 0;
             marksHtml = `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 10px; font-weight: bold; color: #1e293b;">Mathematics</td>
-                    <td style="padding: 10px; text-align: center; color: #64748b;">100</td>
-                    <td style="padding: 10px; text-align: center; color: #64748b;">40</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #1e293b;">95 (A+)</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 10px; font-weight: bold; color: #1e293b;">Science</td>
-                    <td style="padding: 10px; text-align: center; color: #64748b;">100</td>
-                    <td style="padding: 10px; text-align: center; color: #64748b;">40</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #1e293b;">88 (A)</td>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: #64748b; font-style: italic;">
+                        No results published for this term.
+                    </td>
                 </tr>
             `;
         }
@@ -836,7 +842,7 @@ function printReportCard() {
         printWindow.document.write(`
             <html>
             <head>
-                <title>Report Card - ${currentUser?.student.name}</title>
+                <title>Report Card - ${getStudentFullName(currentUser?.student.name)}</title>
                 <style>
                     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; background: white; }
                     .certificate-container { border: 4px double #1d4ed8; padding: 30px; border-radius: 12px; max-width: 800px; margin: 0 auto; }
@@ -868,7 +874,7 @@ function printReportCard() {
                     <div class="report-title">Academic Progress Report Card</div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 13px;">
                         <div>
-                            <div class="bio-item"><span class="bio-label">Student Name:</span> <span class="bio-val">${currentUser?.student.name}</span></div>
+                            <div class="bio-item"><span class="bio-label">Student Name:</span> <span class="bio-val">${getStudentFullName(currentUser?.student.name)}</span></div>
                             <div class="bio-item"><span class="bio-label">Student ID:</span> <span class="bio-val">${studentId}</span></div>
                         </div>
                         <div style="text-align: right;">
@@ -929,7 +935,7 @@ async function submitParentTicket() {
     const description = document.getElementById('tkt-desc').value.trim();
 
     if (!title || !description) {
-        alert("Please provide both title and description.");
+        await alert("Please provide both title and description.");
         return;
     }
 
@@ -951,11 +957,11 @@ async function submitParentTicket() {
 
     try {
         await db.ref('school/tickets/' + ticketId).set(ticketData);
-        alert(`Support ticket ${ticketId} raised successfully!`);
+        await alert(`Support ticket ${ticketId} raised successfully!`);
         parentRouter('tickets');
     } catch (e) {
         console.error(e);
-        alert("Failed to submit support ticket.");
+        await alert("Failed to submit support ticket.");
     }
 }
 
@@ -1190,7 +1196,7 @@ async function processWalletPayment() {
         const ledger = snap.val();
 
         if (!ledger || !ledger.invoices || !ledger.invoices[invoiceId] || ledger.invoices[invoiceId].status === 'Paid') {
-            alert("This invoice has already been cleared or is invalid.");
+            await alert("This invoice has already been cleared or is invalid.");
             parentRouter('fees');
             return;
         }
@@ -1212,12 +1218,12 @@ async function processWalletPayment() {
         updates[`school/payment_history/${studentId}/${paymentId}`] = paymentRecord;
 
         await db.ref().update(updates);
-        alert(`Payment successful!\nReceipt ID: ${paymentId}\nReconciliation code: ${recCode}`);
+        await alert(`Payment successful!\nReceipt ID: ${paymentId}\nReconciliation code: ${recCode}`);
         parentRouter('fees');
 
     } catch (e) {
         console.error(e);
-        alert("Payment transaction failed: " + e.message);
+        await alert("Payment transaction failed: " + e.message);
     }
 }
 

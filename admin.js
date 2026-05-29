@@ -149,7 +149,7 @@ const adminViews = {
 
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-gray-800">Recent Notices</h3>
-                <span onclick="alert('Opening Notice Board Manager...')" class="text-[10px] font-bold text-blue-600 uppercase cursor-pointer">View All</span>
+                <span onclick="await alert('Opening Notice Board Manager...')" class="text-[10px] font-bold text-blue-600 uppercase cursor-pointer">View All</span>
             </div>
             <div id="admin-recent-notices" class="space-y-3 pb-10">
                 <div class="text-center py-6 text-gray-300 text-xs italic">No announcements found.</div>
@@ -158,23 +158,27 @@ const adminViews = {
     },
     viewStudents: {
         title: 'Students Directory',
-        render: () => `
+        render: () => {
+            setTimeout(initializeDirectoryFilters, 50);
+            return `
             <div class="mb-4 space-y-3">
                 <div class="relative">
                     <input type="text" onkeyup="filterList(this, 'student-list')" class="w-full p-4 bg-white border border-gray-100 rounded-xl shadow-sm outline-none pl-12 text-sm" placeholder="Search students by name...">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-bold"></i>
                 </div>
-                <div class="mobile-card flex items-center justify-between !py-2 bg-white">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Sort by Class</label>
-                                            <select id="class-sort-select" onchange="loadStudentsList()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
-                        <option value="all">All Classes</option>
-                        <option value="12-A">Grade 12-A</option>
-                        <option value="12-B">Grade 12-B</option>
-                        <option value="11-A">Grade 11-A</option>
-                        <option value="11-B">Grade 11-B</option>
-                        <option value="10-A">Class 10-A</option>
-                        <option value="9-B">Class 9-B</option>
-                    </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="mobile-card flex items-center justify-between !py-2 bg-white">
+                        <label class="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Level</label>
+                        <select id="filter-level" onchange="loadStudentsList()" class="p-2 bg-gray-50 border-none rounded-lg text-[10px] font-black outline-none w-full text-right">
+                            <option value="all">ALL</option>
+                        </select>
+                    </div>
+                    <div class="mobile-card flex items-center justify-between !py-2 bg-white">
+                        <label class="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Section</label>
+                        <select id="filter-section" onchange="loadStudentsList()" class="p-2 bg-gray-50 border-none rounded-lg text-[10px] font-black outline-none w-full text-right">
+                            <option value="all">ALL</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div id="student-list" class="space-y-3">
@@ -183,7 +187,8 @@ const adminViews = {
             <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
                 <i class="fas fa-arrow-left mr-1"></i> Back to Panel
             </button>
-        `
+            `;
+        }
     },
     viewTeachers: {
         title: 'Faculty Directory',
@@ -288,7 +293,15 @@ const adminViews = {
     },
     addStudent: {
         title: 'Register Student',
-        render: () => `
+        render: () => {
+            setTimeout(async () => {
+                const { classes, sections } = await getSchoolMetadata();
+                const clsSel = document.getElementById('std-class-lvl');
+                const secSel = document.getElementById('std-section-lvl');
+                if (clsSel) classes.forEach(c => clsSel.add(new Option(`Class ${c}`, c)));
+                if (secSel) sections.forEach(s => secSel.add(new Option(s, s)));
+            }, 50);
+            return `
             <div class="mb-6">
                 <h2 class="text-xl font-black text-gray-800">Student Enrollment</h2>
                 <p class="text-xs text-gray-500 mt-1">Onboard a new student with complete personal, family, address, and academic records.</p>
@@ -423,13 +436,21 @@ const adminViews = {
                 <div class="mobile-card">
                     <h3 class="text-xs font-black uppercase text-blue-600 mb-3 tracking-wider">4. Academic & Document Records</h3>
                     <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Admitted Class-Section</label>
-                                <input type="text" id="std-class" onchange="loadSubjectsForRegistration(this.value)" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="10-A">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Level</label>
+                                <select id="std-class-lvl" onchange="loadSubjectsForRegistration(this.value)" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold">
+                                    <option value="">- Select -</option>
+                                </select>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Admission Join Year</label>
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Section</label>
+                                <select id="std-section-lvl" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold">
+                                    <option value="">- Select -</option>
+                                </select>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Join Year</label>
                                 <input type="number" id="std-join" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" value="2026">
                             </div>
                         </div>
@@ -463,13 +484,21 @@ const adminViews = {
                 </button>
                 <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-2 text-xs">
                     Cancel
-                </button>
             </div>
-        `
+            `;
+        }
     },
     addTeacher: {
         title: 'Add Teacher',
-        render: () => `
+        render: () => {
+            setTimeout(async () => {
+                const { classes, sections } = await getSchoolMetadata();
+                const lvlSel = document.getElementById('tch-class-lvl');
+                const secSel = document.getElementById('tch-section-lvl');
+                // Note: Teachers usually have multiple assignments, so we still allow free-text for the master list
+                // but we can provide helper dropdowns if needed. For now, let's keep registration dropdowns consistent.
+            }, 50);
+            return `
             <div class="mb-6">
                 <h2 class="text-xl font-black text-gray-800">Faculty Registration</h2>
                 <p class="text-xs text-gray-500 mt-1">Register a new teacher and capture complete credentials, qualifications, and official verification details.</p>
@@ -600,25 +629,25 @@ const adminViews = {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Government ID Type</label>
-                                <select id="tch-id-type" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
-                                    <option value="Citizenship Card">Citizenship Card</option>
-                                    <option value="Passport">Passport</option>
-                                    <option value="National ID">National ID Card</option>
-                                    <option value="License">Driver License</option>
-                                </select>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-wider">Verification Document Vault</label>
+                                <button onclick="addDocumentRow('tch-doc-vault')" class="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">
+                                    <i class="fas fa-plus-circle mr-1"></i> Add Document
+                                </button>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Government ID Number</label>
-                                <input type="text" id="tch-id-num" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. 45-01-72-903">
+                            <div id="tch-doc-vault" class="space-y-3">
+                                <!-- First compulsory document row -->
+                                <div class="doc-row grid grid-cols-12 gap-2 items-end">
+                                    <div class="col-span-5">
+                                        <label class="text-[8px] font-black text-gray-300 uppercase ml-1">Label</label>
+                                        <input type="text" class="doc-label w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold outline-none" value="Citizenship Card">
+                                    </div>
+                                    <div class="col-span-7">
+                                        <input type="file" class="doc-file w-full text-[10px] text-gray-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-purple-600 file:text-white" accept="image/*">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Government ID Attachment</label>
-                            <input type="file" id="tch-id-file" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" accept="image/*">
                         </div>
                     </div>
                 </div>
@@ -647,10 +676,10 @@ const adminViews = {
                     Cancel
                 </button>
             </div>
-        `
+            `;
+        }
     },
     sendNotice: {
-        title: 'Announcements',
         render: () => `
             <div class="mb-6">
                 <h2 class="text-xl font-black text-gray-800">Broadcast Message</h2>
@@ -877,9 +906,36 @@ function syncTeacherAddress(checkbox) {
     });
 }
 
+/**
+ * Initializes Directory Filters using discovered Metadata
+ */
+async function initializeDirectoryFilters() {
+    const { classes, sections } = await getSchoolMetadata();
+    const lvlSelect = document.getElementById('filter-level');
+    const secSelect = document.getElementById('filter-section');
+    
+    if (lvlSelect) {
+        classes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; opt.innerText = `Class ${c}`;
+            lvlSelect.appendChild(opt);
+        });
+    }
+    if (secSelect) {
+        sections.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s; opt.innerText = s;
+            secSelect.appendChild(opt);
+        });
+    }
+    loadStudentsList();
+}
+
 async function loadStudentsList() {
     const list = document.getElementById('student-list');
-    const sortVal = document.getElementById('class-sort-select')?.value || 'all';
+    const lvlFilter = document.getElementById('filter-level')?.value || 'all';
+    const secFilter = document.getElementById('filter-section')?.value || 'all';
+    
     if (!list) return;
     try {
         const snap = await db.ref('school/students').once('value');
@@ -890,24 +946,17 @@ async function loadStudentsList() {
         }
         let studentEntries = Object.entries(students);
 
-        if (sortVal !== 'all') {
-            let targetClass = sortVal;
-            let targetSection = "General";
-            if (sortVal.includes('-')) {
-                const parts = sortVal.split('-');
-                targetClass = parts[0];
-                targetSection = parts[1];
-            }
-            studentEntries = studentEntries.filter(([id, data]) => {
-                return String(data.class) === String(targetClass) && String(data.section) === String(targetSection);
-            });
-        }
+        // Advanced Dual-Filter Logic
+        studentEntries = studentEntries.filter(([id, data]) => {
+            const matchesLvl = (lvlFilter === 'all') || (String(data.class) === String(lvlFilter));
+            const matchesSec = (secFilter === 'all') || (String(data.section) === String(secFilter));
+            return matchesLvl && matchesSec;
+        });
 
         if (studentEntries.length === 0) {
-            list.innerHTML = `<div class="text-center py-8 text-yellow-600 bg-yellow-50 rounded-xl text-xs p-4 border border-yellow-100">No students found matching Class ${sortVal}.</div>`;
+            list.innerHTML = `<div class="text-center py-8 text-yellow-600 bg-yellow-50 rounded-xl text-xs p-4 border border-yellow-100">No students found matching filters.</div>`;
             return;
         }
-
         studentEntries.sort((a, b) => {
             const nameA = (a[1].name?.first || a[1].name || '').toLowerCase();
             const nameB = (b[1].name?.first || b[1].name || '').toLowerCase();
@@ -1053,7 +1102,7 @@ async function viewStudentProfile(studentId) {
             </div>
 
             <div class="mt-4 grid grid-cols-2 gap-3">
-                <button onclick="alert('Attendance logs are summarized dynamically inside Parent App Dashboard!')" class="bg-gray-800 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
+                <button onclick="await alert('Attendance logs are summarized dynamically inside Parent App Dashboard!')" class="bg-gray-800 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
                     View Attendance
                 </button>
                 <button onclick="adminRouter('examsManagement')" class="bg-indigo-600 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
@@ -1090,7 +1139,7 @@ async function updateStudentProfile(studentId) {
         const phone = document.getElementById('edit-std-phone').value.trim();
 
         if (!first || !last || !stdClass || !stdSection || !phone) {
-            alert("Names, Class, Section, and Registered Mobile are required fields!");
+            await alert("Names, Class, Section, and Registered Mobile are required fields!");
             return;
         }
 
@@ -1110,11 +1159,11 @@ async function updateStudentProfile(studentId) {
         };
 
         await db.ref('school/students/' + studentId).update(updates);
-        alert("Student profile updated successfully!");
+        await alert("Student profile updated successfully!");
         viewStudentProfile(studentId);
     } catch (e) {
         console.error(e);
-        alert("Failed to update student profile: " + e.message);
+        await alert("Failed to update student profile: " + e.message);
     }
 }
     
@@ -1238,7 +1287,7 @@ async function updateTeacherProfile(teacherId) {
         const isHead = document.getElementById('edit-t-isHead').checked;
 
         if (!title) {
-            alert("Professional Title cannot be empty!");
+            await alert("Professional Title cannot be empty!");
             return;
         }
 
@@ -1253,11 +1302,11 @@ async function updateTeacherProfile(teacherId) {
         };
 
         await db.ref('school/teachers/' + teacherId).update(updates);
-        alert("Teacher faculty record updated successfully!");
+        await alert("Teacher faculty record updated successfully!");
         viewTeacherProfileDetails(teacherId);
     } catch (e) {
         console.error(e);
-        alert("Failed to update teacher settings: " + e.message);
+        await alert("Failed to update teacher settings: " + e.message);
     }
 }
     
@@ -1275,7 +1324,10 @@ async function saveStudent() {
     const mother = document.getElementById('std-mother').value.trim();
     const phoneInput = document.getElementById('std-phone').value.trim();
     const email = document.getElementById('std-email').value.trim();
-    const className = document.getElementById('std-class').value.trim();
+    
+    // Extracted from Dynamic Dropdowns
+    const finalClass = document.getElementById('std-class-lvl').value.trim();
+    const section = document.getElementById('std-section-lvl').value.trim() || "General";
     
     // Academic Subjects
     const selectedSubjects = [ ];
@@ -1297,17 +1349,9 @@ async function saveStudent() {
     const birthFile = document.getElementById('std-birth-input').files[0];
     const transferFile = document.getElementById('std-transfer-input').files[0];
 
-    if (!fname || !lname || !phoneInput || !className) {
-        alert("Please fill all required fields (First & Last Name, Class, Phone)");
+    if (!fname || !lname || !phoneInput || !finalClass) {
+        await alert("Please fill all required fields (First & Last Name, Class, Phone)");
         return;
-    }
-
-    let finalClass = className;
-    let section = "General";
-    if (className.includes('-')) {
-        const parts = className.split('-');
-        finalClass = parts[0];
-        section = parts[1];
     }
 
     const studentId = generateStudentID(joinYear);
@@ -1317,13 +1361,13 @@ async function saveStudent() {
 
     try {
         if (photoFile) {
-            photoUrl = await uploadFile(photoFile, `school/students/${studentId}/profile.jpg`);
+            photoUrl = await uploadFile(photoFile, `school/students/${studentId}/profile.jpg`, "Adding Student");
         }
         if (birthFile) {
-            birthUrl = await uploadFile(birthFile, `school/students/${studentId}/birth_certificate.jpg`);
+            birthUrl = await uploadFile(birthFile, `school/students/${studentId}/birth_certificate.jpg`, "Adding Student");
         }
         if (transferFile) {
-            transferUrl = await uploadFile(transferFile, `school/students/${studentId}/transfer_certificate.jpg`);
+            transferUrl = await uploadFile(transferFile, `school/students/${studentId}/transfer_certificate.jpg`, "Adding Student");
         }
 
         const studentData = {
@@ -1360,10 +1404,16 @@ async function saveStudent() {
         };
 
         // Split multiple phone mapping log entries
-        const phones = phoneInput.split(',').map(p => p.trim()).filter(p => p.length >= 10);
+            const phones = phoneInput.split(',').map(p => p.trim()).filter(p => p.length >= 10);
 
-        // Save core student profile details
-        await db.ref('school/students/' + studentId).set(studentData);
+    // Dynamic Class/Section resolution
+    const lvl = document.getElementById('std-class-lvl').value;
+    const sec = document.getElementById('std-section-lvl').value;
+    studentData.class = lvl;
+    studentData.section = sec;
+
+    // Save core student profile details
+    await db.ref('school/students/' + studentId).set(studentData);
 
         // Save multiple login mapping accounts
         for (const phone of phones) {
@@ -1373,67 +1423,12 @@ async function saveStudent() {
             });
         }
 
-        alert(`Student Registered Successfully!\nGenerated Student ID: ${studentId}`);
+        await alert(`Student Registered Successfully!\nGenerated Student ID: ${studentId}`);
         adminRouter('dashboard');
     } catch (e) {
         console.error(e);
         hideUploadProgress(); // Ensure progress UI is cleared on error
-        alert("Error saving student record: " + e.message);
-    }
-}
-
-/**
- * Registration Helper: Load subjects when class is chosen
- */
-async function loadSubjectsForRegistration(classInput) {
-    const container = document.getElementById('registration-subjects-container');
-    if (!classInput) return;
-    
-    const classId = classInput.split('-')[0].trim();
-    if (!classId) return;
-
-    try {
-        const snap = await db.ref(`school/class_configs/${classId}/subjects`).once('value');
-        const config = snap.val();
-        
-        if (!config) {
-            container.innerHTML = `<div class="text-center py-4 bg-orange-50 rounded-xl border border-orange-100"><p class="text-[10px] text-orange-600 font-bold uppercase italic">No subjects configured for Class ${classId} yet.</p></div>`;
-            return;
-        }
-
-        let html = '';
-        const groups = [
-            { id: 'compulsory', label: 'Compulsory' },
-            { id: 'optional_1', label: 'Optional I' },
-            { id: 'optional_2', label: 'Optional II' },
-            { id: 'optional_3', label: 'Optional III' },
-            { id: 'optional_4', label: 'Optional IV' },
-            { id: 'optional_5', label: 'Optional V' }
-        ];
-
-        groups.forEach(g => {
-            if (config[g.id]) {
-                const subjs = Object.values(config[g.id]);
-                html += `
-                    <div>
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">${g.label}</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            ${subjs.map(s => `
-                                <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer active:bg-blue-50 transition-colors">
-                                    <input type="checkbox" class="reg-subj-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="${s}" ${g.id === 'compulsory' ? 'checked' : ''}>
-                                    <span class="text-xs font-bold text-gray-700">${s}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-        });
-
-        container.innerHTML = html || `<p class="text-[10px] text-gray-400 italic">No subjects configured.</p>`;
-
-    } catch (e) {
-        console.error(e);
+        await alert("Error saving student record: " + e.message);
     }
 }
 
@@ -1448,46 +1443,41 @@ async function saveTeacher() {
     const phone2 = document.getElementById('tch-phone2').value.trim();
     const email = document.getElementById('tch-email').value.trim();
 
-    // Address current
     const cStreet = document.getElementById('tch-curr-street').value.trim();
     const cCity = document.getElementById('tch-curr-city').value.trim();
     const cDistrict = document.getElementById('tch-curr-district').value.trim();
-    // Address permanent
     const pStreet = document.getElementById('tch-perm-street').value.trim();
     const pCity = document.getElementById('tch-perm-city').value.trim();
     const pDistrict = document.getElementById('tch-perm-district').value.trim();
 
-    // Professional
     const qualification = document.getElementById('tch-qualification').value.trim();
     const experience = document.getElementById('tch-experience').value.trim();
-    const idType = document.getElementById('tch-id-type').value;
-    const idNum = document.getElementById('tch-id-num').value.trim();
-
-    // Assignments
     const subjects = document.getElementById('tch-subjects').value.trim();
     const classes = document.getElementById('tch-classes').value.trim();
 
-    // Files
     const photoFile = document.getElementById('tch-photo-input').files[0];
-    const idFile = document.getElementById('tch-id-file').files[0];
 
     if (!fname || !lname || !phone) {
-        alert("First Name, Last Name, and Primary Phone are required.");
+        await alert("First Name, Last Name, and Primary Phone are required.");
         return;
     }
 
-    const randDigits = Math.floor(1000 + Math.random() * 9000);
-    const teacherId = `UT-${new Date().getFullYear()}-${randDigits}`;
-
-    let photoUrl = "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150"; // Faculty placeholder portrait
-    let idFileUrl = "N/A";
+    const teacherId = `UT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    let photoUrl = "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150";
 
     try {
-        if (photoFile) {
-            photoUrl = await uploadFile(photoFile, `school/teachers/${teacherId}/profile.jpg`);
-        }
-        if (idFile) {
-            idFileUrl = await uploadFile(idFile, `school/teachers/${teacherId}/gov_id.jpg`);
+        if (photoFile) photoUrl = await uploadFile(photoFile, `school/teachers/${teacherId}/profile.jpg`, "Onboarding Faculty");
+        else showToast("Proceeding without profile photo", "info");
+
+        const docRows = document.querySelectorAll('#tch-doc-vault .doc-row');
+        const verifiedDocs = [ ];
+        for (const row of docRows) {
+            const label = row.querySelector('.doc-label').value.trim();
+            const file = row.querySelector('.doc-file').files[0];
+            if (file && label) {
+                const url = await uploadFile(file, `school/teachers/${teacherId}/docs/${label.replace(/\s+/g, '_')}_${Date.now()}.jpg`, `Uploading ${label}`);
+                verifiedDocs.push({ label, url });
+            }
         }
 
         const teacherData = {
@@ -1509,9 +1499,7 @@ async function saveTeacher() {
             },
             qualification,
             experienceYears: experience || '0',
-            governmentIdType: idType,
-            governmentIdNumber: idNum || 'N/A',
-            governmentIdPhoto: idFileUrl,
+            verificationDocs: verifiedDocs,
             subjects: subjects.split(',').map(s => s.trim()).filter(s => s.length > 0),
             assignedClasses: classes.split(',').map(c => c.trim()).filter(c => c.length > 0),
             photo: photoUrl,
@@ -1531,11 +1519,11 @@ async function saveTeacher() {
             role: 'teacher'
         });
 
-        alert(`Teacher Onboarded successfully!\nAssigned Teacher ID: ${teacherId}`);
+        await alert(`Teacher Onboarded successfully!\nAssigned Teacher ID: ${teacherId}`);
         adminRouter('dashboard');
     } catch (e) {
         console.error(e);
-        alert("Failed to onboarding faculty member: " + e.message);
+        await alert("Failed to onboarding faculty member: " + e.message);
     }
 }
 
@@ -1553,10 +1541,10 @@ async function deleteStudent(studentId) {
             }
         }
         await db.ref('school/students/' + studentId).remove();
-        alert("Student record deleted successfully.");
+        await alert("Student record deleted successfully.");
         adminRouter('viewStudents');
     } catch (e) {
-        alert("Failed to delete record: " + e.message);
+        await alert("Failed to delete record: " + e.message);
     }
 }
 
@@ -1571,10 +1559,10 @@ async function deleteTeacher(teacherId) {
             }
         }
         await db.ref('school/teachers/' + teacherId).remove();
-        alert("Faculty record terminated successfully.");
+        await alert("Faculty record terminated successfully.");
         adminRouter('viewTeachers');
     } catch (e) {
-        alert("Failed to delete record: " + e.message);
+        await alert("Failed to delete record: " + e.message);
     }
 }
 
@@ -1610,7 +1598,7 @@ async function broadcastNotice() {
     const targetClass = document.getElementById('notice-class').value.trim();
 
     if (!title || !body) {
-        alert("Please fill in title and message.");
+        await alert("Please fill in title and message.");
         return;
     }
 
@@ -1625,11 +1613,11 @@ async function broadcastNotice() {
 
     try {
         await db.ref('school/notices').push(noticeData);
-        alert("Notice Broadcasted!");
+        await alert("Notice Broadcasted!");
         adminRouter('dashboard');
     } catch (e) {
         console.error(e);
-        alert("Failed to send notice.");
+        await alert("Failed to send notice.");
     }
 }
 
@@ -1644,7 +1632,7 @@ async function saveExamWindow() {
     const openingDate = document.getElementById('exam-opening').value;
     const closingDate = document.getElementById('exam-closing').value;
     if (!title || !openingDate || !closingDate) {
-        alert("Please enter title and dates.");
+        await alert("Please enter title and dates.");
         return;
     }
 
@@ -1661,12 +1649,12 @@ async function saveExamWindow() {
 
     try {
         await db.ref('school/exam_windows/' + examId).set(data);
-        alert("Exam window successfully scheduled!");
+        await alert("Exam window successfully scheduled!");
         document.getElementById('exam-title').value = '';
         loadExamWindowsList();
     } catch (e) {
         console.error(e);
-        alert("Failed to save window: " + e.message);
+        await alert("Failed to save window: " + e.message);
     }
 }
 
@@ -1746,7 +1734,7 @@ async function publishExamResults(examId) {
         const drafts = draftSnap.val();
 
         if (!drafts) {
-            alert("No draft marks were found to publish for this exam.");
+            await alert("No draft marks were found to publish for this exam.");
             return;
         }
 
@@ -1764,18 +1752,18 @@ async function publishExamResults(examId) {
         }
 
         if (countPublished === 0) {
-            alert("No drafts match this exam ID to publish.");
+            await alert("No drafts match this exam ID to publish.");
             return;
         }
 
                 updates[`school/exam_windows/${examId}/status`] = 'Published';
 
         await db.ref().update(updates);
-        alert(`Successfully published and archived ${countPublished} marks cards for this exam!`);
+        await alert(`Successfully published and archived ${countPublished} marks cards for this exam!`);
         loadExamWindowsList();
     } catch (e) {
         console.error(e);
-        alert("Publishing failed: " + e.message);
+        await alert("Publishing failed: " + e.message);
     }
 }
 
@@ -1928,7 +1916,7 @@ async function postTicketReply(ticketId) {
     const msg = msgInput?.value.trim();
 
     if (!msg) {
-        alert("Please enter a response message!");
+        await alert("Please enter a response message!");
         return;
     }
 
@@ -1949,11 +1937,11 @@ async function postTicketReply(ticketId) {
 
         await db.ref(`school/tickets/${ticketId}/replies`).set(replies);
         if (msgInput) msgInput.value = '';
-        alert("Reply successfully posted to parent discussion!");
+        await alert("Reply successfully posted to parent discussion!");
         viewTicketDetails(ticketId);
     } catch (e) {
         console.error(e);
-        alert("Failed to send reply: " + e.message);
+        await alert("Failed to send reply: " + e.message);
     }
 }
 
@@ -1961,11 +1949,11 @@ async function resolveTicket(ticketId) {
     if (!confirm("Are you sure you want to resolve and close this ticket?")) return;
     try {
         await db.ref(`school/tickets/${ticketId}/status`).set('Resolved');
-        alert("Ticket marked as Resolved.");
+        await alert("Ticket marked as Resolved.");
         viewTicketDetails(ticketId);
     } catch (e) {
         console.error(e);
-        alert("Failed to resolve ticket.");
+        await alert("Failed to resolve ticket.");
     }
 }
 
@@ -1990,6 +1978,26 @@ function loadPrincipalData() {
             }
         }
     });
+}
+
+function addDocumentRow(vaultId) {
+    const vault = document.getElementById(vaultId);
+    const row = document.createElement('div');
+    row.className = 'doc-row grid grid-cols-12 gap-2 items-end animate-fade-in';
+    row.innerHTML = `
+        <div class="col-span-5">
+            <input type="text" class="doc-label w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold outline-none" placeholder="e.g. License">
+        </div>
+        <div class="col-span-5">
+            <input type="file" class="doc-file w-full text-[10px] text-gray-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-purple-600 file:text-white" accept="image/*">
+        </div>
+        <div class="col-span-2">
+            <button onclick="this.parentElement.parentElement.remove()" class="w-full p-2 text-red-400 active:scale-90 transition-transform">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    `;
+    vault.appendChild(row);
 }
 
 async function savePrincipalConfig() {

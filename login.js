@@ -1,4 +1,4 @@
-// Login View Controller for Udayashree School App (Updated for Multi-Number resolution)
+// Login View Controller for Udayashree School App (Updated with Samsung-Compatible OTP jumping and Mock 0000 Bypass)
 
 let loginStep = 1;
 let tempPhone = '';
@@ -18,40 +18,107 @@ function showStep2() {
     document.getElementById('step-1-view').classList.add('hidden');
     document.getElementById('step-2-view').classList.remove('hidden');
     
-    // Auto focus and digit logic
     const inputs = document.querySelectorAll('.otp-input');
+    
+    // Auto-focus and Samsung/Gboard compatible input jumping logic
     inputs.forEach((input, index) => {
         input.value = '';
-        input.addEventListener('keyup', (e) => {
-            if (e.key >= 0 && e.key <= 9) {
-                if (index < inputs.length - 1) inputs[index + 1].focus();
-            } else if (e.key === 'Backspace') {
-                if (index > 0) inputs[index - 1].focus();
+        
+        // Remove previous listeners by cloning
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+    });
+
+    const freshInputs = document.querySelectorAll('.otp-input');
+    freshInputs.forEach((input, index) => {
+        // Handle numerical input (Samsung/Android friendly 'input' event!)
+        input.addEventListener('input', (e) => {
+            const val = input.value.trim();
+            if (val.length >= 1) {
+                input.value = val.slice(-1); // Only keep the last digit
+                if (index < freshInputs.length - 1) {
+                    freshInputs[index + 1].focus(); // Move cursor to next input box
+                }
+            }
+        });
+
+        // Handle backspacing
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (input.value.length === 0 && index > 0) {
+                    freshInputs[index - 1].focus(); // Go back to previous input box
+                } else {
+                    input.value = '';
+                }
             }
         });
     });
-    setTimeout(() => { inputs[0].focus(); }, 100);
+
+    setTimeout(() => { freshInputs[0].focus(); }, 150);
 }
 
-function sendOTP() {
-    const phone = document.getElementById('login-phone').value.trim();
-    if (phone.length >= 10) {
+async function sendOTP() {
+    const phoneInput = document.getElementById('login-phone').value.trim();
+    // Strip everything except numbers
+    const phone = phoneInput.replace(/\D/g, '');
+
+    if (phone.length < 10) {
+        await alert('Please enter a valid 10-digit mobile number');
+        return;
+    }
+
+    try {
+        showUploadProgress(30, "Login Process", "Verifying database entries...");
+        
+        // Check if phone exists in school/admin or school/head or school/login_mappings
+        const adminSnap = await db.ref('school/admin/' + phone).once('value');
+        const headSnap = await db.ref('school/head/' + phone).once('value');
+        const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
+
+        if (!adminSnap.exists() && !headSnap.exists() && !mapSnap.exists()) {
+            hideUploadProgress();
+            await alert("Invalid phone number: This mobile number is not registered in the school database.");
+            return;
+        }
+
         tempPhone = phone;
+        hideUploadProgress();
         showStep2();
-    } else {
-        alert('Please enter a valid mobile number');
+    } catch (error) {
+        console.error("SMS Trigger failed:", error);
+        hideUploadProgress();
+        await alert("Verification check failed: " + error.message);
     }
 }
 
 async function handleLogin() {
     const phone = tempPhone || '9800000000';
     
+    // Collect the 4 digits from inputs
+    const inputs = document.querySelectorAll('.otp-input');
+    let code = '';
+    inputs.forEach(input => code += input.value.trim());
+
+    if (code.length < 4) {
+        await alert("Please enter the complete 4-digit verification code.");
+        return;
+    }
+
+    // Default SMS bypass code to 0000
+    if (code !== '0000') {
+        await alert("Invalid verification code. Please enter '0000' to login.");
+        return;
+    }
+
     try {
+        showUploadProgress(50, "Authentication", "Retrieving profile details...");
+
         // 1. Check for Super Admin phone numbers
         const adminSnap = await db.ref('school/admin/' + phone).once('value');
         if (adminSnap.exists()) {
             currentUser = { role: ROLES.ADMIN, id: 'ADM-' + phone.slice(-4), name: 'Administrator', phone: phone };
             localStorage.setItem('school_app_user', JSON.stringify(currentUser));
+            hideUploadProgress();
             redirectUserToRoleDashboard(currentUser.role);
             return;
         }
@@ -69,11 +136,12 @@ async function handleLogin() {
                 photo: p.photo || 'https://via.placeholder.com/150'
             };
             localStorage.setItem('school_app_user', JSON.stringify(currentUser));
+            hideUploadProgress();
             redirectUserToRoleDashboard(currentUser.role);
             return;
         }
 
-        // 2. Read from dynamic login mapping for Teachers/Parents
+        // 3. Read from dynamic login mapping for Teachers/Parents/Accountants/Admins/Principals
         const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
         
         if (mapSnap.exists()) {
@@ -97,7 +165,7 @@ async function handleLogin() {
                         role: ROLES.TEACHER,
                         id: mapData.studentId,
                         name: fullName,
-                        phone: t.phone,
+                        phone: t.phone || phone,
                         photo: t.photo || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
                         subjects: t.subjects || [ ],
                         assignedClasses: t.assignedClasses || [ ],
@@ -108,6 +176,27 @@ async function handleLogin() {
                 } else {
                     throw new Error("Teacher profile not found.");
                 }
+            } else if (mapData.role === 'accountant') {
+                currentUser = {
+                    role: ROLES.ACCOUNTANT,
+                    id: mapData.studentId || 'ACC-05',
+                    name: 'Accountant Staff',
+                    phone: phone
+                };
+            } else if (mapData.role === 'admin') {
+                currentUser = {
+                    role: ROLES.ADMIN,
+                    id: mapData.studentId || 'A-001',
+                    name: 'Admin Staff',
+                    phone: phone
+                };
+            } else if (mapData.role === 'principal') {
+                currentUser = {
+                    role: ROLES.PRINCIPAL,
+                    id: 'HEAD-OFFICE',
+                    name: 'Principal',
+                    phone: phone
+                };
             } else {
                 // Resolve Parent dynamic profile
                 const stdSnap = await db.ref('school/students/' + mapData.studentId).once('value');
@@ -128,6 +217,7 @@ async function handleLogin() {
                             photo: s.photo,
                             age: s.age || 'N/A',
                             joinYear: s.joinYear || 'N/A',
+                            fatherName: s.fatherName || (s.family ? s.family.fatherName : '') || 'N/A',
                             classTeacher: 'Ms. Sunita Rai',
                             schedule: [
                                 { period: '1st', time: '10:00 AM', subject: 'Mathematics', teacher: 'Ms. Sunita Rai', days: 'Sun - Fri' },
@@ -142,82 +232,19 @@ async function handleLogin() {
                 }
             }
         } else {
-            // Bypasses & overrides for testing / development
-            if (phone.startsWith('981')) {
-                currentUser = { 
-                    role: ROLES.TEACHER, 
-                    id: 'UT-2026-9999', 
-                    name: 'Ms. Sunita Rai',
-                    phone: phone,
-                    photo: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
-                    subjects: ['Mathematics', 'Science'],
-                    assignedClasses: ['12-Science', '11-Management', '10-A'],
-                    schedule: [
-                        { period: '1st', class: '12-Science', subject: 'Physics', time: '10:00 AM' },
-                        { period: '3rd', class: '11-Management', subject: 'Accounting', time: '11:30 AM' }
-                    ]
-                };
-            } else if (phone.startsWith('982')) {
-                currentUser = { role: ROLES.ADMIN, id: 'A-001', name: 'Admin Staff' };
-            } else if (phone.startsWith('983')) {
-                currentUser = { role: ROLES.ACCOUNTANT, id: 'ACC-05', name: 'Nabin Jha' };
-            } else if (phone.startsWith('984')) {
-                currentUser = { role: ROLES.PRINCIPAL, id: 'P-01', name: 'Dr. Hari Bansha' };
-            } else {
-                // Default fallback guest account
-                currentUser = { 
-                    role: ROLES.PARENT,
-                    id: 'MOCK-001',
-                    name: 'Guest Parent',
-                    phone: phone,
-                    student: {
-                        id: 'US-2026-9999',
-                        name: 'Demo Student',
-                        grade: '10',
-                        section: 'A',
-                        roll: '01',
-                        bloodGroup: 'O+',
-                        photo: 'https://via.placeholder.com/150',
-                        age: '15',
-                        joinYear: '2026',
-                        classTeacher: 'Ms. Sunita Rai',
-                        schedule: [
-                            { period: '1st', time: '10:00 AM', subject: 'Mathematics', teacher: 'Ms. Sunita Rai', days: 'Sun - Fri' },
-                            { period: 'Break', time: '01:00 PM', subject: 'Lunch Break', teacher: '-', days: 'Daily' }
-                        ],
-                        marks: { "Term 1": [ ] }
-                    }
-                };
-            }
+            hideUploadProgress();
+            await alert("Invalid phone number or account not registered.");
+            return;
         }
+        
+        localStorage.setItem('school_app_user', JSON.stringify(currentUser));
+        hideUploadProgress();
+        redirectUserToRoleDashboard(currentUser.role);
     } catch (e) {
-        console.error("Login map resolution failed:", e);
-        alert("Verification bypass: Loaded default profile.");
-        // Defensive profile mapping
-        currentUser = { 
-            role: ROLES.PARENT,
-            id: 'MOCK-001',
-            name: 'Guest Parent',
-            phone: phone,
-            student: {
-                id: 'US-2026-9999',
-                name: 'Demo Student',
-                grade: '10',
-                section: 'A',
-                roll: '01',
-                bloodGroup: 'O+',
-                photo: 'https://via.placeholder.com/150',
-                age: '15',
-                joinYear: '2026',
-                classTeacher: 'Ms. Sunita Rai',
-                schedule: [ ],
-                marks: { "Term 1": [ ] }
-            }
-        };
+        console.error("Authentication failed:", e);
+        hideUploadProgress();
+        await alert("Authentication failed: " + e.message);
     }
-    
-    localStorage.setItem('school_app_user', JSON.stringify(currentUser));
-    redirectUserToRoleDashboard(currentUser.role);
 }
 
 // Startup execution
