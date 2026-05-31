@@ -34,7 +34,7 @@ const teacherViews = {
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="mobile-card bg-blue-700 text-white p-5 shadow-lg">
                     <span id="dash-total-students" class="block text-2xl font-black">...</span>
-                    <span class="text-[10px] opacity-70 uppercase font-bold tracking-wide">Registered Students</span>
+                    <span class="text-[10px] opacity-70 uppercase font-bold tracking-wide">My Class Size</span>
                 </div>
                 <div class="mobile-card bg-indigo-600 text-white p-5 shadow-lg">
                     <span class="block text-2xl font-black">${SafeResolvers.count(currentUser?.schedule ? currentUser.schedule.length : 2)}</span>
@@ -42,38 +42,34 @@ const teacherViews = {
                 </div>
             </div>
 
-            <!-- Current Schedule Timeline Summary -->
-            <h3 class="font-bold text-gray-800 mb-4">My Schedule Summary</h3>
-            <div class="space-y-3">
-                ${(currentUser?.schedule || [ ]).map(s => `
-                    <div class="mobile-card flex items-center justify-between border-l-4 border-blue-600 bg-white">
-                        <div>
-                            <h4 class="font-bold text-gray-800">${s.subject} - Class ${s.class}</h4>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">${s.time} | Period ${s.period}</p>
-                        </div>
-                        <button onclick="teacherRouter('attendance')" class="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-xs font-bold active:scale-95 transition-all">
-                            Take Attendance
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
-
             <!-- Polished Quick Action Shortcuts Grid -->
             <h3 class="font-bold text-gray-800 mt-8 mb-4">Faculty Quick Operations</h3>
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="teacherRouter('attendance')" class="mobile-card flex flex-col items-center justify-center p-6 text-emerald-600 bg-white hover:bg-emerald-50/20 active:scale-95 transition-all">
-                    <i class="fas fa-user-check text-2xl mb-2"></i>
-                    <span class="text-[10px] font-black uppercase tracking-wider">Attendance</span>
+                <button onclick="teacherRouter('classStudents')" class="mobile-card flex flex-col items-center justify-center p-6 text-emerald-600 bg-white hover:bg-emerald-50/20 active:scale-95 transition-all animate-fade-in">
+                    <i class="fas fa-users text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Class Pupils</span>
                 </button>
-                <button onclick="teacherRouter('marks')" class="mobile-card flex flex-col items-center justify-center p-6 text-blue-600 bg-white hover:bg-blue-50/20 active:scale-95 transition-all">
+                <button onclick="teacherRouter('classResults')" class="mobile-card flex flex-col items-center justify-center p-6 text-indigo-600 bg-white hover:bg-indigo-50/20 active:scale-95 transition-all animate-fade-in">
+                    <i class="fas fa-chart-line text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Results Tracker</span>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <button onclick="teacherRouter('schedule')" class="mobile-card flex flex-col items-center justify-center p-6 text-purple-600 bg-white hover:bg-purple-50/20 active:scale-95 transition-all animate-fade-in">
+                    <i class="fas fa-calendar-day text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Weekly Routine</span>
+                </button>
+                <button onclick="teacherRouter('marks')" class="mobile-card flex flex-col items-center justify-center p-6 text-blue-600 bg-white hover:bg-blue-50/20 active:scale-95 transition-all animate-fade-in">
                     <i class="fas fa-file-signature text-2xl mb-2"></i>
-                    <span class="text-[10px] font-black uppercase tracking-wider">Marks Entry</span>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Enter Marks</span>
                 </button>
-                <button onclick="teacherRouter('suggestions')" class="mobile-card flex flex-col items-center justify-center p-6 text-amber-600 bg-white hover:bg-amber-50/20 active:scale-95 transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <button onclick="teacherRouter('suggestions')" class="mobile-card flex flex-col items-center justify-center p-6 text-amber-600 bg-white hover:bg-amber-50/20 active:scale-95 transition-all animate-fade-in">
                     <i class="fas fa-comment-dots text-2xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase tracking-wider">Suggestions Feed</span>
                 </button>
-                <button onclick="teacherRouter('reassignment')" class="mobile-card flex flex-col items-center justify-center p-6 text-purple-600 bg-white hover:bg-purple-50/20 active:scale-95 transition-all">
+                <button onclick="teacherRouter('reassignment')" class="mobile-card flex flex-col items-center justify-center p-6 text-rose-600 bg-white hover:bg-rose-50/20 active:scale-95 transition-all animate-fade-in">
                     <i class="fas fa-exchange-alt text-2xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase tracking-wider">Class Change</span>
                 </button>
@@ -129,10 +125,11 @@ const teacherViews = {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Date</label>
-                        <input type="date" id="attend-date" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" value="${new Date().toISOString().split('T')[0]}">
+                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Date (BS)</label>
+                        <input type="text" id="attend-date" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" placeholder="YYYY-MM-DD" value="${getFormattedCurrentNepaliDate()}">
                     </div>
                 </div>
+    
 
                 <!-- Load Trigger -->
                 <button onclick="loadAttendanceRoster()" class="w-full bg-blue-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
@@ -297,6 +294,83 @@ const teacherViews = {
             </div>
         `
     },
+    classStudents: {
+        title: 'Class Pupils Directory',
+        render: () => {
+            setTimeout(() => {
+                loadClassStudentsList();
+            }, 50);
+
+            return `
+                <div class="mb-4 text-left animate-fade-in">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Class Pupils Directory</h2>
+                    <p class="text-xs text-gray-500">Search and view historical status and incident archives of class students</p>
+                </div>
+
+                <div class="mb-4 space-y-3">
+                    <div class="relative">
+                        <input type="text" id="student-search-input" onkeyup="filterClassStudentsList()" class="w-full p-4 bg-white border border-gray-100 rounded-xl shadow-sm outline-none pl-12 text-sm" placeholder="Search pupil by name...">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-bold"></i>
+                    </div>
+                </div>
+
+                <div id="class-students-list-container" class="space-y-3">
+                    <div class="text-center py-10 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin mr-2"></i>Loading student directory...</div>
+                </div>
+
+                <!-- Incident History Modal Panel (Shared) -->
+                <div id="pupil-incident-history-panel" class="hidden mt-8 text-left bg-white p-5 rounded-2xl border border-gray-100 shadow-sm animate-fade-in">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-black text-gray-800 text-xs uppercase tracking-wider">Incident & Enrollment Archive</h3>
+                        <button onclick="document.getElementById('pupil-incident-history-panel').classList.add('hidden')" class="text-[10px] text-gray-400 font-bold hover:text-gray-600"><i class="fas fa-times-circle mr-1"></i>Close</button>
+                    </div>
+                    <div id="pupil-incident-history-list" class="space-y-3"></div>
+                </div>
+            `;
+        }
+    },
+    classResults: {
+        title: 'Class Results Tracker',
+        render: () => {
+            setTimeout(() => {
+                loadClassResultsTracker();
+            }, 50);
+
+            return `
+                <div class="mb-4 text-left animate-fade-in">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Pupils Academic Tracker</h2>
+                    <p class="text-xs text-gray-500">Track current grades and search historic archives of student report cards</p>
+                </div>
+
+                <div class="mobile-card bg-white p-4 space-y-3 mb-6 text-left shadow-sm border border-gray-105">
+                    <h3 class="text-xs font-black uppercase text-blue-600 tracking-wider">Search Filters & Archives</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Exam Term</label>
+                            <select id="res-term" onchange="loadClassResultsTracker()" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                                <option value="Term 1" selected>Term 1</option>
+                                <option value="Term 2">Term 2</option>
+                                <option value="Term 3">Term 3</option>
+                                <option value="Finals">Finals</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Results Archive Year</label>
+                            <select id="res-year" onchange="loadClassResultsTracker()" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                                <option value="2026" selected>Current Year (2026)</option>
+                                <option value="2025">Year 2025 Archives</option>
+                                <option value="2024">Year 2024 Archives</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="results-tracker-container" class="space-y-4 pb-16">
+                    <div class="text-center py-10 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin mr-2"></i>Loading academic records...</div>
+                </div>
+            `;
+        }
+    },
     teachers: {
         title: 'Faculty Directory',
         render: () => `
@@ -440,8 +514,9 @@ async function loadTeacherSuggestionsFeed() {
                         <span class="text-xs font-black text-gray-800">${s.parentName}</span>
                         <span class="text-[9px] text-gray-400 font-bold">(${s.parentPhone})</span>
                     </div>
-                    <span class="text-[8px] text-gray-400 font-bold">${new Date(s.timestamp).toLocaleString()}</span>
+                    <span class="text-[8px] text-gray-400 font-bold">${convertToNepaliDateTime(s.timestamp)}</span>
                 </div>
+    
                 <p class="text-xs text-gray-700 leading-relaxed font-semibold bg-gray-50 p-3 rounded-xl">${s.message}</p>
                 <div class="mt-2 text-[8px] font-black text-blue-600 uppercase tracking-wider">
                     Parent of: ${s.studentName}
@@ -523,9 +598,8 @@ async function loadReassignmentRequestsHistory() {
                     </div>
                     <h4 class="font-bold text-gray-800 text-sm">Class ${r.requestedClass} | ${r.requestedSubject}</h4>
                     <div class="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between text-[8px] font-bold text-gray-400 uppercase">
-                        <span>Submitted: ${new Date(r.timestamp).toLocaleDateString()}</span>
+                        <span>Submitted: ${convertToNepaliDate(r.timestamp)}</span>
                     </div>
-                </div>
             `;
         }).join('');
 
@@ -534,4 +608,155 @@ async function loadReassignmentRequestsHistory() {
         container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading requests: ${e.message}</div>`;
     }
 }
+
+
+let classStudentsCache = [ ];
+
+async function loadClassStudentsList() {
+const container = document.getElementById('class-students-list-container');
+if (!container) return;
+
+code
+Code
+download
+content_copy
+expand_less
+try {
+    const snap = await db.ref('school/students').once('value');
+    const students = snap.val();
+    if (!students) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students found in directory.</div>';
+        return;
+    }
+
+    const classTeacherClass = currentUser?.assignedClasses ? currentUser.assignedClasses : '1';
+    classStudentsCache = Object.values(students).filter(s => String(s.class) === String(classTeacherClass));
+
+    classStudentsCache.sort((a, b) => (a.roll || 999) - (b.roll || 999));
     
+    renderClassStudentsList(classStudentsCache);
+
+} catch(e) {
+    console.error(e);
+    container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading students: ${e.message}</div>`;
+}
+
+}
+
+function renderClassStudentsList(students) {
+const container = document.getElementById('class-students-list-container');
+if (!container) return;
+
+code
+Code
+download
+content_copy
+expand_less
+if (students.length === 0) {
+    container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students match your search.</div>';
+    return;
+}
+
+container.innerHTML = students.map(s => {
+    let fullName = getStudentFullName(s.name);
+    return `
+        <div class="mobile-card student-card bg-white p-4 shadow-sm border-l-4 border-emerald-500 flex items-center justify-between" data-name="${fullName.toLowerCase()}">
+            <div class="flex items-center gap-4">
+                <img src="${SafeResolvers.photo(s.photo)}" class="w-12 h-12 rounded-xl object-cover">
+                <div>
+                    <h4 class="font-black text-gray-800 text-sm">${fullName}</h4>
+                    <span class="text-[9px] text-gray-400 font-bold uppercase mt-1">Roll No: ${s.roll || 'N/A'}</span>
+                </div>
+            </div>
+            <button onclick="viewPupilIncidentHistory('${s.id}')" class="bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg text-xs font-bold active:scale-95 transition-all">
+                <i class="fas fa-history mr-1"></i> View History
+            </button>
+        </div>
+    `;
+}).join('');
+
+}
+
+function filterClassStudentsList() {
+const query = document.getElementById('student-search-input').value.toLowerCase();
+const filtered = classStudentsCache.filter(s => getStudentFullName(s.name).toLowerCase().includes(query));
+renderClassStudentsList(filtered);
+}
+
+function viewPupilIncidentHistory(studentId) {
+document.getElementById('pupil-incident-history-panel').classList.remove('hidden');
+renderSharedStudentIncidentHistory('pupil-incident-history-list', studentId);
+document.getElementById('main-content').scrollTop = document.getElementById('main-content').scrollHeight;
+}
+
+async function loadClassResultsTracker() {
+const container = document.getElementById('results-tracker-container');
+const term = document.getElementById('res-term').value;
+const year = document.getElementById('res-year').value;
+if (!container) return;
+
+code
+Code
+download
+content_copy
+expand_less
+container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin mr-2"></i>Loading academic records...</div>';
+
+try {
+    const classTeacherClass = currentUser?.assignedClasses ? currentUser.assignedClasses : '1';
+    const snap = await db.ref('school/students').orderByChild('class').equalTo(classTeacherClass).once('value');
+    const students = snap.val();
+
+    if (!students) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students enrolled in your assigned class.</div>';
+        return;
+    }
+
+    let studentList = Object.values(students);
+    studentList.sort((a, b) => (a.roll || 999) - (b.roll || 999));
+
+    const resultsPromises = studentList.map(s => db.ref(`school/results/${s.id}/${term}_${year}`).once('value'));
+    const resultsSnapshots = await Promise.all(resultsPromises);
+    
+    const resultsData = resultsSnapshots.map((snap, i) => ({ student: studentList[i], marks: snap.val() }));
+
+    container.innerHTML = resultsData.map(({ student, marks }) => {
+        let totalMarks = 0, totalObtained = 0, subjectsCount = 0;
+        let isFail = false;
+        let marksHtml = '<div class="text-xs text-gray-400 italic">No results published.</div>';
+
+        if (marks) {
+            marksHtml = Object.entries(marks).map(([subject, m]) => {
+                totalMarks += (m.total || 100);
+                totalObtained += (m.obtained || 0);
+                subjectsCount++;
+                if ((m.obtained || 0) < (m.pass || 40)) isFail = true;
+                return `<div class="font-mono text-xs">${subject}: ${m.obtained}/${m.total} (${m.grade})</div>`;
+            }).join('');
+        }
+        
+        const percentage = totalMarks > 0 ? (totalObtained / totalMarks * 100).toFixed(1) : 0;
+
+        return `
+            <div class="mobile-card bg-white p-4 shadow-sm border-l-4 ${isFail ? 'border-red-500' : 'border-indigo-500'}">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h4 class="font-black text-gray-800">${getStudentFullName(student.name)}</h4>
+                        <span class="text-[9px] text-gray-400 font-bold">Roll: ${student.roll || 'N/A'}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-lg font-black text-indigo-600">${percentage}%</span>
+                        <span class="text-[9px] font-bold text-gray-400 block">${isFail ? 'FAIL' : 'PASS'}</span>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-50 space-y-1">${marksHtml}</div>
+            </div>
+        `;
+    }).join('');
+
+} catch (e) {
+    console.error(e);
+    container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading results: ${e.message}</div>`;
+}
+
+}

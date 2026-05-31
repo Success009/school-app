@@ -510,9 +510,8 @@ async function loadParentNotices() {
         container.innerHTML = filtered.map(n => `
             <div class="mobile-card border-l-4 border-blue-600 bg-white p-4 shadow-sm">
                 <h4 class="font-bold text-blue-800">${SafeResolvers.text(n.title)}</h4>
-                <p class="text-[10px] text-gray-400 mb-2">Posted: ${new Date(n.timestamp).toLocaleDateString()}</p>
+                <p class="text-[10px] text-gray-400 mb-2">Posted: ${convertToNepaliDate(n.timestamp)}</p>
                 <p class="text-sm text-gray-700 leading-relaxed">${SafeResolvers.text(n.body)}</p>
-                <p class="text-[9px] font-bold text-gray-400 mt-2 uppercase">Broadcasted by: ${SafeResolvers.text(n.sender, 'Administrator')}</p>
             </div>
         `).join('');
     } catch (e) {

@@ -111,10 +111,10 @@ async function loadAttendanceHistoryAndStats() {
         historyContainer.innerHTML = historyList.reverse().map(h => {
             const dateParts = h.date.split('-');
             const dayStr = dateParts[2] || "01";
-            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const monthNames = ["BAI", "JST", "ASH", "SHW", "BHD", "ASW", "KRT", "MNG", "PSH", "MGH", "FLG", "CHT"];
             const monthIdx = parseInt(dateParts[1]) - 1;
-            const monthStr = isNaN(monthIdx) ? "MAY" : (monthNames[monthIdx] || "MAY");
-
+            const monthStr = isNaN(monthIdx) ? "JST" : (monthNames[monthIdx] || "JST");
+    
             const isPresent = h.status === 'present';
             
             return `

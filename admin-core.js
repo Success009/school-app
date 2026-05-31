@@ -8,42 +8,7 @@ if (checkAuth([ROLES.ADMIN])) {
 }
 
 const adminViews = {
-    principalConfig: {
-        title: 'Principal Configuration',
-        render: () => {
-            setTimeout(() => { loadPrincipalData(); }, 100);
-            return `
-            <div class="space-y-6 animate-fade-in">
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-                    <div class="flex flex-col items-center mb-4">
-                        <div id="prin-photo-preview" class="w-24 h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden mb-2">
-                            <i class="fas fa-user-tie text-gray-300 text-2xl"></i>
-                        </div>
-                        <input type="file" id="prin-photo-input" class="hidden" onchange="previewImage(this, 'prin-photo-preview')">
-                        <button onclick="document.getElementById('prin-photo-input').click()" class="text-blue-600 text-[10px] font-bold uppercase tracking-wider">Change Official Photo</button>
-                    </div>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-[10px] font-black text-gray-400 uppercase ml-1">Full Name</label>
-                            <input type="text" id="prin-name" class="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g. Dr. Hari Bansha">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black text-gray-400 uppercase ml-1">Primary Login Phone</label>
-                            <input type="tel" id="prin-phone-1" class="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none" placeholder="98XXXXXXXX">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black text-gray-400 uppercase ml-1">Secondary Phone</label>
-                            <input type="tel" id="prin-phone-2" class="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none" placeholder="98XXXXXXXX">
-                        </div>
-                    </div>
-                    <button onclick="savePrincipalConfig()" class="w-full bg-gray-900 text-white font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-transform mt-4">
-                        Update Principal Account
-                    </button>
-                    <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-2 text-xs">Cancel</button>
-                </div>
-            </div>`;
-        }
-    },
+    
     subjectManager: {
         title: 'Subject Configuration',
         render: () => `
@@ -128,10 +93,7 @@ const adminViews = {
                     <i class="fas fa-bullhorn text-xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase">Send Notice</span>
                 </button>
-                <button onclick="adminRouter('principalConfig')" class="mobile-card flex flex-col items-center justify-center p-6 text-purple-700 bg-white hover:bg-gray-50">
-                    <i class="fas fa-user-tie text-xl mb-2"></i>
-                    <span class="text-[10px] font-black uppercase">Principal Settings</span>
-                </button>
+    
                 <button onclick="adminRouter('subjectManager')" class="mobile-card flex flex-col items-center justify-center p-6 text-indigo-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-book text-xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase">Subject Manager</span>
@@ -280,14 +242,15 @@ const adminViews = {
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Opening Date</label>
-                                <input type="date" id="exam-opening" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" value="${new Date().toISOString().split('T')[0]}">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Opening Date (BS)</label>
+                                <input type="text" id="exam-opening" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" placeholder="YYYY-MM-DD" value="${getFormattedCurrentNepaliDate()}">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Closing Date</label>
-                                <input type="date" id="exam-closing" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" value="${new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0]}">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Closing Date (BS)</label>
+                                <input type="text" id="exam-closing" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" placeholder="YYYY-MM-DD" value="${convertToNepaliDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000))}">
                             </div>
                         </div>
+    
                         <div class="p-3 bg-orange-50 rounded-xl border border-orange-100">
                             <p class="text-[10px] text-orange-700 font-bold leading-tight"><i class="fas fa-info-circle mr-1"></i> Marks Scaling: Full Marks and Pass Marks are now managed dynamically by Teachers during grading.</p>
                         </div>
@@ -363,15 +326,15 @@ const adminViews = {
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth</label>
-                                <input type="date" id="std-dob" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth (BS)</label>
+                                <input type="text" id="std-dob" placeholder="YYYY-MM-DD (e.g. 2075-04-12)" oninput="calculateNepaliAgeOnboarding()" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Student Age</label>
-                                <input type="number" id="std-age" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="15">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Student Age (Auto-calculated)</label>
+                                <input type="number" id="std-age" readonly class="w-full p-2.5 bg-gray-100 border border-gray-100 rounded-xl outline-none text-xs cursor-not-allowed" placeholder="Calculated Age">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Blood Group</label>
@@ -537,10 +500,10 @@ const adminViews = {
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth</label>
-                                <input type="date" id="tch-dob" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth (BS)</label>
+                                <input type="text" id="tch-dob" placeholder="YYYY-MM-DD" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
                             </div>
-                        </div>
+    
 
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Blood Group</label>
@@ -870,9 +833,8 @@ async function loadAdminNotices() {
                 <p class="text-[10px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">${SafeResolvers.text(n.body)}</p>
                 <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
                     <span class="text-[9px] font-bold text-teal-600 uppercase">${SafeResolvers.text(n.target)}</span>
-                    <span class="text-[9px] text-gray-300 font-medium">${new Date(n.timestamp).toLocaleDateString()}</span>
+                    <span class="text-[9px] text-gray-300 font-medium">${convertToNepaliDate(n.timestamp)}</span>
                 </div>
-            </div>
         `).join('');
     } catch (e) { 
         console.error(e); 
@@ -932,12 +894,13 @@ async function loadAdminSuggestionsFeed() {
                         <span class="text-xs font-black text-gray-800">${s.parentName}</span>
                         <span class="text-[9px] text-gray-400 font-bold">(${s.parentPhone})</span>
                     </div>
-                    <span class="text-[8px] text-gray-400 font-bold">${new Date(s.timestamp).toLocaleString()}</span>
+                    <span class="text-[8px] text-gray-400 font-bold">${convertToNepaliDateTime(s.timestamp)}</span>
                 </div>
                 <p class="text-xs text-gray-700 leading-relaxed font-semibold bg-gray-50 p-3 rounded-xl">${s.message}</p>
                 <div class="mt-2 text-[8px] font-black text-blue-600 uppercase tracking-wider">
                     Parent of: ${s.studentName}
                 </div>
+    
             </div>
         `).join('');
 
@@ -993,12 +956,11 @@ async function loadAdminReassignmentQueue() {
                         <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${statusColor}">${r.status}</span>
                     </div>
                     <h4 class="font-bold text-gray-800 text-sm">Requested: Class ${r.requestedClass} | ${r.requestedSubject}</h4>
-                    <p class="text-[9px] text-gray-400 font-bold mt-1 uppercase">Applied: ${new Date(r.timestamp).toLocaleDateString()}</p>
+                    <p class="text-[9px] text-gray-400 font-bold mt-1 uppercase">Applied: ${convertToNepaliDate(r.timestamp)}</p>
                     ${actionButtons}
                 </div>
             `;
         }).join('');
-
     } catch (e) {
         console.error(e);
         container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading request queue: ${e.message}</div>`;

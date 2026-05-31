@@ -11,8 +11,9 @@ async function saveExamWindow() {
         return;
     }
 
-    const examId = termId.replace(/\s+/g, '').toLowerCase() + '_' + new Date(openingDate).getFullYear();
-
+    const yearPart = openingDate.split('-')[0] || "2083";
+    const examId = termId.replace(/\s+/g, '').toLowerCase() + '_' + yearPart;
+    
     const data = {
         title,
         termId,
@@ -47,10 +48,9 @@ async function loadExamWindowsList() {
         }
 
         container.innerHTML = Object.entries(list).map(([examId, item]) => {
-            const isClosed = item.status === 'Closed' || new Date(item.closingDate) < new Date();
+            const isClosed = item.status === 'Closed' || convertToEnglishDate(item.closingDate) < new Date();
             const badgeStyle = isClosed 
-                ? "bg-red-100 text-red-700" 
-                : "bg-green-100 text-green-700";
+    
 
             return `
                 <div class="mobile-card flex items-center justify-between p-4 bg-white border border-gray-100 shadow-sm relative overflow-hidden">

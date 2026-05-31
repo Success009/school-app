@@ -8,10 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Firebase Compat SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/nepali-date-converter/dist/nepali-date-converter.umd.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-</head>
 <body class="bg-gray-50 font-sans antialiased overflow-x-hidden">
     <div id="app" class="flex flex-col h-screen overflow-hidden">
         <!-- Consistent Mobile Header -->
@@ -33,17 +33,9 @@
                 <i class="fas fa-home text-xl"></i>
                 <span class="text-xs mt-1">Home</span>
             </button>
-            <button onclick="teacherRouter('schedule')" class="nav-item flex flex-col items-center text-gray-400" data-view="schedule">
-                <i class="fas fa-calendar-day text-xl"></i>
-                <span class="text-xs mt-1">Schedule</span>
-            </button>
             <button onclick="teacherRouter('attendance')" class="nav-item flex flex-col items-center text-gray-400" data-view="attendance">
                 <i class="fas fa-calendar-check text-xl"></i>
-                <span class="text-xs mt-1">Attend</span>
-            </button>
-            <button onclick="teacherRouter('marks')" class="nav-item flex flex-col items-center text-gray-400" data-view="marks">
-                <i class="fas fa-file-signature text-xl"></i>
-                <span class="text-xs mt-1">Marks</span>
+                <span class="text-xs mt-1">Take Attendance</span>
             </button>
             <button onclick="teacherRouter('profile')" class="nav-item flex flex-col items-center text-gray-400" data-view="profile">
                 <i class="fas fa-user-tie text-xl"></i>

@@ -130,14 +130,18 @@ async function viewStudentProfile(studentId) {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="mobile-card">
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Student Age</label>
-                        <input type="number" id="edit-std-age" value="${data.age || ''}" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="mobile-card !p-3">
+                        <label class="block text-[8px] font-bold text-gray-400 uppercase mb-0.5">Date of Birth (BS)</label>
+                        <input type="text" id="edit-std-dob" value="${data.dob || ''}" placeholder="YYYY-MM-DD" oninput="calculateNepaliAgeEdit()" class="w-full p-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
                     </div>
-                    <div class="mobile-card">
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Join Year</label>
-                        <input type="text" id="edit-std-joinYear" value="${data.joinYear || ''}" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                    <div class="mobile-card !p-3">
+                        <label class="block text-[8px] font-bold text-gray-400 uppercase mb-0.5">Student Age</label>
+                        <input type="number" id="edit-std-age" readonly value="${data.age || ''}" class="w-full p-1.5 bg-gray-100 border border-gray-100 rounded-lg text-xs font-bold outline-none cursor-not-allowed">
+                    </div>
+                    <div class="mobile-card !p-3">
+                        <label class="block text-[8px] font-bold text-gray-400 uppercase mb-0.5">Join Year</label>
+                        <input type="text" id="edit-std-joinYear" value="${data.joinYear || ''}" class="w-full p-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
                     </div>
                 </div>
 
@@ -162,6 +166,42 @@ async function viewStudentProfile(studentId) {
                 </button>
             </div>
 
+            <!-- ENROLLMENT TERMINATION & INCIDENT LOGGING PANEL -->
+            <div class="mobile-card bg-white p-5 border border-gray-100 shadow-sm rounded-2xl space-y-3 mt-6 text-left">
+                <h4 class="text-xs font-black uppercase text-red-600 mb-1 tracking-wider"><i class="fas fa-exclamation-triangle mr-1"></i> Enrollment & Status Updates</h4>
+                <p class="text-[10px] text-gray-400 font-bold leading-relaxed uppercase">Update enrollment status (e.g., Left or Expelled) and document official incident reports below.</p>
+                
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                        <label class="block text-[8px] font-bold text-gray-400 uppercase mb-1">Target Status</label>
+                        <select id="status-update-action" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                            <option value="Active" ${data.status === 'Active' ? 'selected' : ''}>Active</option>
+                            <option value="Left" ${data.status === 'Left' ? 'selected' : ''}>Left School</option>
+                            <option value="Expelled" ${data.status === 'Expelled' ? 'selected' : ''}>Expelled</option>
+                            <option value="Investigated">Under Investigation</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[8px] font-bold text-gray-400 uppercase mb-1">Date of Incident</label>
+                        <input type="text" id="status-update-date" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none" value="${getFormattedCurrentNepaliDate()}">
+                    </div>
+
+                <div>
+                    <label class="block text-[8px] font-bold text-gray-400 uppercase mb-1">Official Incident Notes / Reasons</label>
+                    <textarea id="status-update-reason" rows="3" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none resize-none" placeholder="Enter formal decision notes..."></textarea>
+                </div>
+
+                <button onclick="logStudentStatusUpdate('${studentId}')" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
+                    <i class="fas fa-file-signature mr-1.5"></i> Log Decision & Update Status
+                </button>
+            </div>
+
+            <!-- INCIDENT HISTORY SUB-PANEL -->
+            <div class="mt-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-left">
+                <h4 class="text-xs font-black uppercase text-gray-800 mb-3 tracking-wider"><i class="fas fa-history mr-1"></i> Student Incident Archive</h4>
+                <div id="admin-pupil-incident-history" class="space-y-3"></div>
+            </div>
+
             <div class="mt-4 grid grid-cols-2 gap-3">
                 <button onclick="await alert('Attendance logs are summarized dynamically inside Parent App Dashboard!')" class="bg-gray-800 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
                     View Attendance
@@ -179,6 +219,10 @@ async function viewStudentProfile(studentId) {
                 <i class="fas fa-arrow-left mr-1"></i> Back to Directory
             </button>
         `;
+
+        setTimeout(() => {
+            renderSharedStudentIncidentHistory('admin-pupil-incident-history', studentId);
+        }, 50);
     } catch (e) {
         container.innerHTML = `<div class="text-center py-10 text-red-400">Error fetching student profile: ${e.message}</div>`;
     }
@@ -194,6 +238,7 @@ async function updateStudentProfile(studentId) {
         const blood = document.getElementById('edit-std-blood').value;
         const roll = document.getElementById('edit-std-roll').value.trim();
         const age = parseInt(document.getElementById('edit-std-age').value) || null;
+        const dob = document.getElementById('edit-std-dob').value.trim();
         const joinYear = document.getElementById('edit-std-joinYear').value.trim();
         const father = document.getElementById('edit-std-father').value.trim();
         const mother = document.getElementById('edit-std-mother').value.trim();
@@ -213,6 +258,7 @@ async function updateStudentProfile(studentId) {
             bloodGroup: blood,
             roll: roll,
             age: age,
+            dob: dob,
             joinYear: joinYear,
             fatherName: father,
             motherName: mother,
@@ -236,7 +282,8 @@ async function saveStudent() {
     const dob = document.getElementById('std-dob').value;
     const blood = document.getElementById('std-blood').value;
     const age = document.getElementById('std-age').value.trim();
-    const joinYear = document.getElementById('std-join').value.trim() || new Date().getFullYear();
+    const currentBSYear = getNepaliDateClass() ? new (getNepaliDateClass())().getYear() : 2083;
+    const joinYear = document.getElementById('std-join').value.trim() || currentBSYear;
     const father = document.getElementById('std-father').value.trim();
     const mother = document.getElementById('std-mother').value.trim();
     const phoneInput = document.getElementById('std-phone').value.trim();
@@ -367,4 +414,56 @@ function syncStudentAddress(checkbox) {
         }
     });
 }
-    
+
+async function logStudentStatusUpdate(studentId) {
+    const selectedStatus = document.getElementById('status-update-action').value;
+    const dateText = document.getElementById('status-update-date').value.trim();
+    const reasonText = document.getElementById('status-update-reason').value.trim();
+
+    if (!reasonText) {
+        await alert("Please specify the notes/reasons for this enrollment status modification.");
+        return;
+    }
+
+    try {
+        // Retrieve student's current details to log full name
+        const snap = await db.ref('school/students/' + studentId).once('value');
+        if (!snap.exists()) {
+            await alert("Student profile not found.");
+            return;
+        }
+        const data = snap.val();
+        let fullName = '';
+        if (data.name && typeof data.name === 'object') {
+            fullName = `${data.name.first || ''} ${data.name.middle || ''} ${data.name.last || ''}`.replace(/\s+/g, ' ').trim();
+        } else {
+            fullName = data.name || 'Student';
+        }
+
+        // Update student status in DB
+        await db.ref(`school/students/${studentId}`).update({ status: selectedStatus });
+
+        // Push new record to the shared student status history node
+        const historyId = db.ref('school/student_status_history').push().key;
+        const logData = {
+            id: historyId,
+            studentId: studentId,
+            studentName: fullName,
+            status: selectedStatus,
+            reason: reasonText,
+            recordedBy: currentUser?.name || "School Administrator",
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            date: dateText || getFormattedCurrentNepaliDate()
+        };
+        await db.ref(`school/student_status_history/${historyId}`).set(logData);
+
+        await alert(`Success! Incident log added and student status is now set to '${selectedStatus}'.`);
+        
+        // Refresh profile UI
+        viewStudentProfile(studentId);
+
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to log status update: " + e.message);
+    }
+}

@@ -92,9 +92,8 @@ async function loadParentTicketsList() {
 
                     <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-50 text-[8px] font-bold text-gray-400 uppercase">
                         <span>Priority: ${t.priority}</span>
-                        <span>${new Date(t.timestamp).toLocaleDateString()}</span>
+                        <span>${convertToNepaliDate(t.timestamp)}</span>
                     </div>
-                </div>
             `;
         }).join('');
 
@@ -162,13 +161,14 @@ async function loadParentSuggestionsList() {
                 <div class="mobile-card bg-white p-4 shadow-sm relative overflow-hidden">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-[8px] font-black text-blue-600 uppercase tracking-widest">${s.id}</span>
-                        <span class="text-[8px] text-gray-400 font-bold">${new Date(s.timestamp).toLocaleString()}</span>
+                        <span class="text-[8px] text-gray-400 font-bold">${convertToNepaliDateTime(s.timestamp)}</span>
                     </div>
                     <p class="text-xs text-gray-700 leading-relaxed font-semibold">${s.message}</p>
                     <div class="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between text-[8px] font-black text-gray-400 uppercase tracking-wider">
                         <span>For: ${s.studentName}</span>
                     </div>
                 </div>
+    
             `;
         }).join('');
 

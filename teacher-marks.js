@@ -53,8 +53,10 @@ async function startSequentialEntry() {
         const examDetails = snapExam.val();
         if (examDetails) {
             const now = new Date();
-            const start = new Date(examDetails.openingDate);
-            const end = new Date(examDetails.closingDate + 'T23:59:59');
+            const start = convertToEnglishDate(examDetails.openingDate);
+            const end = convertToEnglishDate(examDetails.closingDate);
+            if (end) end.setHours(23, 59, 59, 999);
+    
 
             let isLocked = false;
             let lockReason = "";

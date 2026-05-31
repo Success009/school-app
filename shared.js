@@ -23,10 +23,8 @@ const storage = firebase.storage();
 const ROLES = {
     PARENT: 'parent',
     TEACHER: 'teacher',
-    ADMIN: 'admin',
-    PRINCIPAL: 'principal'
+    ADMIN: 'admin'
 };
-
 // Global User State
 let currentUser = null;
 
@@ -297,10 +295,12 @@ async function getSchoolMetadata() {
  * Example: US-2026-4789
  */
 function generateStudentID(joinYear) {
-    const cleanYear = joinYear || new Date().getFullYear();
+    const currentBSYear = getNepaliDateClass() ? new (getNepaliDateClass())().getYear() : 2083;
+    const cleanYear = joinYear || currentBSYear;
     const randDigits = Math.floor(1000 + Math.random() * 9000);
     return `US-${cleanYear}-${randDigits}`;
 }
+    
 
 /**
  * Safe Metric Value Resolver
@@ -573,3 +573,145 @@ function showToast(message, type = 'success') {
         toast.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[10001] px-5 py-3.5 rounded-2xl text-xs font-bold text-white shadow-xl transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none flex items-center gap-2 max-w-xs w-full justify-center';
     }, 2500);
 }
+
+async function renderSharedStudentIncidentHistory(containerId, filterStudentId = null) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = `<div class="text-center py-6 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin mr-2"></i>Loading incident archives...</div>`;
+
+    try {
+        const snap = await db.ref('school/student_status_history').once('value');
+        const history = snap.val();
+
+        if (!history) {
+            container.innerHTML = `<div class="text-center py-6 text-gray-400 text-xs italic bg-gray-50 rounded-xl p-4">No student incident or expulsion logs recorded in school archives.</div>`;
+            return;
+        }
+
+        let logs = Object.values(history);
+        if (filterStudentId) {
+            logs = logs.filter(l => l.studentId === filterStudentId);
+        }
+
+        if (logs.length === 0) {
+            container.innerHTML = `<div class="text-center py-6 text-gray-400 text-xs italic bg-gray-50 rounded-xl p-4">No incident logs found for this student.</div>`;
+            return;
+        }
+
+        logs.sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = logs.map(l => {
+            let badgeClass = "bg-gray-100 text-gray-700";
+            if (l.status === 'Expelled') badgeClass = "bg-red-100 text-red-700 border border-red-200";
+            else if (l.status === 'Left') badgeClass = "bg-amber-100 text-amber-700 border border-amber-200";
+            else if (l.status === 'Investigated') badgeClass = "bg-blue-100 text-blue-700 border border-blue-200";
+
+            return `
+                <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm space-y-1.5 text-left">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${l.studentName} (ID: ${l.studentId})</span>
+                        <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${badgeClass}">${l.status}</span>
+                    </div>
+                    <p class="text-xs text-gray-700 font-semibold">${l.reason}</p>
+                    <div class="flex justify-between items-center text-[8px] font-black text-gray-400 uppercase border-t border-gray-50 pt-1.5">
+                        <span>Recorded By: ${l.recordedBy}</span>
+                        <span>Date: ${l.date || convertToNepaliDate(l.timestamp)}</span>
+                    </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-6 text-red-400 text-xs">Failed to load incident history: ${e.message}</div>`;
+    }
+}
+
+function getNepaliDateClass() {
+    return window.NepaliDate?.default || window.NepaliDate;
+}
+
+function getFormattedCurrentNepaliDate() {
+    const NepaliDateClass = getNepaliDateClass();
+    if (NepaliDateClass) {
+        return new NepaliDateClass().format('YYYY-MM-DD');
+    }
+    // May 31, 2026 is BS 2083-02-17
+    return "2083-02-17";
+}
+
+function convertToNepaliDate(englishDate) {
+    if (!englishDate) return '';
+    const dateObj = new Date(englishDate);
+    if (isNaN(dateObj.getTime())) return englishDate;
+    const NepaliDateClass = getNepaliDateClass();
+    if (NepaliDateClass) {
+        return new NepaliDateClass(dateObj).format('YYYY-MM-DD');
+    }
+    return englishDate;
+}
+
+function convertToEnglishDate(nepaliDateStr) {
+    if (!nepaliDateStr) return null;
+    const NepaliDateClass = getNepaliDateClass();
+    if (NepaliDateClass) {
+        try {
+            return new NepaliDateClass(nepaliDateStr).toJsDate();
+        } catch (e) {
+            console.error("Nepali date translation error:", e);
+        }
+    }
+    return new Date(nepaliDateStr);
+}
+
+function calculateNepaliAgeHelper(dobVal) {
+    if (!dobVal) return '';
+    const regex = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
+    if (regex.test(dobVal)) {
+        const parts = dobVal.split('-');
+        const birthYear = parseInt(parts[0]);
+
+        try {
+            const NepaliDateClass = getNepaliDateClass();
+            if (NepaliDateClass) {
+                const currentBS = new NepaliDateClass();
+                const currentYear = currentBS.getYear();
+                let age = currentYear - birthYear;
+                if (age < 0) age = 0;
+                return age;
+            }
+        } catch (e) {
+            console.error("Age computation exception:", e);
+        }
+        const currentYear = 2083;
+        let age = currentYear - birthYear;
+        if (age < 0) age = 0;
+        return age;
+    }
+    return '';
+}
+
+function calculateNepaliAgeOnboarding() {
+    const dobVal = document.getElementById('std-dob')?.value || '';
+    const ageInput = document.getElementById('std-age');
+    if (ageInput) {
+        ageInput.value = calculateNepaliAgeHelper(dobVal);
+    }
+}
+function calculateNepaliAgeEdit() {
+    const dobVal = document.getElementById('edit-std-dob')?.value || '';
+    const ageInput = document.getElementById('edit-std-age');
+    if (ageInput) {
+        ageInput.value = calculateNepaliAgeHelper(dobVal);
+    }
+}
+
+function convertToNepaliDateTime(timestamp) {
+    if (!timestamp) return '';
+    const dateObj = new Date(timestamp);
+    if (isNaN(dateObj.getTime())) return '';
+    const dateStr = convertToNepaliDate(dateObj);
+    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr} ${timeStr}`;
+}
+    

@@ -129,6 +129,8 @@ async function handleLogin() {
             const mapData = mapSnap.val();
             
             if (mapData.role === 'teacher' || mapData.role === 'principal') {
+                // Principal role is now unified with Teacher portal
+                const resolvedRole = 'teacher';
                 // Resolve Teacher dynamic profile
                 const tchSnap = await db.ref('school/teachers/' + mapData.studentId).once('value');
                 if (tchSnap.exists()) {
@@ -141,7 +143,6 @@ async function handleLogin() {
                     } else {
                         fullName = t.name || 'Faculty Member';
                     }
-
                     currentUser = {
                         role: ROLES.TEACHER,
                         id: mapData.studentId,
@@ -154,7 +155,6 @@ async function handleLogin() {
                             { period: '1st', class: t.assignedClasses ? t.assignedClasses[0] : '10-A', subject: t.subjects ? t.subjects[0] : 'Mathematics', time: '10:00 AM' }
                         ]
                     };
-                } else {
                     throw new Error("Teacher profile not found.");
                 }
             } else if (mapData.role === 'accountant') {

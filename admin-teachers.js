@@ -186,10 +186,10 @@ async function saveTeacher() {
     const title = document.getElementById('tch-title') ? document.getElementById('tch-title').value.trim() : 'Faculty Member';
     const sortOrderVal = document.getElementById('tch-sortOrder') ? parseInt(document.getElementById('tch-sortOrder').value) : 10;
     const sortOrder = isNaN(sortOrderVal) ? 10 : sortOrderVal;
-
-    const teacherId = `UT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const currentBSYear = getNepaliDateClass() ? new (getNepaliDateClass())().getYear() : 2083;
+    const teacherId = `UT-${currentBSYear}-${Math.floor(1000 + Math.random() * 9000)}`;
     let photoUrl = "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150";
-
+    
     try {
         if (photoFile) photoUrl = await uploadFile(photoFile, `school/teachers/${teacherId}/profile.jpg`, "Onboarding Faculty");
         else showToast("Proceeding without profile photo", "info");

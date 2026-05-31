@@ -72,11 +72,12 @@ async function viewTicketDetails(ticketId) {
             <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs">
                 <div class="flex justify-between text-[9px] font-bold text-gray-400 uppercase mb-1">
                     <span>${r.sender}</span>
-                    <span>${new Date(r.timestamp).toLocaleString()}</span>
+                    <span>${convertToNepaliDateTime(r.timestamp)}</span>
                 </div>
                 <p class="text-gray-700 leading-relaxed">${r.message}</p>
             </div>
         `).join('');
+    
 
         container.innerHTML = `
             <div class="mb-4">
@@ -99,9 +100,8 @@ async function viewTicketDetails(ticketId) {
                 <p class="text-xs text-gray-700 leading-relaxed">${t.description}</p>
                 <div class="text-[9px] font-bold text-gray-400 uppercase mt-3 pt-2 border-t border-gray-50 flex justify-between">
                     <span>Priority: ${t.priority}</span>
-                    <span>Raised: ${new Date(t.timestamp).toLocaleDateString()}</span>
+                    <span>Raised: ${convertToNepaliDate(t.timestamp)}</span>
                 </div>
-            </div>
 
             <!-- Replies / Discussion -->
             <div class="mb-6 space-y-3">
