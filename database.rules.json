@@ -1,12 +1,14 @@
 {
   "rules": {
-    ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.firebase.sign_in_provider === 'password')",
-    ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.firebase.sign_in_provider === 'password')",
-
+    // --- UDAYASHREE SCHOOL APP RULES ---
     "school": {
       ".read": true,
       ".write": true
     },
+
+    // --- EXISTING PRODUCTION APP RULES (DO NOT MODIFY) ---
+    ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.firebase.sign_in_provider === 'password')",
+    ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || auth.token.firebase.sign_in_provider === 'password')",
     
     "menu": {
       ".read": true
