@@ -1,4 +1,4 @@
-// Principal Sub-Application Logic (Updated with Class Sorting, Search, and Reusable Faculty Directory Tab)
+// Principal Sub-Application Logic (Core Router & Views)
 
 // Check authorization on load
 if (checkAuth([ROLES.PRINCIPAL])) {
@@ -17,7 +17,6 @@ const principalViews = {
             </div>
 
             <div class="space-y-4">
-                <!-- Live indicators of school counts -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="mobile-card bg-blue-50 border-none shadow-none">
                         <i class="fas fa-users text-blue-600 text-lg mb-1"></i>
@@ -80,9 +79,7 @@ const principalViews = {
             setTimeout(async () => {
                 const { classes, sections } = await getSchoolMetadata();
                 const lvlSel = document.getElementById('filter-lvl');
-                const secSel = document.getElementById('filter-sec');
                 if (lvlSel) classes.forEach(c => lvlSel.add(new Option(`Class ${c}`, c)));
-                if (secSel) sections.forEach(s => secSel.add(new Option(s, s)));
                 loadPrincipalStudents();
             }, 50);
             return `
@@ -91,19 +88,14 @@ const principalViews = {
                     <input type="text" id="p-std-search" onkeyup="filterStudentList()" class="w-full p-4 bg-white border border-gray-100 rounded-xl shadow-sm outline-none pl-12 text-sm" placeholder="Search pupils by name...">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="mobile-card flex items-center justify-between !py-2 bg-white">
-                        <label class="text-[8px] font-black text-gray-400 uppercase">Lvl</label>
-                        <select id="filter-lvl" onchange="loadPrincipalStudents()" class="p-2 bg-gray-50 border-none rounded-lg text-[10px] font-black outline-none">
-                            <option value="all">ALL</option>
-                        </select>
-                    </div>
-                    <div class="mobile-card flex items-center justify-between !py-2 bg-white">
-                        <label class="text-[8px] font-black text-gray-400 uppercase">Sec</label>
-                        <select id="filter-sec" onchange="loadPrincipalStudents()" class="p-2 bg-gray-50 border-none rounded-lg text-[10px] font-black outline-none">
-                            <option value="all">ALL</option>
-                        </select>
-                    </div>
+                <div class="mobile-card flex items-center justify-between !py-2 bg-white">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-tight">Level</label>
+                    <select id="filter-lvl" onchange="loadPrincipalStudents()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-black outline-none w-48 text-right">
+                        <option value="all">ALL CLASSES</option>
+                    </select>
+                    <select id="filter-sec" class="hidden">
+                        <option value="all" selected>all</option>
+                    </select>
                 </div>
             </div>
             <div id="p-student-list" class="space-y-3">
@@ -127,21 +119,16 @@ const principalViews = {
 
 function principalRouter(viewName) {
     const view = principalViews[viewName] || principalViews.dashboard;
-    
     const backAction = (viewName !== 'dashboard') ? () => principalRouter('dashboard') : null;
 
     renderHeader(view.title, backAction);
     triggerViewTransition();
-    triggerViewTransition();
 
-    // Render contents into main
     document.getElementById('main-content').innerHTML = view.render();
 
-    // Reset database listeners
     db.ref('school/students').off();
     db.ref('school/teachers').off();
 
-    // Bottom active nav highlighting
     document.querySelectorAll('.nav-item').forEach(btn => {
         if (btn.getAttribute('data-view') === viewName) {
             btn.classList.add('text-blue-700');
@@ -152,7 +139,6 @@ function principalRouter(viewName) {
         }
     });
 
-    // Handle view hooks
     if (viewName === 'dashboard') {
         db.ref('school/students').on('value', snap => {
             const el = document.getElementById('p-total-students');
@@ -169,91 +155,9 @@ function principalRouter(viewName) {
     }
 
     if (viewName === 'teachers') {
-        // Integrate the Reusable, Shared Faculty Directory Component!
         renderSharedTeacherDirectory('principal-teachers-container', { canClickToCall: true });
     }
 
     document.getElementById('main-content').scrollTop = 0;
 }
-
-// ==========================================
-// BUSINESS LOGIC: STUDENT QUERY & SORTING
-// ==========================================
-
-async function loadPrincipalStudents() {
-    const list = document.getElementById('p-student-list');
-    const lvlFilter = document.getElementById('filter-lvl')?.value || 'all';
-    const secFilter = document.getElementById('filter-sec')?.value || 'all';
     
-    if (!list) return;
-
-    list.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Filtering records...</div>`;
-
-    try {
-        const snap = await db.ref('school/students').once('value');
-        const students = snap.val();
-
-        if (!students) {
-            list.innerHTML = `<div class="text-center py-10 text-gray-400">No students registered.</div>`;
-            return;
-        }
-
-        let studentEntries = Object.entries(students);
-
-        // Advanced Dual-Filter Logic
-        studentEntries = studentEntries.filter(([id, data]) => {
-            const matchesLvl = (lvlFilter === 'all') || (String(data.class) === String(lvlFilter));
-            const matchesSec = (secFilter === 'all') || (String(data.section) === String(secFilter));
-            return matchesLvl && matchesSec;
-        });
-
-        if (studentEntries.length === 0) {
-            list.innerHTML = `<div class="text-center py-8 text-yellow-600 bg-yellow-50 rounded-xl text-xs p-4 border border-yellow-100">No students found matching Level: ${lvlFilter} | Section: ${secFilter}.</div>`;
-            return;
-        }
-
-        // Sort alphabetically by first name
-        studentEntries.sort((a, b) => {
-            const nameA = (a[1].name?.first || a[1].name || '').toLowerCase();
-            const nameB = (b[1].name?.first || b[1].name || '').toLowerCase();
-            return nameA.localeCompare(nameB);
-        });
-
-        list.innerHTML = studentEntries.map(([studentId, data]) => {
-            let fullName = '';
-            if (data.name && typeof data.name === 'object') {
-                fullName = `${data.name.first || ''} ${data.name.middle || ''} ${data.name.last || ''}`.replace(/\s+/g, ' ').trim();
-            } else {
-                fullName = data.name || 'Student';
-            }
-
-            return `
-                <div class="mobile-card list-item flex items-center p-4 bg-white border border-gray-100 shadow-sm">
-                    <img src="${SafeResolvers.photo(data.photo)}" class="w-12 h-12 rounded-xl object-cover mr-4 border border-gray-100">
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-gray-800 text-sm search-name">${fullName}</h4>
-                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Class ${SafeResolvers.text(data.class)}-${SafeResolvers.text(data.section)} | ID: ${studentId}</p>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-    } catch (e) {
-        console.error(e);
-        list.innerHTML = `<div class="text-center py-10 text-red-400">Failed to query student database: ${e.message}</div>`;
-    }
-}
-
-function filterStudentList() {
-    const filter = document.getElementById('p-std-search').value.toLowerCase();
-    const list = document.getElementById('p-student-list');
-    if (!list) return;
-    const cards = list.getElementsByClassName('mobile-card');
-    for (let i = 0; i < cards.length; i++) {
-        const nameNode = cards[i].querySelector('.search-name');
-        if (nameNode) {
-            const nameText = nameNode.innerText.toLowerCase();
-            cards[i].style.display = nameText.indexOf(filter) > -1 ? "" : "none";
-        }
-    }
-}

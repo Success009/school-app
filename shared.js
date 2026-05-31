@@ -24,7 +24,6 @@ const ROLES = {
     PARENT: 'parent',
     TEACHER: 'teacher',
     ADMIN: 'admin',
-    ACCOUNTANT: 'accountant',
     PRINCIPAL: 'principal'
 };
 
@@ -282,30 +281,10 @@ function triggerViewTransition() {
  * Ensures filters and dropdowns are always synchronized with actual data.
  */
 async function getSchoolMetadata() {
-    try {
-        const snap = await db.ref('school/students').once('value');
-        const students = snap.val() || { };
-        
-        const classes = new Set();
-        const sections = new Set();
-        
-        Object.values(students).forEach(s => {
-            if (s.class) classes.add(String(s.class));
-            if (s.section) sections.add(String(s.section));
-        });
-
-        // Add defaults if empty
-        if (classes.size === 0) [1,2,3,4,5,6,7,8,9,10,11,12].forEach(c => classes.add(String(c)));
-        if (sections.size === 0) ['A', 'B', 'C'].forEach(s => sections.add(s));
-
-        return {
-            classes: Array.from(classes).sort((a, b) => parseInt(a) - parseInt(b)),
-            sections: Array.from(sections).sort()
-        };
-    } catch (e) {
-        console.error("Metadata discovery failed", e);
-        return { classes: ['10', '11', '12'], sections: ['A', 'B'] };
-    }
+    return {
+        classes: ["1", "2", "3", "4", "5", "6", "7", "8"],
+        sections: [ ]
+    };
 }
 
 /**
@@ -499,155 +478,17 @@ function filterSharedTeachers(containerId) {
 
     renderTeachersSubset(`${containerId}-list`, filteredTeachers, options);
 }
-
-/**
- * Floating Debug Menu to switch roles anywhere instantly
- */
-function injectDebugMenu() {
-    let debugContainer = document.getElementById('debug-menu-container');
-    if (!debugContainer) {
-        debugContainer = document.createElement('div');
-        debugContainer.id = 'debug-menu-container';
-        document.body.appendChild(debugContainer);
-    }
-
-    debugContainer.innerHTML = `
-        <div class="fixed bottom-24 right-4 z-[200]">
-            <button onclick="toggleDebugMenu()" class="w-12 h-12 bg-gray-800 text-white rounded-full shadow-2xl flex items-center justify-center border-2 border-white/20 active:scale-90 transition-all">
-                <i class="fas fa-bug"></i>
-            </button>
-            <div id="debug-options" class="hidden absolute bottom-14 right-0 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 w-48 space-y-1">
-                <p class="text-[10px] font-black text-gray-400 uppercase px-3 py-1">Switch Role</p>
-                <button onclick="debugLogin('9800000000')" class="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 rounded-lg flex items-center">
-                    <i class="fas fa-user-friends mr-2 text-blue-500"></i> Parent View
-                </button>
-                <button onclick="debugLogin('9810000000')" class="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 rounded-lg flex items-center">
-                    <i class="fas fa-chalkboard-teacher mr-2 text-indigo-500"></i> Teacher View
-                </button>
-                <button onclick="debugLogin('9820000000')" class="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 rounded-lg flex items-center">
-                    <i class="fas fa-user-shield mr-2 text-red-500"></i> Admin View
-                </button>
-                <button onclick="debugLogin('9830000000')" class="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 rounded-lg flex items-center">
-                    <i class="fas fa-file-invoice-dollar mr-2 text-green-500"></i> Accountant View
-                </button>
-                <button onclick="debugLogin('9840000000')" class="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 rounded-lg flex items-center">
-                    <i class="fas fa-university mr-2 text-purple-500"></i> Principal View
-                </button>
-                <hr class="my-1 border-gray-50">
-                <button onclick="localStorage.clear(); window.location.href='index.html';" class="w-full text-left px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg flex items-center">
-                    <i class="fas fa-trash-alt mr-2"></i> Clear Session
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function toggleDebugMenu() {
-    const options = document.getElementById('debug-options');
-    if (options) {
-        options.classList.toggle('hidden');
-    }
-}
-
-async function debugLogin(phone) {
-    if (phone.startsWith('981')) {
-        currentUser = { 
-            role: ROLES.TEACHER, 
-            id: 'T-552', 
-            name: 'Ms. Sunita Rai',
-            phone: phone,
-            photo: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
-            subjects: ['Mathematics', 'Science'],
-            assignedClasses: ['12-A', '11-B', '10-A'],
-            schedule: [
-                { period: '1st', class: '12-A', subject: 'Physics', time: '10:00 AM' },
-                { period: '3rd', class: '11-B', subject: 'Accounting', time: '11:30 AM' }
-            ]
-        };
-    } else if (phone.startsWith('982')) {
-        currentUser = { role: ROLES.ADMIN, id: 'A-001', name: 'Admin Staff' };
-    } else if (phone.startsWith('983')) {
-        currentUser = { role: ROLES.ACCOUNTANT, id: 'ACC-05', name: 'Nabin Jha' };
-    } else if (phone.startsWith('984')) {
-        currentUser = { role: ROLES.PRINCIPAL, id: 'P-01', name: 'Dr. Hari Bansha' };
-    } else {
-        try {
-            // Read from dynamic login mapping
-            const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
-            if (mapSnap.exists()) {
-                const mapData = mapSnap.val();
-                const stdSnap = await db.ref('school/students/' + mapData.studentId).once('value');
-                if (stdSnap.exists()) {
-                    const s = stdSnap.val();
-                    currentUser = { 
-                        role: ROLES.PARENT,
-                        id: 'P-' + phone.slice(-4),
-                        name: s.parentName || 'Parent',
-                        phone: phone,
-                        student: {
-                            id: mapData.studentId,
-                            name: s.name,
-                            grade: s.class,
-                            section: s.section,
-                            roll: s.roll || '01',
-                            bloodGroup: s.bloodGroup,
-                            photo: s.photo,
-                            age: s.age || 'N/A',
-                            joinYear: s.joinYear || 'N/A',
-                            classTeacher: 'Ms. Sunita Rai',
-                            schedule: [
-                                { period: '1st', time: '10:00 AM', subject: 'Mathematics', teacher: 'Ms. Sunita Rai', days: 'Sun - Fri' },
-                                { period: '2nd', time: '11:00 AM', subject: 'Science', teacher: 'Mr. Ram Prasad', days: 'Sun - Fri' },
-                                { period: 'Break', time: '01:00 PM', subject: 'Lunch Break', teacher: '-', days: 'Daily' }
-                            ],
-                            marks: { "Term 1": [ ] }
-                        }
-                    };
-                }
-            } else {
-                // Fallback default mockup
-                currentUser = { 
-                    role: ROLES.PARENT,
-                    id: 'MOCK-001',
-                    name: 'Guest Parent',
-                    phone: phone,
-                    student: {
-                        id: 'US-2026-9999',
-                        name: 'Demo Student',
-                        grade: '10',
-                        section: 'A',
-                        roll: '01',
-                        bloodGroup: 'O+',
-                        photo: 'https://via.placeholder.com/150',
-                        age: '15',
-                        joinYear: '2026',
-                        classTeacher: 'Ms. Sunita Rai',
-                        schedule: [
-                            { period: '1st', time: '10:00 AM', subject: 'Mathematics', teacher: 'Ms. Sunita Rai', days: 'Sun - Fri' },
-                            { period: 'Break', time: '01:00 PM', subject: 'Lunch Break', teacher: '-', days: 'Daily' }
-                        ],
-                        marks: { "Term 1": [ ] }
-                    }
-                };
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    }
-    localStorage.setItem('school_app_user', JSON.stringify(currentUser));
-    redirectUserToRoleDashboard(currentUser.role);
-}
-
-// Automatically inject debug menu on DOM ready
+// Automatically initialize global notifications on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-    injectDebugMenu();
     setupGlobalNotificationUI();
 });
+
 function setupGlobalNotificationUI() {
     /**
      * Polished Global Alert Interceptor
      * Replaces standard browser alerts with a high-fidelity modal.
      */
+    
     window.alert = function(message) {
         const cleanMsg = (typeof message === 'string') ? message : JSON.stringify(message);
         const modalId = 'custom-ui-alert-modal';
