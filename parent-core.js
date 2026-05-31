@@ -72,13 +72,13 @@ const parentViews = {
                     <span id="dash-attendance-pct" class="text-xl font-black text-gray-800">...</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-1 tracking-wider">Attendance</span>
                 </div>
-                <!-- 2. My Teachers -->
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('myTeachers')">
+                <!-- 2. Teachers -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('childTeachers')">
                     <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-3 group-active:scale-90 transition-transform">
-                        <i class="fas fa-graduation-cap text-lg"></i>
+                        <i class="fas fa-chalkboard-teacher text-lg"></i>
                     </div>
-                    <span class="text-sm font-bold text-gray-800 leading-tight">My<br>Teachers</span>
-                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Faculty</span>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">Teachers</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Instructors</span>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -100,7 +100,7 @@ const parentViews = {
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4 mb-4">
-                <!-- 5. Announcements / Notices -->
+                <!-- 5. School Notices -->
                 <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('notices')">
                     <span id="dash-notices-badge" class="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full animate-ping hidden"></span>
                     <div class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mb-3 group-active:scale-90 transition-transform">
@@ -109,13 +109,13 @@ const parentViews = {
                     <span class="text-sm font-bold text-gray-800 leading-tight">School<br>Notices</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Updates</span>
                 </div>
-                <!-- 6. Class Leaders / CR Holders -->
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('crHolders')">
+                <!-- 6. Support Tickets -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('tickets')">
                     <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-3 group-active:scale-90 transition-transform">
-                        <i class="fas fa-users-cog text-lg"></i>
+                        <i class="fas fa-ticket-alt text-lg"></i>
                     </div>
-                    <span class="text-sm font-bold text-gray-800 leading-tight">Class<br>Representatives</span>
-                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Leaders</span>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">Support<br>Tickets</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Helpdesk</span>
                 </div>
             </div>
 
@@ -326,8 +326,8 @@ const parentViews = {
             </div>
         `
     },
-    myTeachers: {
-        title: 'My Child\'s Teachers',
+    childTeachers: {
+        title: 'Teachers',
         render: () => {
             setTimeout(() => {
                 loadMyTeachersList();
@@ -335,8 +335,8 @@ const parentViews = {
 
             return `
                 <div class="mb-6 animate-fade-in text-left">
-                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Assigned Teachers</h2>
-                    <p class="text-xs text-gray-500">Teachers directly assigned to Class ${currentUser?.student.grade}</p>
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Assigned Instructors</h2>
+                    <p class="text-xs text-gray-500">Teachers assigned to Class ${currentUser?.student.grade}</p>
                 </div>
 
                 <div class="space-y-6 pb-16">
@@ -355,54 +355,6 @@ const parentViews = {
                             <div class="text-center py-4 text-gray-400 text-xs italic">Loading assigned instructors...</div>
                         </div>
                     </div>
-                </div>
-            `;
-        }
-    },
-    crHolders: {
-        title: 'Class Representatives (CR)',
-        render: () => {
-            const reps = [
-                { class: 'Class 1', name: 'Rohan Thapa', badge: 'CR', color: 'border-l-indigo-500' },
-                { class: 'Class 2', name: 'Aayusha Shrestha', badge: 'CR', color: 'border-l-blue-500' },
-                { class: 'Class 3', name: 'Siddharth Basnet', badge: 'CR', color: 'border-l-teal-500' },
-                { class: 'Class 4', name: 'Niranjan Khadka', badge: 'CR', color: 'border-l-emerald-500' },
-                { class: 'Class 5', name: 'Prerna Adhikari', badge: 'CR', color: 'border-l-yellow-500' },
-                { class: 'Class 6', name: 'Samir Acharya', badge: 'CR', color: 'border-l-amber-500' },
-                { class: 'Class 7', name: 'Pooja Karki', badge: 'CR', color: 'border-l-purple-500' },
-                { class: 'Class 8', name: 'Yashaswi Sharma', badge: 'CR', color: 'border-l-rose-500' }
-            ];
-
-            return `
-                <div class="mb-6 animate-fade-in text-left">
-                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Class Representative Council</h2>
-                    <p class="text-xs text-gray-500">Elected student leaders coordinating and supporting academic updates</p>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4 pb-16">
-                    ${reps.map(r => {
-                        const isMyClass = r.class === `Class ${currentUser?.student.grade}`;
-                        const badgeStyle = isMyClass ? 'bg-blue-100 text-blue-700 border-blue-200 animate-pulse' : 'bg-gray-100 text-gray-600 border-gray-200';
-                        return `
-                            <div class="mobile-card bg-white p-4 shadow-sm border-l-4 ${r.color} flex items-center justify-between text-left">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-gray-600 text-sm">
-                                        ${r.class.slice(-1)}
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <h4 class="font-black text-gray-800 text-sm">${r.name}</h4>
-                                            <span class="px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase border ${badgeStyle}">${r.badge}${isMyClass ? ' | My Class' : ''}</span>
-                                        </div>
-                                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Student Leader Council</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-[9px] font-black text-gray-300 uppercase">Term 2026</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
                 </div>
             `;
         }
@@ -495,7 +447,7 @@ function parentRouter(viewName) {
     if (viewName === 'attendance') {
         loadAttendanceHistoryAndStats();
     }
-    if (viewName === 'myTeachers') {
+    if (viewName === 'childTeachers') {
         loadMyTeachersList();
     }
     if (viewName === 'suggestions') {
