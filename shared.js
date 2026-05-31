@@ -245,7 +245,10 @@ function renderHeader(title, backAction = null) {
                 <h1 id="page-title" class="text-lg font-bold truncate max-w-[200px]">${title}</h1>
             </div>
             <div class="flex items-center gap-3">
-                <i class="fas fa-bell text-xl"></i>
+                <div class="relative cursor-pointer" onclick="${currentUser?.role === ROLES.PARENT ? "parentRouter('notices')" : ''}">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span id="header-bell-badge" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-blue-700 hidden"></span>
+                </div>
                 ${logoutBtnHtml}
             </div>
         </div>

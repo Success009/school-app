@@ -4,6 +4,7 @@
 if (checkAuth([ROLES.PARENT])) {
     document.addEventListener('DOMContentLoaded', () => {
         parentRouter('dashboard');
+        listenToRecentNotices();
     });
 }
 
@@ -63,36 +64,71 @@ const parentViews = {
 
             <h3 class="font-bold text-gray-800 mb-4 px-1">Academic & School Services</h3>
             <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('attendance')">
+                <!-- 1. Attendance -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('attendance')">
                     <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mb-3 group-active:scale-90 transition-transform">
                         <i class="fas fa-calendar-check text-lg"></i>
                     </div>
                     <span id="dash-attendance-pct" class="text-xl font-black text-gray-800">...</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-1 tracking-wider">Attendance</span>
                 </div>
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('teachers')">
-                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-active:scale-90 transition-transform">
-                        <i class="fas fa-chalkboard-teacher text-lg"></i>
+                <!-- 2. My Teachers -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('myTeachers')">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-3 group-active:scale-90 transition-transform">
+                        <i class="fas fa-graduation-cap text-lg"></i>
                     </div>
-                    <span class="text-sm font-bold text-gray-800 leading-tight">Faculty<br>Directory</span>
-                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Teachers</span>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">My<br>Teachers</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Faculty</span>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('routine')">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <!-- 3. Class Routine -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('routine')">
                     <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-active:scale-90 transition-transform">
                         <i class="fas fa-user-graduate text-lg"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-800 leading-tight">Class<br>Routine</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Routine</span>
                 </div>
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('results')">
+                <!-- 4. Exam Results -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('results')">
                     <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-active:scale-90 transition-transform">
                         <i class="fas fa-file-signature text-lg"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-800 leading-tight">Exam<br>Results</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Academics</span>
                 </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <!-- 5. Announcements / Notices -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('notices')">
+                    <span id="dash-notices-badge" class="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full animate-ping hidden"></span>
+                    <div class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mb-3 group-active:scale-90 transition-transform">
+                        <i class="fas fa-bullhorn text-lg"></i>
+                    </div>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">School<br>Notices</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Updates</span>
+                </div>
+                <!-- 6. Class Leaders / CR Holders -->
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group relative" onclick="parentRouter('crHolders')">
+                    <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-3 group-active:scale-90 transition-transform">
+                        <i class="fas fa-users-cog text-lg"></i>
+                    </div>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">Class<br>Representatives</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Leaders</span>
+                </div>
+            </div>
+
+            <!-- Least Priority / Faculty Directory at the bottom -->
+            <div onclick="parentRouter('teachers')" class="mobile-card flex items-center p-4 bg-gray-50 hover:bg-gray-100 border border-gray-100 shadow-none mt-4 cursor-pointer active:scale-98 transition-all">
+                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-4">
+                    <i class="fas fa-chalkboard-teacher text-sm"></i>
+                </div>
+                <div class="flex-grow text-left">
+                    <h4 class="text-sm font-bold text-gray-800">Complete Faculty Directory</h4>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Contact and view availability of all school teachers</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
             </div>
         `
     },
@@ -290,6 +326,87 @@ const parentViews = {
             </div>
         `
     },
+    myTeachers: {
+        title: 'My Child\'s Teachers',
+        render: () => {
+            setTimeout(() => {
+                loadMyTeachersList();
+            }, 50);
+
+            return `
+                <div class="mb-6 animate-fade-in text-left">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Assigned Teachers</h2>
+                    <p class="text-xs text-gray-500">Teachers directly assigned to Class ${currentUser?.student.grade}</p>
+                </div>
+
+                <div class="space-y-6 pb-16">
+                    <!-- Class Teacher Card Section -->
+                    <div>
+                        <h3 class="font-bold text-gray-400 uppercase text-[9px] tracking-widest px-1 mb-3 text-left">Class Advisor / Teacher</h3>
+                        <div id="class-teacher-container" class="space-y-3">
+                            <div class="text-center py-4 text-gray-400 text-xs italic">Resolving Class Teacher...</div>
+                        </div>
+                    </div>
+
+                    <!-- Subject Teachers Section -->
+                    <div>
+                        <h3 class="font-bold text-gray-400 uppercase text-[9px] tracking-widest px-1 mb-3 text-left">Subject Instructors</h3>
+                        <div id="subject-teachers-container" class="space-y-3">
+                            <div class="text-center py-4 text-gray-400 text-xs italic">Loading assigned instructors...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    },
+    crHolders: {
+        title: 'Class Representatives (CR)',
+        render: () => {
+            const reps = [
+                { class: 'Class 1', name: 'Rohan Thapa', badge: 'CR', color: 'border-l-indigo-500' },
+                { class: 'Class 2', name: 'Aayusha Shrestha', badge: 'CR', color: 'border-l-blue-500' },
+                { class: 'Class 3', name: 'Siddharth Basnet', badge: 'CR', color: 'border-l-teal-500' },
+                { class: 'Class 4', name: 'Niranjan Khadka', badge: 'CR', color: 'border-l-emerald-500' },
+                { class: 'Class 5', name: 'Prerna Adhikari', badge: 'CR', color: 'border-l-yellow-500' },
+                { class: 'Class 6', name: 'Samir Acharya', badge: 'CR', color: 'border-l-amber-500' },
+                { class: 'Class 7', name: 'Pooja Karki', badge: 'CR', color: 'border-l-purple-500' },
+                { class: 'Class 8', name: 'Yashaswi Sharma', badge: 'CR', color: 'border-l-rose-500' }
+            ];
+
+            return `
+                <div class="mb-6 animate-fade-in text-left">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Class Representative Council</h2>
+                    <p class="text-xs text-gray-500">Elected student leaders coordinating and supporting academic updates</p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 pb-16">
+                    ${reps.map(r => {
+                        const isMyClass = r.class === `Class ${currentUser?.student.grade}`;
+                        const badgeStyle = isMyClass ? 'bg-blue-100 text-blue-700 border-blue-200 animate-pulse' : 'bg-gray-100 text-gray-600 border-gray-200';
+                        return `
+                            <div class="mobile-card bg-white p-4 shadow-sm border-l-4 ${r.color} flex items-center justify-between text-left">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-gray-600 text-sm">
+                                        ${r.class.slice(-1)}
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-black text-gray-800 text-sm">${r.name}</h4>
+                                            <span class="px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase border ${badgeStyle}">${r.badge}${isMyClass ? ' | My Class' : ''}</span>
+                                        </div>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Student Leader Council</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] font-black text-gray-300 uppercase">Term 2026</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+    },
     tickets: {
         title: 'Support Tickets',
         render: () => `
@@ -378,6 +495,9 @@ function parentRouter(viewName) {
     if (viewName === 'attendance') {
         loadAttendanceHistoryAndStats();
     }
+    if (viewName === 'myTeachers') {
+        loadMyTeachersList();
+    }
     if (viewName === 'suggestions') {
         loadParentSuggestionsList();
     }
@@ -447,5 +567,132 @@ async function loadParentNotices() {
         console.error(e);
         container.innerHTML = `<div class="text-center py-10 text-red-400">Error loading database announcements.</div>`;
     }
+}
+
+async function loadMyTeachersList() {
+    const classTeacherContainer = document.getElementById('class-teacher-container');
+    const subjectTeachersContainer = document.getElementById('subject-teachers-container');
+    if (!classTeacherContainer || !subjectTeachersContainer) return;
+
+    try {
+        const snap = await db.ref('school/teachers').once('value');
+        const teachers = snap.val();
+
+        if (!teachers) {
+            classTeacherContainer.innerHTML = `<div class="text-center py-4 text-gray-400 text-xs italic">No faculty members found.</div>`;
+            subjectTeachersContainer.innerHTML = `<div class="text-center py-4 text-gray-400 text-xs italic">No faculty members found.</div>`;
+            return;
+        }
+
+        const studentClass = currentUser?.student.grade; // e.g. "3"
+        const classTeacherName = currentUser?.student.classTeacher || "Ms. Sunita Rai"; // default name
+
+        // Find teachers teaching this class
+        const assignedTeachers = Object.values(teachers).filter(t => {
+            const classes = t.assignedClasses ? (Array.isArray(t.assignedClasses) ? t.assignedClasses : [t.assignedClasses]) : [ ];
+            return classes.map(String).includes(String(studentClass));
+        });
+
+        if (assignedTeachers.length === 0) {
+            classTeacherContainer.innerHTML = `<div class="text-center py-4 text-gray-400 text-xs italic bg-white rounded-2xl p-4 border border-gray-100">No teachers found explicitly assigned to Class ${studentClass} in the database.</div>`;
+            subjectTeachersContainer.innerHTML = `<div class="text-center py-4 text-gray-400 text-xs italic bg-white rounded-2xl p-4 border border-gray-100">No teachers found explicitly assigned to Class ${studentClass}.</div>`;
+            return;
+        }
+
+        // Identify Class Teacher
+        let classTeacher = assignedTeachers.find(t => {
+            const title = (t.professionalTitle || '').toLowerCase();
+            return title.includes('class') || title.includes('adviser') || title.includes('advisor');
+        });
+
+        if (!classTeacher) {
+            // Match by name
+            classTeacher = assignedTeachers.find(t => {
+                const fullName = `${t.name?.first || ''} ${t.name?.middle || ''} ${t.name?.last || ''}`.replace(/\s+/g, ' ').trim();
+                return fullName.toLowerCase().includes(classTeacherName.toLowerCase()) || classTeacherName.toLowerCase().includes(fullName.toLowerCase());
+            });
+        }
+
+        // If still not found, fallback to first teacher
+        if (!classTeacher) {
+            classTeacher = assignedTeachers[0];
+        }
+
+        // Subject teachers are everyone else
+        const subjectTeachers = assignedTeachers.filter(t => t.id !== classTeacher.id);
+
+        const renderTeacherCard = (t, isClassTeacherBadge = false) => {
+            const fullName = `${t.name?.first || ''} ${t.name?.middle || ''} ${t.name?.last || ''}`.replace(/\s+/g, ' ').trim() || t.name || 'Faculty Member';
+            const profTitle = t.professionalTitle || 'Subject Teacher';
+            const phone = t.phone || '';
+            const photo = t.photo || 'https://via.placeholder.com/150';
+
+            // Resolve which subjects this teacher teaches the child (intersect of student's schedule and teacher's subjects)
+            const scheduleItems = (currentUser?.student?.schedule || [ ]).filter(s => {
+                return (s.teacher || '').toLowerCase().includes(fullName.toLowerCase()) || fullName.toLowerCase().includes((s.teacher || '').toLowerCase());
+            });
+
+            const subjectsList = scheduleItems.map(s => s.subject);
+            const resolvedSubjects = subjectsList.length > 0 ? subjectsList.join(', ') : (t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'Instructor');
+
+            // Resolve timing from schedule
+            const timingsList = scheduleItems.map(s => `${s.period} (${s.time})`);
+            const resolvedTiming = timingsList.length > 0 ? timingsList.join(' | ') : 'Works Daily';
+
+            const badgeHtml = isClassTeacherBadge 
+                ? `<span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase bg-indigo-100 text-indigo-700 border border-indigo-200">Class Teacher</span>` 
+                : `<span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase bg-green-100 text-green-700 border border-green-200">Subject Instructor</span>`;
+
+            return `
+                <div class="mobile-card flex items-center p-4 bg-white border border-gray-100 shadow-sm relative overflow-hidden transition-all text-left">
+                    <img src="${SafeResolvers.photo(photo)}" class="w-14 h-14 rounded-2xl object-cover mr-4 border border-gray-50 shadow-sm">
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 class="font-black text-gray-800 text-sm">${fullName}</h4>
+                            ${badgeHtml}
+                        </div>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">${profTitle} | ${resolvedSubjects}</p>
+                        <p class="text-[9px] text-blue-600 font-bold mt-1 uppercase flex items-center gap-1">
+                            <i class="far fa-clock text-[10px]"></i> ${resolvedTiming}
+                        </p>
+                    </div>
+                    ${phone ? `
+                        <a href="tel:${phone}" class="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform ml-2">
+                            <i class="fas fa-phone-alt text-sm"></i>
+                        </a>
+                    ` : ''}
+                </div>
+            `;
+        };
+
+        classTeacherContainer.innerHTML = renderTeacherCard(classTeacher, true);
+
+        if (subjectTeachers.length === 0) {
+            subjectTeachersContainer.innerHTML = `<div class="text-center py-6 text-gray-400 text-xs italic bg-white rounded-2xl p-4 border border-gray-100">No other subject teachers explicitly assigned to Class ${studentClass} in the database.</div>`;
+        } else {
+            subjectTeachersContainer.innerHTML = subjectTeachers.map(t => renderTeacherCard(t, false)).join('');
+        }
+
+    } catch (e) {
+        console.error(e);
+        classTeacherContainer.innerHTML = `<div class="text-center py-4 text-red-400 text-xs">Error resolving: ${e.message}</div>`;
+        subjectTeachersContainer.innerHTML = `<div class="text-center py-4 text-red-400 text-xs">Error resolving: ${e.message}</div>`;
+    }
+}
+
+function listenToRecentNotices() {
+    db.ref('school/notices').on('value', snap => {
+        const notices = snap.val();
+        const badge = document.getElementById('header-bell-badge');
+        const dashBadge = document.getElementById('dash-notices-badge');
+
+        if (notices) {
+            if (badge) badge.classList.remove('hidden');
+            if (dashBadge) dashBadge.classList.remove('hidden');
+        } else {
+            if (badge) badge.classList.add('hidden');
+            if (dashBadge) dashBadge.classList.add('hidden');
+        }
+    });
 }
     
