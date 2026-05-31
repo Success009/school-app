@@ -207,35 +207,11 @@ const parentViews = {
                 <p class="text-xs text-gray-500">View subject periods and teacher contacts</p>
             </div>
             
-            <div class="space-y-4">
-                ${(currentUser?.student.schedule || [ ]).map(item => `
-                    <div class="mobile-card !p-0 overflow-hidden border-l-4 ${item.subject === 'Lunch Break' ? 'border-gray-300 bg-gray-50' : 'border-blue-600'}">
-                        <div class="p-4 flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="mr-4 text-center">
-                                    <span class="block text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${item.period}</span>
-                                    <span class="block text-xs font-black text-gray-800">${item.time.split(' ')[0]}</span>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-gray-800 text-sm">${item.subject}</h4>
-                                    <p class="text-[10px] text-gray-400 font-medium">${item.teacher !== '-' ? 'Teacher: ' + item.teacher : 'Relaxation Time'}</p>
-                                </div>
-                            </div>
-                            ${item.teacher !== '-' ? `
-                                <div class="flex gap-2">
-                                    <a href="tel:+9779800000000" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-90 transition-transform">
-                                        <i class="fas fa-phone-alt text-xs"></i>
-                                    </a>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="bg-gray-50 px-4 py-1.5 flex items-center border-t border-gray-100">
-                            <i class="fas fa-calendar-day text-[10px] text-gray-400 mr-2"></i>
-                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${item.days}</span>
-                        </div>
-                    </div>
-                `).join('')}
+            <div id="routine-list-container" class="space-y-4">
+                <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading routine schedule...</div>
             </div>
+        `
+    }
             
             <div class="mt-8 mb-4">
                 <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Other Contacts</h3>
@@ -459,6 +435,9 @@ function parentRouter(viewName) {
     if (viewName === 'results') {
         loadParentResults();
     }
+    if (viewName === 'routine') {
+        loadParentRoutineWithGlobalTimings();
+    }
     if (viewName === 'teachers') {
         renderSharedTeacherDirectory('parent-teachers-container', { canClickToCall: true });
     }
@@ -646,4 +625,67 @@ function listenToRecentNotices() {
         }
     });
 }
-    
+}
+
+async function loadParentRoutineWithGlobalTimings() {
+    const container = document.getElementById('routine-list-container');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/config/period_timings').once('value');
+        const globalTimings = snap.val() || { };
+
+        const schedule = currentUser?.student.schedule || [ ];
+        if (schedule.length === 0) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400">No schedule found for this student.</div>`;
+            return;
+        }
+
+        container.innerHTML = schedule.map(item => {
+            const periodKey = (item.period || '').replace(/\D/g, '');
+            let timeStr = item.time;
+            
+            let matchedTiming = globalTimings[item.period] || Object.values(globalTimings).find(pt => {
+                const ptNum = (pt.id || '').replace(/\D/g, '');
+                return ptNum && periodKey && ptNum === periodKey;
+            });
+
+            if (matchedTiming) {
+                timeStr = `${matchedTiming.startTime} - ${matchedTiming.endTime}`;
+            }
+
+            const isLunch = item.subject.toLowerCase().includes('lunch') || item.subject.toLowerCase().includes('break');
+
+            return `
+                <div class="mobile-card !p-0 overflow-hidden border-l-4 ${isLunch ? 'border-gray-300 bg-gray-50' : 'border-blue-600 bg-white'} shadow-sm">
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="mr-4 text-center">
+                                <span class="block text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${item.period}</span>
+                                <span class="block text-xs font-black text-gray-800" style="white-space: nowrap;">${timeStr.split(' - ')[0]}</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">${item.subject}</h4>
+                                <p class="text-[10px] text-gray-400 font-medium">${item.teacher !== '-' ? 'Teacher: ' + item.teacher : 'Relaxation Time'}</p>
+                            </div>
+                        </div>
+                        ${item.teacher !== '-' ? `
+                            <div class="flex gap-2">
+                                <a href="tel:+9779800000000" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+                                    <i class="fas fa-phone-alt text-xs"></i>
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="bg-gray-50 px-4 py-1.5 flex items-center border-t border-gray-100">
+                        <i class="fas fa-calendar-day text-[10px] text-gray-400 mr-2"></i>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${item.days}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error("Error building routine list:", e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400">Failed to load routine: ${e.message}</div>`;
+    }
+}

@@ -113,7 +113,7 @@ async function loadParentResults(term = "Term 1") {
 function printReportCard(term = "Term 1") {
     const studentId = currentUser?.student.id;
     
-    db.ref(`school/results/${studentId}/${term}`).once('value', (snap) => {
+    db.ref(`school/results/${studentId}/${term}`).once('value', async (snap) => {
         const marks = snap.val();
         
         let marksHtml = '';
@@ -156,6 +156,36 @@ function printReportCard(term = "Term 1") {
         else if (pct >= 50) gpa = 2.4;
         else if (pct >= 40) gpa = 2.0;
         else gpa = 1.6;
+
+        // Fetch teachers to resolve Class Teacher and Principal dynamically
+        let classTeacherName = "Class Teacher";
+        let principalName = "Principal";
+        
+        try {
+            const tSnap = await db.ref('school/teachers').once('value');
+            const teachers = tSnap.val();
+            if (teachers) {
+                const studentClass = currentUser?.student.grade;
+                const ct = Object.values(teachers).find(t => String(t.classTeacherOf) === String(studentClass));
+                if (ct) {
+                    const ctName = `${ct.name?.first || ''} ${ct.name?.middle || ''} ${ct.name?.last || ''}`.replace(/\s+/g, ' ').trim() || ct.name || "Class Teacher";
+                    const ctTitle = ct.professionalTitle || "Class Teacher";
+                    classTeacherName = `${ctName}<br><span style="font-size: 10px; color: #64748b; font-weight: normal;">${ctTitle}</span>`;
+                }
+                
+                const pr = Object.values(teachers).find(t => {
+                    const title = (t.professionalTitle || '').toLowerCase();
+                    return title.includes('principal') || title.includes('head') || t.sortOrder === 1;
+                });
+                if (pr) {
+                    const prName = `${pr.name?.first || ''} ${pr.name?.middle || ''} ${pr.name?.last || ''}`.replace(/\s+/g, ' ').trim() || pr.name || "Principal";
+                    const prTitle = pr.professionalTitle || "Principal";
+                    principalName = `${prName}<br><span style="font-size: 10px; color: #64748b; font-weight: normal;">${prTitle}</span>`;
+                }
+            }
+        } catch (err) {
+            console.error("Error resolving teachers for print signatures:", err);
+        }
 
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -222,11 +252,11 @@ function printReportCard(term = "Term 1") {
                     <div class="signatures-block">
                         <div>
                             <div class="sig-line"></div>
-                            Class Teacher
+                            ${classTeacherName}
                         </div>
                         <div>
                             <div class="sig-line"></div>
-                            Principal
+                            ${principalName}
                         </div>
                     </div>
                 </div>
@@ -242,4 +272,3 @@ function printReportCard(term = "Term 1") {
         printWindow.document.close();
     });
 }
-    

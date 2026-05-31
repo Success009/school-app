@@ -382,23 +382,31 @@ async function saveStudent() {
 }
 
 async function deleteStudent(studentId) {
-    if (!confirm("Are you sure you want to permanently delete this student record?")) return;
+    if (!confirm("Are you sure you want to archive this student record (Soft Delete)?")) return;
     try {
         const snap = await db.ref('school/students/' + studentId).once('value');
         if (snap.exists()) {
             const data = snap.val();
+            data.archivedAt = Date.now();
+            data.archiveType = "soft_delete";
+            
+            await db.ref('school/archives/students/' + studentId).set(data);
+            
             if (data.phone) {
                 const phones = data.phone.split(',').map(p => p.trim()).filter(p => p.length >= 10);
                 for (const phone of phones) {
                     await db.ref('school/login_mappings/' + phone).remove();
                 }
             }
+            
+            await db.ref('school/students/' + studentId).remove();
+            await alert("Student record archived successfully.");
+            adminRouter('viewStudents');
+        } else {
+            await alert("Student record not found.");
         }
-        await db.ref('school/students/' + studentId).remove();
-        await alert("Student record deleted successfully.");
-        adminRouter('viewStudents');
     } catch (e) {
-        await alert("Failed to delete record: " + e.message);
+        await alert("Failed to archive record: " + e.message);
     }
 }
 

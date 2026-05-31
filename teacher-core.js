@@ -90,17 +90,8 @@ const teacherViews = {
                 <p class="text-xs text-gray-500">View chronological periods and classrooms</p>
             </div>
             
-            <div class="space-y-4">
-                ${(currentUser?.schedule || [ ]).map(s => `
-                    <div class="mobile-card border-l-4 border-blue-600 bg-white flex items-center justify-between p-4">
-                        <div>
-                            <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Period ${s.period}</span>
-                            <h4 class="font-bold text-gray-800 text-base mt-0.5">${s.subject}</h4>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">Class ${s.class} | ${s.time}</p>
-                        </div>
-                        <span class="bg-gray-50 text-gray-600 px-3 py-1 rounded-xl text-xs font-bold">Room 102</span>
-                    </div>
-                `).join('')}
+            <div id="teacher-schedule-container" class="space-y-4">
+                <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading weekly schedule...</div>
             </div>
         `
     },
@@ -481,6 +472,10 @@ function teacherRouter(viewName) {
         populateExamWindowsDropdown();
     }
 
+    if (viewName === 'schedule') {
+        loadTeacherScheduleWithGlobalTimings();
+    }
+
     if (viewName === 'teachers') {
         renderSharedTeacherDirectory('teacher-colleagues-container', { canClickToCall: true });
     }
@@ -769,4 +764,48 @@ async function loadClassResultsTracker() {
     container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading results: ${e.message}</div>`;
 }
 
+}
+
+async function loadTeacherScheduleWithGlobalTimings() {
+    const container = document.getElementById('teacher-schedule-container');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/config/period_timings').once('value');
+        const globalTimings = snap.val() || { };
+
+        const schedule = currentUser?.schedule || [ ];
+        if (schedule.length === 0) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400">No schedule assigned yet.</div>`;
+            return;
+        }
+
+        container.innerHTML = schedule.map(s => {
+            const periodKey = (s.period || '').replace(/\D/g, '');
+            let timeStr = s.time;
+
+            let matchedTiming = globalTimings[s.period] || Object.values(globalTimings).find(pt => {
+                const ptNum = (pt.id || '').replace(/\D/g, '');
+                return ptNum && periodKey && ptNum === periodKey;
+            });
+
+            if (matchedTiming) {
+                timeStr = `${matchedTiming.startTime} - ${matchedTiming.endTime}`;
+            }
+
+            return `
+                <div class="mobile-card border-l-4 border-blue-600 bg-white flex items-center justify-between p-4 shadow-sm">
+                    <div>
+                        <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Period ${s.period}</span>
+                        <h4 class="font-bold text-gray-800 text-base mt-0.5">${s.subject}</h4>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">Class ${s.class} | ${timeStr}</p>
+                    </div>
+                    <span class="bg-gray-50 text-gray-600 px-3 py-1 rounded-xl text-xs font-bold">Room 102</span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error("Error building teacher schedule list:", e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400">Failed to load schedule: ${e.message}</div>`;
+    }
 }

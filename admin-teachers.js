@@ -269,20 +269,28 @@ const classTeacherOf = document.getElementById('tch-classTeacherOf') ? document.
 }
 
 async function deleteTeacher(teacherId) {
-    if (!confirm("Are you sure you want to permanently terminate this faculty contract and revoke all login accesses?")) return;
+    if (!confirm("Are you sure you want to archive this faculty record (Soft Delete) and revoke all login accesses?")) return;
     try {
         const snap = await db.ref('school/teachers/' + teacherId).once('value');
         if (snap.exists()) {
             const data = snap.val();
+            data.archivedAt = Date.now();
+            data.archiveType = "soft_delete";
+            
+            await db.ref('school/archives/teachers/' + teacherId).set(data);
+            
             if (data.phone) {
                 await db.ref('school/login_mappings/' + data.phone).remove();
             }
+            
+            await db.ref('school/teachers/' + teacherId).remove();
+            await alert("Faculty record archived successfully.");
+            adminRouter('viewTeachers');
+        } else {
+            await alert("Teacher record not found.");
         }
-        await db.ref('school/teachers/' + teacherId).remove();
-        await alert("Faculty record terminated successfully.");
-        adminRouter('viewTeachers');
     } catch (e) {
-        await alert("Failed to delete record: " + e.message);
+        await alert("Failed to archive record: " + e.message);
     }
 }
 
