@@ -4,6 +4,13 @@ Welcome! If you are an incoming AI model assigned to make modifications or upgra
 
 ---
 
+## IMPORTANT: ACTIVE DEVELOPMENT ROADMAP
+
+All active feature updates, portal decommissionings, and customization workflows are detailed in **[DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)**.
+You MUST read `DEVELOPMENT_PLAN.md` sequentially and implement its specified phases as your primary tasks. Do not deviate or make guessed assumptions!
+
+---
+    
 ## 1. Ground Rules & Principles (DO NOT GUESS)
 
 *   **Read Before Editing:** NEVER write code based on assumptions or play guessing games. Always use file reading tools to inspect the active implementations.
