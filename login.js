@@ -214,18 +214,17 @@ async function handleLogin() {
         } else {
             hideUploadProgress();
             await alert("Invalid phone number or account not registered.");
-    } catch (e) {
-        console.error("Authentication failed:", e);
+            return;
+        }
+
+        localStorage.setItem('school_app_user', JSON.stringify(currentUser));
         hideUploadProgress();
-        // Enhanced error message for debugging
-        const errorMsg = e.message || "Unknown error";
-        await alert(`Login Error: ${errorMsg}\n\nTechnical Details: Check if phone ${phone} exists in school/login_mappings on project mydb-7cfc4.`);
-    }
         redirectUserToRoleDashboard(currentUser.role);
     } catch (e) {
         console.error("Authentication failed:", e);
         hideUploadProgress();
-        await alert("Authentication failed: " + e.message);
+        const errorMsg = e.message || "Unknown error";
+        await alert(`Login Error: ${errorMsg}\n\nTechnical Details: Check if phone ${phone} exists in school/login_mappings.`);
     }
 }
 
