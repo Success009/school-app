@@ -70,12 +70,12 @@ const parentViews = {
                     <span id="dash-attendance-pct" class="text-xl font-black text-gray-800">...</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-1 tracking-wider">Attendance</span>
                 </div>
-                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('homework')">
-                    <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 mb-3 group-active:scale-90 transition-transform">
-                        <i class="fas fa-book-open text-lg"></i>
+                <div class="mobile-card flex flex-col items-center justify-center text-center p-5 active:bg-blue-50 transition-colors cursor-pointer group" onclick="parentRouter('teachers')">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-active:scale-90 transition-transform">
+                        <i class="fas fa-chalkboard-teacher text-lg"></i>
                     </div>
-                    <span class="text-xl font-black text-gray-800">2</span>
-                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-1 tracking-wider">Assignments</span>
+                    <span class="text-sm font-bold text-gray-800 leading-tight">Faculty<br>Directory</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Teachers</span>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -93,17 +93,6 @@ const parentViews = {
                     <span class="text-sm font-bold text-gray-800 leading-tight">Exam<br>Results</span>
                     <span class="text-[10px] text-gray-400 uppercase font-bold mt-2 tracking-wider">Academics</span>
                 </div>
-            </div>
-
-            <div onclick="parentRouter('teachers')" class="mobile-card flex items-center p-4 bg-purple-50 hover:bg-purple-100/30 border-none shadow-none mt-4 cursor-pointer active:scale-98 transition-all">
-                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-4">
-                    <i class="fas fa-chalkboard-teacher text-sm"></i>
-                </div>
-                <div class="flex-grow">
-                    <h4 class="text-sm font-bold text-gray-800">Faculty Directory</h4>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Contact and view availability of teachers</p>
-                </div>
-                <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
             </div>
         `
     },
@@ -132,39 +121,36 @@ const parentViews = {
             </div>
         `
     },
-    homework: {
-        title: 'Homework & Assignments',
-        render: () => `
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Pending Tasks</h2>
-            </div>
-            <div class="space-y-4">
-                <div class="mobile-card relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs font-bold text-yellow-600 uppercase tracking-tighter">Mathematics</span>
-                        <span class="text-[10px] text-gray-400">Due: Tomorrow</span>
-                    </div>
-                    <h4 class="font-bold text-gray-800">Solve Exercise 5.2</h4>
-                    <div class="mt-3 flex items-center">
-                        <input type="checkbox" onchange="toggleHomework(this, 'math')" class="w-4 h-4 mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <span id="label-math" class="text-xs text-gray-500 ml-2">Mark as done</span>
-                    </div>
+    suggestions: {
+        title: 'Parent Suggestions Feed',
+        render: () => {
+            setTimeout(() => {
+                loadParentSuggestionsList();
+            }, 50);
+
+            return `
+                <div class="mb-6">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Parent Suggestions</h2>
+                    <p class="text-xs text-gray-500">Submit suggestions or feedback directly to our faculty members</p>
                 </div>
-                <div class="mobile-card relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs font-bold text-green-600 uppercase tracking-tighter">Science</span>
-                        <span class="text-[10px] text-gray-400">Due: May 30</span>
+
+                <div class="mobile-card space-y-4 mb-6">
+                    <h3 class="text-xs font-black uppercase text-blue-600 tracking-wider">Submit New Suggestion</h3>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Your Suggestion / Message</label>
+                        <textarea id="sug-message" rows="3" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" placeholder="Write your constructive suggestion here..."></textarea>
                     </div>
-                    <h4 class="font-bold text-gray-800">Read Chapter 4</h4>
-                    <div class="mt-3 flex items-center">
-                        <input type="checkbox" onchange="toggleHomework(this, 'science')" class="w-4 h-4 mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <span id="label-science" class="text-xs text-gray-500 ml-2">Mark as done</span>
-                    </div>
+                    <button onclick="submitParentSuggestion()" class="w-full bg-blue-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
+                        <i class="fas fa-paper-plane mr-2"></i> Send to Faculty
+                    </button>
                 </div>
-            </div>
-        `
+
+                <h3 class="font-bold text-gray-400 uppercase text-[10px] tracking-widest px-1 mb-4">My Suggestions Feed</h3>
+                <div id="parent-suggestions-list" class="space-y-3 pb-10">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading suggestions feed...</div>
+                </div>
+            `;
+        }
     },
     notices: {
         title: 'Notice Board',
@@ -391,6 +377,9 @@ function parentRouter(viewName) {
     }
     if (viewName === 'attendance') {
         loadAttendanceHistoryAndStats();
+    }
+    if (viewName === 'suggestions') {
+        loadParentSuggestionsList();
     }
     if (viewName === 'notices') {
         loadParentNotices();

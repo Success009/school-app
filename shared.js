@@ -72,9 +72,6 @@ function redirectUserToRoleDashboard(role) {
         case ROLES.ACCOUNTANT:
             window.location.href = 'accountant.html';
             break;
-        case ROLES.PRINCIPAL:
-            window.location.href = 'principal.html';
-            break;
         default:
             window.location.href = 'index.html';
     }
@@ -235,6 +232,12 @@ function renderHeader(title, backAction = null) {
            </button>` 
         : '';
 
+    const logoutBtnHtml = (currentUser && currentUser.role === ROLES.PARENT)
+        ? ''
+        : `<button onclick="handleLogout()" class="text-white hover:text-red-200 active:scale-95 transition-transform ml-2">
+               <i class="fas fa-sign-out-alt text-lg"></i>
+           </button>`;
+
     const headerHtml = `
         <div class="flex items-center justify-between w-full">
             <div class="flex items-center">
@@ -243,9 +246,7 @@ function renderHeader(title, backAction = null) {
             </div>
             <div class="flex items-center gap-3">
                 <i class="fas fa-bell text-xl"></i>
-                <button onclick="handleLogout()" class="text-white hover:text-red-200 active:scale-95 transition-transform ml-2">
-                    <i class="fas fa-sign-out-alt text-lg"></i>
-                </button>
+                ${logoutBtnHtml}
             </div>
         </div>
     `;
@@ -390,7 +391,13 @@ function renderTeachersSubset(listContainerId, teachers, options = { }) {
     const listContainer = document.getElementById(listContainerId);
     if (!listContainer) return;
 
-    listContainer.innerHTML = Object.entries(teachers).map(([teacherId, t]) => {
+    const sortedEntries = Object.entries(teachers).sort((a, b) => {
+        const orderA = a[1].sortOrder !== undefined ? parseInt(a[1].sortOrder) : 9999;
+        const orderB = b[1].sortOrder !== undefined ? parseInt(b[1].sortOrder) : 9999;
+        return orderA - orderB;
+    });
+
+    listContainer.innerHTML = sortedEntries.map(([teacherId, t]) => {
         const fullName = t.name && typeof t.name === 'object' 
             ? `${t.name.first || ''} ${t.name.middle || ''} ${t.name.last || ''}`.replace(/\s+/g, ' ').trim()
             : t.name || 'Faculty Member';
@@ -416,6 +423,10 @@ function renderTeachersSubset(listContainerId, teachers, options = { }) {
         const hodLabel = t.isDepartmentHead ? `<span class="px-1.5 py-0.5 rounded-md text-[8px] bg-red-100 text-red-700 font-black tracking-wide ml-1 border border-red-200">HOD</span>` : '';
 
         const profTitle = SafeResolvers.text(t.professionalTitle, SafeResolvers.text(t.role, 'Faculty'));
+        const profTitleBadge = (profTitle && profTitle !== 'Faculty Member' && profTitle !== 'teacher' && profTitle !== 'Faculty') 
+            ? `<span class="px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase bg-indigo-100 text-indigo-700 border border-indigo-200 ml-1">${profTitle}</span>` 
+            : '';
+
         const subjectStr = t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'N/A';
 
         // Custom action callback for admin/profile loading vs dynamic list
@@ -427,9 +438,10 @@ function renderTeachersSubset(listContainerId, teachers, options = { }) {
             <div ${clickAttr} class="mobile-card flex items-center p-4 bg-white border border-gray-100 shadow-sm relative overflow-hidden active:bg-gray-50 transition-colors ${options.showAdminActions ? 'cursor-pointer' : ''}">
                 <img src="${SafeResolvers.photo(t.photo)}" class="w-12 h-12 rounded-xl object-cover mr-4 border border-gray-100 shadow-sm">
                 <div class="flex-grow">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <h4 class="font-bold text-gray-800 text-sm">${fullName}</h4>
                         <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${badgeClass}">${status}</span>
+                        ${profTitleBadge}
                         ${hodLabel}
                     </div>
                     <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">${profTitle}${deptLabel} | ${subjectStr}</p>

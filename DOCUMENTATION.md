@@ -37,11 +37,6 @@ The web application separates role-specific screens and core actions into isolat
 *   `admin-config.js` — School principal credentials and photo configuration.
 *   `admin-core.js` — Command dashboard statistics, notice broadcasts, and core routing.
 
-### 1.5 Principal Portal (distributed)
-*   `principal.html` — Principal HTML view shell.
-*   `principal-students.js` — Classes search filters and directory cards.
-*   `principal-core.js` — School metrics trackers, average attendance scores, and routing.
-
 ---
 
 ## 2. Real-Time Firebase Database Schema Map

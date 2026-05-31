@@ -58,15 +58,24 @@ const teacherViews = {
                 `).join('')}
             </div>
 
-            <!-- Quick Action Shortcuts -->
-            <div class="mt-8 grid grid-cols-2 gap-4">
-                <button onclick="teacherRouter('marks')" class="mobile-card flex flex-col items-center justify-center p-6 text-blue-600 bg-white hover:bg-gray-50">
-                    <i class="fas fa-file-signature text-xl mb-2"></i>
-                    <span class="text-[10px] font-black uppercase">Enter Marks</span>
+            <!-- Polished Quick Action Shortcuts Grid -->
+            <h3 class="font-bold text-gray-800 mt-8 mb-4">Faculty Quick Operations</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="teacherRouter('attendance')" class="mobile-card flex flex-col items-center justify-center p-6 text-emerald-600 bg-white hover:bg-emerald-50/20 active:scale-95 transition-all">
+                    <i class="fas fa-user-check text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Attendance</span>
                 </button>
-                <button onclick="teacherRouter('schedule')" class="mobile-card flex flex-col items-center justify-center p-6 text-purple-600 bg-white hover:bg-gray-50">
-                    <i class="fas fa-calendar-day text-xl mb-2"></i>
-                    <span class="text-[10px] font-black uppercase">Full Routine</span>
+                <button onclick="teacherRouter('marks')" class="mobile-card flex flex-col items-center justify-center p-6 text-blue-600 bg-white hover:bg-blue-50/20 active:scale-95 transition-all">
+                    <i class="fas fa-file-signature text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Marks Entry</span>
+                </button>
+                <button onclick="teacherRouter('suggestions')" class="mobile-card flex flex-col items-center justify-center p-6 text-amber-600 bg-white hover:bg-amber-50/20 active:scale-95 transition-all">
+                    <i class="fas fa-comment-dots text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Suggestions Feed</span>
+                </button>
+                <button onclick="teacherRouter('reassignment')" class="mobile-card flex flex-col items-center justify-center p-6 text-purple-600 bg-white hover:bg-purple-50/20 active:scale-95 transition-all">
+                    <i class="fas fa-exchange-alt text-2xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider">Class Change</span>
                 </button>
             </div>
         `
@@ -295,6 +304,71 @@ const teacherViews = {
                 <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading Directory...</div>
             </div>
         `
+    },
+    suggestions: {
+        title: 'Parent Suggestions Board',
+        render: () => {
+            setTimeout(() => {
+                loadTeacherSuggestionsFeed();
+            }, 50);
+
+            return `
+                <div class="mb-6">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Parent Suggestions Feed</h2>
+                    <p class="text-xs text-gray-500">Read chronological suggestions and feedback submitted by school parents</p>
+                </div>
+
+                <div id="teacher-suggestions-list" class="space-y-4 pb-10">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Syncing suggestions board...</div>
+                </div>
+            `;
+        }
+    },
+    reassignment: {
+        title: 'Class Reassignment',
+        render: () => {
+            setTimeout(() => {
+                loadReassignmentRequestsHistory();
+            }, 50);
+
+            return `
+                <div class="mb-6">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Request Class Reassignment</h2>
+                    <p class="text-xs text-gray-500">Apply for adjustments to your assigned classes or subject workloads</p>
+                </div>
+
+                <div class="mobile-card space-y-4 mb-6">
+                    <h3 class="text-xs font-black uppercase text-purple-600 tracking-wider">Submit New Request</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Class</label>
+                            <select id="req-class" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                                <option value="1">Class 1</option>
+                                <option value="2">Class 2</option>
+                                <option value="3">Class 3</option>
+                                <option value="4">Class 4</option>
+                                <option value="5">Class 5</option>
+                                <option value="6">Class 6</option>
+                                <option value="7">Class 7</option>
+                                <option value="8">Class 8</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Requested Subject</label>
+                            <input type="text" id="req-subject" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none" placeholder="e.g. Mathematics">
+                        </div>
+                    </div>
+                    <button onclick="submitReassignmentRequest()" class="w-full bg-purple-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit Request Application
+                    </button>
+                </div>
+
+                <h3 class="font-bold text-gray-400 uppercase text-[10px] tracking-widest px-1 mb-4">My Application Logs</h3>
+                <div id="reassignment-requests-list" class="space-y-3 pb-10">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading request history...</div>
+                </div>
+            `;
+        }
     }
 };
 
@@ -332,6 +406,132 @@ function teacherRouter(viewName) {
         renderSharedTeacherDirectory('teacher-colleagues-container', { canClickToCall: true });
     }
 
+    if (viewName === 'suggestions') {
+        loadTeacherSuggestionsFeed();
+    }
+
+    if (viewName === 'reassignment') {
+        loadReassignmentRequestsHistory();
+    }
+
     document.getElementById('main-content').scrollTop = 0;
+}
+
+async function loadTeacherSuggestionsFeed() {
+    const container = document.getElementById('teacher-suggestions-list');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/suggestions').once('value');
+        const list = snap.val();
+
+        if (!list) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No suggestions have been submitted by parents yet.</div>`;
+            return;
+        }
+
+        const suggestions = Object.values(list);
+        suggestions.sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = suggestions.map(s => `
+            <div class="mobile-card bg-white p-4 shadow-sm relative overflow-hidden border-l-4 border-amber-500 text-left">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-black text-gray-800">${s.parentName}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">(${s.parentPhone})</span>
+                    </div>
+                    <span class="text-[8px] text-gray-400 font-bold">${new Date(s.timestamp).toLocaleString()}</span>
+                </div>
+                <p class="text-xs text-gray-700 leading-relaxed font-semibold bg-gray-50 p-3 rounded-xl">${s.message}</p>
+                <div class="mt-2 text-[8px] font-black text-blue-600 uppercase tracking-wider">
+                    Parent of: ${s.studentName}
+                </div>
+            </div>
+        `).join('');
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading suggestions board: ${e.message}</div>`;
+    }
+}
+
+async function submitReassignmentRequest() {
+    const requestedClass = document.getElementById('req-class').value;
+    const requestedSubject = document.getElementById('req-subject').value.trim();
+
+    if (!requestedSubject) {
+        await alert("Please specify the requested subject.");
+        return;
+    }
+
+    const requestId = "REQ-" + Math.floor(100000 + Math.random() * 900000);
+
+    const reqData = {
+        requestId: requestId,
+        teacherId: currentUser?.id || "UT-MOCK",
+        teacherName: currentUser?.name || "Teacher",
+        requestedClass: requestedClass,
+        requestedSubject: requestedSubject,
+        status: "Pending",
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    try {
+        await db.ref('school/class_change_requests/' + requestId).set(reqData);
+        await alert("Class Reassignment application submitted successfully to administration!");
+        document.getElementById('req-subject').value = '';
+        loadReassignmentRequestsHistory();
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to submit request: " + e.message);
+    }
+}
+
+async function loadReassignmentRequestsHistory() {
+    const container = document.getElementById('reassignment-requests-list');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/class_change_requests').once('value');
+        const list = snap.val();
+
+        if (!list) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No reassignment applications found.</div>`;
+            return;
+        }
+
+        const teacherId = currentUser?.id || "UT-MOCK";
+        const myRequests = Object.values(list).filter(r => r.teacherId === teacherId);
+
+        if (myRequests.length === 0) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No reassignment applications found.</div>`;
+            return;
+        }
+
+        myRequests.sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = myRequests.map(r => {
+            let statusColor = "bg-yellow-100 text-yellow-700";
+            if (r.status === 'Approved') statusColor = "bg-green-100 text-green-700";
+            else if (r.status === 'Denied') statusColor = "bg-red-100 text-red-700";
+
+            return `
+                <div class="mobile-card bg-white p-4 shadow-sm relative overflow-hidden text-left">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[8px] font-black text-purple-600 uppercase tracking-widest">${r.requestId}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${statusColor}">${r.status}</span>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">Class ${r.requestedClass} | ${r.requestedSubject}</h4>
+                    <div class="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between text-[8px] font-bold text-gray-400 uppercase">
+                        <span>Submitted: ${new Date(r.timestamp).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading requests: ${e.message}</div>`;
+    }
 }
     

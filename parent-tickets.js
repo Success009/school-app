@@ -103,4 +103,78 @@ async function loadParentTicketsList() {
         container.innerHTML = `<div class="text-center py-10 text-red-400">Error loading support logs.</div>`;
     }
 }
+
+async function submitParentSuggestion() {
+    const message = document.getElementById('sug-message').value.trim();
+
+    if (!message) {
+        await alert("Please write a suggestion message before sending.");
+        return;
+    }
+
+    const sugId = "SUG-" + Math.floor(100000 + Math.random() * 900000);
+
+    const sugData = {
+        id: sugId,
+        parentName: currentUser?.name || "Parent",
+        parentPhone: currentUser?.phone || "9800000000",
+        studentName: currentUser?.student?.name ? getStudentFullName(currentUser.student.name) : "Student",
+        message: message,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    try {
+        await db.ref('school/suggestions/' + sugId).set(sugData);
+        await alert("Thank you! Your suggestion has been logged and shared with all faculty members.");
+        document.getElementById('sug-message').value = '';
+        loadParentSuggestionsList();
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to submit suggestion: " + e.message);
+    }
+}
+
+async function loadParentSuggestionsList() {
+    const container = document.getElementById('parent-suggestions-list');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/suggestions').once('value');
+        const list = snap.val();
+
+        if (!list) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No suggestions submitted yet. Be the first to share!</div>`;
+            return;
+        }
+
+        const parentPhone = currentUser?.phone || "9800000000";
+        const mySuggestions = Object.values(list).filter(s => s.parentPhone === parentPhone);
+
+        if (mySuggestions.length === 0) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No suggestions submitted yet.</div>`;
+            return;
+        }
+
+        mySuggestions.sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = mySuggestions.map(s => {
+            return `
+                <div class="mobile-card bg-white p-4 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[8px] font-black text-blue-600 uppercase tracking-widest">${s.id}</span>
+                        <span class="text-[8px] text-gray-400 font-bold">${new Date(s.timestamp).toLocaleString()}</span>
+                    </div>
+                    <p class="text-xs text-gray-700 leading-relaxed font-semibold">${s.message}</p>
+                    <div class="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between text-[8px] font-black text-gray-400 uppercase tracking-wider">
+                        <span>For: ${s.studentName}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading suggestions: ${e.message}</div>`;
+    }
+}
     

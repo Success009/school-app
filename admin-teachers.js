@@ -54,9 +54,15 @@ async function viewTeacherProfileDetails(teacherId) {
                 <div class="mobile-card space-y-3">
                     <h4 class="text-xs font-black uppercase text-purple-600 mb-2 tracking-wider">1. Hierarchy & Availability Status</h4>
                     
-                    <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Professional Title</label>
-                        <input type="text" id="edit-t-title" value="${SafeResolvers.text(data.professionalTitle, 'Faculty Member')}" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Professional Title</label>
+                            <input type="text" id="edit-t-title" value="${SafeResolvers.text(data.professionalTitle, 'Faculty Member')}" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Sort Order (Hierarchy)</label>
+                            <input type="number" id="edit-t-sortOrder" value="${data.sortOrder !== undefined ? data.sortOrder : 10}" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -114,6 +120,7 @@ async function viewTeacherProfileDetails(teacherId) {
 async function updateTeacherProfile(teacherId) {
     try {
         const title = document.getElementById('edit-t-title').value.trim();
+        const sortOrder = parseInt(document.getElementById('edit-t-sortOrder').value);
         const status = document.getElementById('edit-t-status').value;
         const joinedYear = document.getElementById('edit-t-joinedYear').value.trim();
         const available = document.getElementById('edit-t-available').checked;
@@ -128,6 +135,7 @@ async function updateTeacherProfile(teacherId) {
 
         const updates = {
             professionalTitle: title,
+            sortOrder: isNaN(sortOrder) ? 10 : sortOrder,
             statusLabel: status,
             joinedYear: joinedYear,
             isAvailable: available,
@@ -175,6 +183,10 @@ async function saveTeacher() {
         return;
     }
 
+    const title = document.getElementById('tch-title') ? document.getElementById('tch-title').value.trim() : 'Faculty Member';
+    const sortOrderVal = document.getElementById('tch-sortOrder') ? parseInt(document.getElementById('tch-sortOrder').value) : 10;
+    const sortOrder = isNaN(sortOrderVal) ? 10 : sortOrderVal;
+
     const teacherId = `UT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
     let photoUrl = "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150";
 
@@ -217,6 +229,8 @@ async function saveTeacher() {
             assignedClasses: classes.split(',').map(c => c.trim()).filter(c => c.length > 0),
             photo: photoUrl,
             role: 'teacher',
+            professionalTitle: title,
+            sortOrder: sortOrder,
             schedule: [
                 { period: '1st', class: classes.split(',')[0] || '1', subject: subjects.split(',')[0] || 'Mathematics', time: '10:00 AM' }
             ],

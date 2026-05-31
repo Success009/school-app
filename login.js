@@ -70,12 +70,11 @@ async function sendOTP() {
     try {
         showUploadProgress(30, "Login Process", "Verifying database entries...");
         
-        // Check if phone exists in school/admin or school/head or school/login_mappings
+        // Check if phone exists in school/admin or school/login_mappings
         const adminSnap = await db.ref('school/admin/' + phone).once('value');
-        const headSnap = await db.ref('school/head/' + phone).once('value');
         const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
 
-        if (!adminSnap.exists() && !headSnap.exists() && !mapSnap.exists()) {
+        if (!adminSnap.exists() && !mapSnap.exists()) {
             hideUploadProgress();
             await alert("Invalid phone number: This mobile number is not registered in the school database.");
             return;
@@ -123,31 +122,13 @@ async function handleLogin() {
             return;
         }
 
-        // 2. Check for Principal (Head) phone numbers
-        const headSnap = await db.ref('school/head/' + phone).once('value');
-        if (headSnap.exists()) {
-            const headData = await db.ref('school/principal_profile').once('value');
-            const p = headData.val() || { };
-            currentUser = { 
-                role: ROLES.PRINCIPAL, 
-                id: 'HEAD-OFFICE', 
-                name: p.name || 'Principal', 
-                phone: phone,
-                photo: p.photo || 'https://via.placeholder.com/150'
-            };
-            localStorage.setItem('school_app_user', JSON.stringify(currentUser));
-            hideUploadProgress();
-            redirectUserToRoleDashboard(currentUser.role);
-            return;
-        }
-
         // 3. Read from dynamic login mapping for Teachers/Parents/Accountants/Admins/Principals
         const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
         
         if (mapSnap.exists()) {
             const mapData = mapSnap.val();
             
-            if (mapData.role === 'teacher') {
+            if (mapData.role === 'teacher' || mapData.role === 'principal') {
                 // Resolve Teacher dynamic profile
                 const tchSnap = await db.ref('school/teachers/' + mapData.studentId).once('value');
                 if (tchSnap.exists()) {
@@ -188,13 +169,6 @@ async function handleLogin() {
                     role: ROLES.ADMIN,
                     id: mapData.studentId || 'A-001',
                     name: 'Admin Staff',
-                    phone: phone
-                };
-            } else if (mapData.role === 'principal') {
-                currentUser = {
-                    role: ROLES.PRINCIPAL,
-                    id: 'HEAD-OFFICE',
-                    name: 'Principal',
                     phone: phone
                 };
             } else {

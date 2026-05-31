@@ -138,13 +138,35 @@ const adminViews = {
                 </button>
             </div>
 
-            <div onclick="adminRouter('helpDesk')" class="mobile-card flex items-center p-4 bg-teal-50 hover:bg-teal-100/30 border-none shadow-none mb-8 cursor-pointer active:scale-98 transition-all">
+            <div onclick="adminRouter('helpDesk')" class="mobile-card flex items-center p-4 bg-teal-50 hover:bg-teal-100/30 border-none shadow-none mb-4 cursor-pointer active:scale-98 transition-all">
                 <div class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mr-4">
                     <i class="fas fa-ticket-alt text-sm"></i>
                 </div>
                 <div class="flex-grow">
                     <h4 class="text-sm font-bold text-gray-800">Support Help Desk</h4>
                     <p class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Manage and resolve parent support tickets</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+            </div>
+
+            <div onclick="adminRouter('parentSuggestionsBoard')" class="mobile-card flex items-center p-4 bg-amber-50 hover:bg-amber-100/30 border-none shadow-none mb-4 cursor-pointer active:scale-98 transition-all">
+                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mr-4">
+                    <i class="fas fa-comment-dots text-sm"></i>
+                </div>
+                <div class="flex-grow">
+                    <h4 class="text-sm font-bold text-gray-800">Parent Suggestions</h4>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Read feedback and suggestions submitted by parents</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+            </div>
+
+            <div onclick="adminRouter('classReassignmentQueue')" class="mobile-card flex items-center p-4 bg-purple-50 hover:bg-purple-100/30 border-none shadow-none mb-8 cursor-pointer active:scale-98 transition-all">
+                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-4">
+                    <i class="fas fa-exchange-alt text-sm"></i>
+                </div>
+                <div class="flex-grow">
+                    <h4 class="text-sm font-bold text-gray-800">Class Change Requests</h4>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Approve or deny teacher workload changes</p>
                 </div>
                 <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
             </div>
@@ -623,7 +645,7 @@ const adminViews = {
 
                 <!-- Section 5: Assignments -->
                 <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">5. Assigned Academic Workload</h3>
+                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">5. Assigned Academic Workload & Hierarchy</h3>
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
@@ -633,6 +655,16 @@ const adminViews = {
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Primary Subjects</label>
                                 <input type="text" id="tch-subjects" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="Math, Science">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Professional Title</label>
+                                <input type="text" id="tch-title" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. Faculty Member, Principal" value="Faculty Member">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Sort Order (Hierarchy)</label>
+                                <input type="number" id="tch-sortOrder" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. 1 for Principal, 10 for regular" value="10">
                             </div>
                         </div>
                     </div>
@@ -689,6 +721,44 @@ const adminViews = {
                 </button>
             </div>
         `
+    },
+    parentSuggestionsBoard: {
+        title: 'Parent Suggestions Feed',
+        render: () => {
+            setTimeout(() => {
+                loadAdminSuggestionsFeed();
+            }, 50);
+
+            return `
+                <div class="mb-6 animate-fade-in">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Parent Suggestions Feed</h2>
+                    <p class="text-xs text-gray-500">Read feedback and suggestions submitted by school parents</p>
+                </div>
+
+                <div id="admin-suggestions-list" class="space-y-4 pb-10">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Syncing suggestions board...</div>
+                </div>
+            `;
+        }
+    },
+    classReassignmentQueue: {
+        title: 'Class Reassignment Applications',
+        render: () => {
+            setTimeout(() => {
+                loadAdminReassignmentQueue();
+            }, 50);
+
+            return `
+                <div class="mb-6 animate-fade-in">
+                    <h2 class="text-xl font-black text-gray-800 tracking-tight">Class Reassignment Requests</h2>
+                    <p class="text-xs text-gray-500">Approve or deny applications submitted by faculty members</p>
+                </div>
+
+                <div id="admin-reassignment-list" class="space-y-4 pb-10">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Syncing application queue...</div>
+                </div>
+            `;
+        }
     }
 };
 
@@ -746,6 +816,14 @@ function adminRouter(viewName) {
 
     if (viewName === 'subjectManager') {
         loadClassSubjects();
+    }
+
+    if (viewName === 'parentSuggestionsBoard') {
+        loadAdminSuggestionsFeed();
+    }
+
+    if (viewName === 'classReassignmentQueue') {
+        loadAdminReassignmentQueue();
     }
 
     document.getElementById('main-content').scrollTop = 0;
@@ -828,6 +906,169 @@ async function broadcastNotice() {
     } catch (e) {
         console.error(e);
         await alert("Failed to send notice.");
+    }
+}
+
+async function loadAdminSuggestionsFeed() {
+    const container = document.getElementById('admin-suggestions-list');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/suggestions').once('value');
+        const list = snap.val();
+
+        if (!list) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No suggestions have been submitted by parents yet.</div>`;
+            return;
+        }
+
+        const suggestions = Object.values(list);
+        suggestions.sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = suggestions.map(s => `
+            <div class="mobile-card bg-white p-4 shadow-sm relative overflow-hidden border-l-4 border-amber-500 text-left">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-black text-gray-800">${s.parentName}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">(${s.parentPhone})</span>
+                    </div>
+                    <span class="text-[8px] text-gray-400 font-bold">${new Date(s.timestamp).toLocaleString()}</span>
+                </div>
+                <p class="text-xs text-gray-700 leading-relaxed font-semibold bg-gray-50 p-3 rounded-xl">${s.message}</p>
+                <div class="mt-2 text-[8px] font-black text-blue-600 uppercase tracking-wider">
+                    Parent of: ${s.studentName}
+                </div>
+            </div>
+        `).join('');
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading suggestions feed: ${e.message}</div>`;
+    }
+}
+
+async function loadAdminReassignmentQueue() {
+    const container = document.getElementById('admin-reassignment-list');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/class_change_requests').once('value');
+        const list = snap.val();
+
+        if (!list) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100 p-6">No reassignment requests submitted.</div>`;
+            return;
+        }
+
+        const requests = Object.values(list);
+        requests.sort((a, b) => b.timestamp - a.timestamp);
+
+        container.innerHTML = requests.map(r => {
+            const isPending = r.status === 'Pending';
+            let statusColor = "bg-yellow-100 text-yellow-700";
+            if (r.status === 'Approved') statusColor = "bg-green-100 text-green-700";
+            else if (r.status === 'Denied') statusColor = "bg-red-100 text-red-700";
+
+            let actionButtons = '';
+            if (isPending) {
+                actionButtons = `
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <button onclick="handleApproveRequest('${r.requestId}')" class="bg-green-600 text-white font-black py-2 rounded-xl text-[10px] uppercase shadow-sm active:scale-95 transition-all">
+                            <i class="fas fa-check mr-1"></i> Approve
+                        </button>
+                        <button onclick="handleDenyRequest('${r.requestId}')" class="bg-red-600 text-white font-black py-2 rounded-xl text-[10px] uppercase shadow-sm active:scale-95 transition-all">
+                            <i class="fas fa-times mr-1"></i> Deny
+                        </button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="mobile-card bg-white p-4 shadow-sm relative overflow-hidden border-l-4 ${isPending ? 'border-yellow-500' : (r.status === 'Approved' ? 'border-green-500' : 'border-red-500')} text-left">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black text-gray-800">${r.teacherName}</span>
+                            <span class="text-[9px] text-gray-400 font-bold">(ID: ${r.teacherId})</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${statusColor}">${r.status}</span>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">Requested: Class ${r.requestedClass} | ${r.requestedSubject}</h4>
+                    <p class="text-[9px] text-gray-400 font-bold mt-1 uppercase">Applied: ${new Date(r.timestamp).toLocaleDateString()}</p>
+                    ${actionButtons}
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading request queue: ${e.message}</div>`;
+    }
+}
+
+async function handleApproveRequest(requestId) {
+    if (!confirm("Are you sure you want to APPROVE this workload change request? It will automatically update the teacher's profile and schedule node.")) return;
+    try {
+        const snap = await db.ref('school/class_change_requests/' + requestId).once('value');
+        if (!snap.exists()) {
+            await alert("Request not found!");
+            return;
+        }
+
+        const req = snap.val();
+        const teacherId = req.teacherId;
+
+        // 1. Update request status to Approved
+        await db.ref('school/class_change_requests/' + requestId).update({ status: 'Approved' });
+
+        // 2. Fetch current teacher's profile to update assignedClasses and schedule
+        const tchSnap = await db.ref('school/teachers/' + teacherId).once('value');
+        if (tchSnap.exists()) {
+            const t = tchSnap.val();
+            let classes = t.assignedClasses || [ ];
+            if (!classes.includes(req.requestedClass)) {
+                classes.push(req.requestedClass);
+            }
+
+            let subjects = t.subjects || [ ];
+            if (!subjects.includes(req.requestedSubject)) {
+                subjects.push(req.requestedSubject);
+            }
+
+            // Let's create or update schedule node
+            let schedule = t.schedule || [ ];
+            // Find if there is a slot, otherwise add one
+            const newPeriod = {
+                period: (schedule.length + 1) + 'th',
+                class: req.requestedClass,
+                subject: req.requestedSubject,
+                time: '12:00 PM' // default slot
+            };
+            schedule.push(newPeriod);
+
+            await db.ref('school/teachers/' + teacherId).update({
+                assignedClasses: classes,
+                subjects: subjects,
+                schedule: schedule
+            });
+        }
+
+        await alert("Request approved and teacher profile updated automatically!");
+        loadAdminReassignmentQueue();
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to approve request: " + e.message);
+    }
+}
+
+async function handleDenyRequest(requestId) {
+    if (!confirm("Are you sure you want to DENY this class reassignment request?")) return;
+    try {
+        await db.ref('school/class_change_requests/' + requestId).update({ status: 'Denied' });
+        await alert("Request denied successfully.");
+        loadAdminReassignmentQueue();
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to deny request: " + e.message);
     }
 }
     
