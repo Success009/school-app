@@ -100,10 +100,24 @@ async function viewTeacherProfileDetails(teacherId) {
                             ${divOptions}
                         </select>
                     </div>
-
                     <div class="flex items-center gap-2 pt-2">
                         <input type="checkbox" id="edit-t-isHead" ${data.isDepartmentHead ? 'checked' : ''} class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
                         <label for="edit-t-isHead" class="text-xs font-bold text-gray-600">Head of Department (HOD) Status</label>
+                    </div>
+
+                    <div class="pt-2">
+                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Class Teacher Of</label>
+                        <select id="edit-t-classTeacherOf" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                            <option value="none" ${data.classTeacherOf === 'none' ? 'selected' : ''}>None</option>
+                            <option value="1" ${data.classTeacherOf === '1' ? 'selected' : ''}>Class 1</option>
+                            <option value="2" ${data.classTeacherOf === '2' ? 'selected' : ''}>Class 2</option>
+                            <option value="3" ${data.classTeacherOf === '3' ? 'selected' : ''}>Class 3</option>
+                            <option value="4" ${data.classTeacherOf === '4' ? 'selected' : ''}>Class 4</option>
+                            <option value="5" ${data.classTeacherOf === '5' ? 'selected' : ''}>Class 5</option>
+                            <option value="6" ${data.classTeacherOf === '6' ? 'selected' : ''}>Class 6</option>
+                            <option value="7" ${data.classTeacherOf === '7' ? 'selected' : ''}>Class 7</option>
+                            <option value="8" ${data.classTeacherOf === '8' ? 'selected' : ''}>Class 8</option>
+                        </select>
                     </div>
                 </div>
 
@@ -127,6 +141,7 @@ async function updateTeacherProfile(teacherId) {
         const dept = document.getElementById('edit-t-dept').value;
         const div = document.getElementById('edit-t-div').value;
         const isHead = document.getElementById('edit-t-isHead').checked;
+        const classTeacherOf = document.getElementById('edit-t-classTeacherOf').value;
 
         if (!title) {
             await alert("Professional Title cannot be empty!");
@@ -141,7 +156,8 @@ async function updateTeacherProfile(teacherId) {
             isAvailable: available,
             department: dept,
             division: div,
-            isDepartmentHead: isHead
+            isDepartmentHead: isHead,
+            classTeacherOf: classTeacherOf
         };
 
         await db.ref('school/teachers/' + teacherId).update(updates);
@@ -172,10 +188,10 @@ async function saveTeacher() {
     const pDistrict = document.getElementById('tch-perm-district').value.trim();
 
     const qualification = document.getElementById('tch-qualification').value.trim();
-    const experience = document.getElementById('tch-experience').value.trim();
-    const subjects = document.getElementById('tch-subjects').value.trim();
-    const classes = document.getElementById('tch-classes').value.trim();
-
+ const experience = document.getElementById('tch-experience').value.trim();
+const subjects = document.getElementById('tch-subjects').value.trim();
+const classes = document.getElementById('tch-classes').value.trim();
+const classTeacherOf = document.getElementById('tch-classTeacherOf') ? document.getElementById('tch-classTeacherOf').value : 'none';
     const photoFile = document.getElementById('tch-photo-input').files[0];
 
     if (!fname || !lname || !phone) {
@@ -226,6 +242,7 @@ async function saveTeacher() {
             experienceYears: experience || '0',
             verificationDocs: verifiedDocs,
             subjects: subjects.split(',').map(s => s.trim()).filter(s => s.length > 0),
+            subjects: subjects.split(',').map(s => s.trim()).filter(s => s.length > 0),
             assignedClasses: classes.split(',').map(c => c.trim()).filter(c => c.length > 0),
             photo: photoUrl,
             role: 'teacher',
@@ -234,9 +251,8 @@ async function saveTeacher() {
             schedule: [
                 { period: '1st', class: classes.split(',')[0] || '1', subject: subjects.split(',')[0] || 'Mathematics', time: '10:00 AM' }
             ],
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            classTeacherOf: classTeacherOf,
         };
-
         await db.ref('school/teachers/' + teacherId).set(teacherData);
 
         await db.ref('school/login_mappings/' + phone).set({

@@ -98,6 +98,10 @@ const adminViews = {
                     <i class="fas fa-book text-xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase">Subject Manager</span>
                 </button>
+                <button onclick="adminRouter('periodSettings')" class="mobile-card flex flex-col items-center justify-center p-6 text-pink-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-clock text-xl mb-2"></i>
+                    <span class="text-[10px] font-black uppercase">Period Timings</span>
+                </button>
             </div>
 
             <div onclick="adminRouter('helpDesk')" class="mobile-card flex items-center p-4 bg-teal-50 hover:bg-teal-100/30 border-none shadow-none mb-4 cursor-pointer active:scale-98 transition-all">
@@ -270,6 +274,59 @@ const adminViews = {
                 </button>
             </div>
         `
+    },
+    periodSettings: {
+        title: 'School Period Timings',
+        render: () => {
+            setTimeout(async () => {
+                await loadPeriodTimings();
+            }, 50);
+            return `
+            <div class="mb-6">
+                <h2 class="text-xl font-black text-gray-800">Global Period Schedule</h2>
+                <p class="text-xs text-gray-500 mt-1">Define start and end times for each period. These timings apply to all student and teacher schedules.</p>
+            </div>
+
+            <div class="space-y-4 pb-16">
+                <div class="mobile-card">
+                    <h3 class="text-xs font-black uppercase text-pink-600 mb-3 tracking-wider">Define New Period Slot</h3>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Period ID/Name</label>
+                                <input type="text" id="period-key" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" placeholder="e.g. 1st, 2nd, Lunch">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Display Sort Order</label>
+                                <input type="number" id="period-sort" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" value="1">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Start Time</label>
+                                <input type="time" id="period-start" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">End Time</label>
+                                <input type="time" id="period-end" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
+                            </div>
+                        </div>
+                        <button onclick="savePeriodTiming()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-all text-xs">
+                            <i class="fas fa-save mr-1"></i> Add/Update Period Slot
+                        </button>
+                    </div>
+                </div>
+
+                <div id="admin-periods-list" class="space-y-3">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading school timings...</div>
+                </div>
+
+                <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Panel
+                </button>
+            </div>
+            `;
+        }
     },
     addStudent: {
         title: 'Register Student',
@@ -630,7 +687,20 @@ const adminViews = {
                                 <input type="number" id="tch-sortOrder" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. 1 for Principal, 10 for regular" value="10">
                             </div>
                         </div>
-                    </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Class Teacher Of</label>
+                            <select id="tch-classTeacherOf" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
+                                <option value="none">None</option>
+                                <option value="1">Class 1</option>
+                                <option value="2">Class 2</option>
+                                <option value="3">Class 3</option>
+                                <option value="4">Class 4</option>
+                                <option value="5">Class 5</option>
+                                <option value="6">Class 6</option>
+                                <option value="7">Class 7</option>
+                                <option value="8">Class 8</option>
+                            </select>
+                        </div>
                 </div>
 
                 <button onclick="saveTeacher()" class="w-full bg-purple-700 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
@@ -1033,4 +1103,90 @@ async function handleDenyRequest(requestId) {
         await alert("Failed to deny request: " + e.message);
     }
 }
-    
+async function loadPeriodTimings() {
+    const container = document.getElementById('admin-periods-list');
+    if (!container) return;
+
+    try {
+        const snap = await db.ref('school/config/period_timings').once('value');
+        const timings = snap.val();
+
+        if (!timings) {
+            container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic bg-white rounded-xl border border-gray-100">No period timings defined yet.</div>';
+            return;
+        }
+
+        const sortedList = Object.values(timings).sort((a, b) => (a.sort || 0) - (b.sort || 0));
+
+        container.innerHTML = sortedList.map(p => `
+            <div class="mobile-card bg-white p-4 flex items-center justify-between border-l-4 border-pink-500">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center font-black text-xs">
+                        ${p.id}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">${p.id} Period</h4>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase">${p.startTime} - ${p.endTime}</p>
+                    </div>
+                </div>
+                <button onclick="deletePeriodTiming('${p.id}')" class="text-gray-300 hover:text-red-500 p-2 transition-colors">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error: ${e.message}</div>`;
+    }
+}
+
+async function savePeriodTiming() {
+    const key = document.getElementById('period-key').value.trim();
+    const sort = parseInt(document.getElementById('period-sort').value);
+    const start = document.getElementById('period-start').value;
+    const end = document.getElementById('period-end').value;
+
+    if (!key || !start || !end) {
+        await alert("Please fill in Period ID, Start Time, and End Time.");
+        return;
+    }
+
+    // Helper to convert 24h to 12h for display
+    const formatTime = (timeStr) => {
+        const [h, m] = timeStr.split(':');
+        const hour = parseInt(h);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const h12 = hour % 12 || 12;
+        return `${h12}:${m} ${ampm}`;
+    };
+
+    const periodData = {
+        id: key,
+        sort: isNaN(sort) ? 1 : sort,
+        startTime: formatTime(start),
+        endTime: formatTime(end),
+        rawStart: start,
+        rawEnd: end
+    };
+
+    try {
+        await db.ref('school/config/period_timings/' + key).set(periodData);
+        showToast(`Period ${key} saved successfully!`);
+        document.getElementById('period-key').value = '';
+        loadPeriodTimings();
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to save timing: " + e.message);
+    }
+}
+
+async function deletePeriodTiming(key) {
+    if (!confirm(`Remove ${key} period from global timings?`)) return;
+    try {
+        await db.ref('school/config/period_timings/' + key).remove();
+        loadPeriodTimings();
+    } catch (e) {
+        console.error(e);
+        await alert("Failed to delete: " + e.message);
+    }
+}

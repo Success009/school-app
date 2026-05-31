@@ -41,11 +41,17 @@ const teacherViews = {
                     <span class="text-[10px] opacity-70 uppercase font-bold tracking-wide">Periods Today</span>
                 </div>
             </div>
-
             <!-- Polished Quick Action Shortcuts Grid -->
             <h3 class="font-bold text-gray-800 mt-8 mb-4">Faculty Quick Operations</h3>
+            
+            <!-- Full-width Daily Attendance Button -->
+            <button onclick="teacherRouter('attendance')" class="mobile-card flex items-center justify-center p-5 gap-3 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 shadow-sm active:scale-95 transition-all animate-fade-in w-full mb-4">
+                <i class="fas fa-calendar-check text-2xl"></i>
+                <span class="text-xs font-black uppercase tracking-wider">Take Daily Attendance</span>
+            </button>
+
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="teacherRouter('classStudents')" class="mobile-card flex flex-col items-center justify-center p-6 text-emerald-600 bg-white hover:bg-emerald-50/20 active:scale-95 transition-all animate-fade-in">
+                <button onclick="teacherRouter('classStudents')" class="mobile-card flex flex-col items-center justify-center p-6 text-teal-600 bg-white hover:bg-teal-50/20 active:scale-95 transition-all animate-fade-in">
                     <i class="fas fa-users text-2xl mb-2"></i>
                     <span class="text-[10px] font-black uppercase tracking-wider">Class Pupils</span>
                 </button>
@@ -76,7 +82,6 @@ const teacherViews = {
             </div>
         `
     },
-
     schedule: {
         title: 'Weekly Routine',
         render: () => `
@@ -102,55 +107,53 @@ const teacherViews = {
 
     attendance: {
         title: 'Daily Attendance',
-        render: () => `
-            <div class="mb-4">
-                <h3 class="font-bold text-gray-800 text-lg mb-1">Mark Daily Attendance</h3>
-                <p class="text-xs text-gray-500">Select class to load student database records</p>
-            </div>
-
-            <div class="space-y-4">
-                <!-- Class Selection Cards -->
-                <div class="mobile-card grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Class</label>
-                        <select id="attend-class-select" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
-                            <option value="1">Class 1</option>
-                            <option value="2">Class 2</option>
-                            <option value="3">Class 3</option>
-                            <option value="4">Class 4</option>
-                            <option value="5">Class 5</option>
-                            <option value="6">Class 6</option>
-                            <option value="7">Class 7</option>
-                            <option value="8">Class 8</option>
-                        </select>
+        render: () => {
+            const classTeacherOf = currentUser?.classTeacherOf;
+            if (!classTeacherOf || classTeacherOf === 'none') {
+                return `
+                    <div class="text-center py-10 bg-white rounded-3xl border border-gray-100 p-6 space-y-3 animate-fade-in">
+                        <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto text-xl">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h4 class="text-sm font-black text-gray-800 uppercase">Access Restricted</h4>
+                        <p class="text-xs text-gray-500 leading-relaxed">You are not explicitly designated as a Class Teacher of any class in the school database. Attendance registers can only be managed by assigned Class Teachers.</p>
+                        <button onclick="teacherRouter('dashboard')" class="bg-gray-100 text-gray-600 font-bold px-4 py-2 rounded-xl text-xs active:scale-95 transition-all">Go Back</button>
                     </div>
-                    <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Date (BS)</label>
+                `;
+            }
+
+            return `
+                <div class="mb-4">
+                    <h3 class="font-bold text-gray-800 text-lg mb-1">Class ${classTeacherOf} Daily Register</h3>
+                    <p class="text-xs text-gray-500">Taking attendance for your class</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="mobile-card">
+                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Attendance Date (BS)</label>
                         <input type="text" id="attend-date" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold" placeholder="YYYY-MM-DD" value="${getFormattedCurrentNepaliDate()}">
                     </div>
-                </div>
-    
 
-                <!-- Load Trigger -->
-                <button onclick="loadAttendanceRoster()" class="w-full bg-blue-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
-                    <i class="fas fa-users-cog mr-2"></i> Load Class Roster
-                </button>
-
-                <!-- Roster Rendering Container -->
-                <div id="attendance-roster-container" class="space-y-3 pt-2">
-                    <div class="text-center py-8 text-gray-300 italic text-xs">No roster loaded. Choose class and click Load.</div>
-                </div>
-
-                <!-- Commit Changes Button -->
-                <div id="submit-roster-btn-div" class="hidden">
-                    <button onclick="submitAttendance()" class="w-full bg-green-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-4">
-                        <i class="fas fa-check-double mr-2"></i> Submit Daily Register
+                    <!-- Load Trigger -->
+                    <button onclick="loadAttendanceRoster()" class="w-full bg-blue-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
+                        <i class="fas fa-users-cog mr-2"></i> Load Class Roster
                     </button>
-                </div>
-            </div>
-        `
-    },
 
+                    <!-- Roster Rendering Container -->
+                    <div id="attendance-roster-container" class="space-y-3 pt-2">
+                        <div class="text-center py-8 text-gray-300 italic text-xs">No roster loaded. Click Load to pull database.</div>
+                    </div>
+
+                    <!-- Commit Changes Button -->
+                    <div id="submit-roster-btn-div" class="hidden">
+                        <button onclick="submitAttendance()" class="w-full bg-green-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-4">
+                            <i class="fas fa-check-double mr-2"></i> Submit Daily Register
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    },
     marks: {
         title: 'Exam Marks Entry',
         render: () => `
@@ -391,9 +394,9 @@ const teacherViews = {
                     <h2 class="text-xl font-black text-gray-800 tracking-tight">Parent Suggestions Feed</h2>
                     <p class="text-xs text-gray-500">Read chronological suggestions and feedback submitted by school parents</p>
                 </div>
-
-                <div id="teacher-suggestions-list" class="space-y-4 pb-10">
-                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Syncing suggestions board...</div>
+                
+                <div id="teacher-suggestions-list" class="space-y-4 pb-12">
+                    <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading board...</div>
                 </div>
             `;
         }
@@ -402,8 +405,9 @@ const teacherViews = {
         title: 'Class Reassignment',
         render: () => {
             setTimeout(() => {
+                updateReassignmentSubjects();
                 loadReassignmentRequestsHistory();
-            }, 50);
+            }, 100);
 
             return `
                 <div class="mb-6">
@@ -416,7 +420,7 @@ const teacherViews = {
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Select Class</label>
-                            <select id="req-class" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                            <select id="req-class" onchange="updateReassignmentSubjects()" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
                                 <option value="1">Class 1</option>
                                 <option value="2">Class 2</option>
                                 <option value="3">Class 3</option>
@@ -429,14 +433,15 @@ const teacherViews = {
                         </div>
                         <div>
                             <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Requested Subject</label>
-                            <input type="text" id="req-subject" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none" placeholder="e.g. Mathematics">
+                            <select id="req-subject" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold outline-none">
+                                <option value="">Loading subjects...</option>
+                            </select>
                         </div>
                     </div>
                     <button onclick="submitReassignmentRequest()" class="w-full bg-purple-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-xs">
                         <i class="fas fa-paper-plane mr-2"></i> Submit Request Application
                     </button>
                 </div>
-
                 <h3 class="font-bold text-gray-400 uppercase text-[10px] tracking-widest px-1 mb-4">My Application Logs</h3>
                 <div id="reassignment-requests-list" class="space-y-3 pb-10">
                     <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading request history...</div>
@@ -530,6 +535,29 @@ async function loadTeacherSuggestionsFeed() {
     }
 }
 
+async function updateReassignmentSubjects() {
+    const classId = document.getElementById('req-class')?.value;
+    const subjectSelect = document.getElementById('req-subject');
+    if (!classId || !subjectSelect) return;
+    
+    subjectSelect.innerHTML = '<option value="">Loading...</option>';
+    
+    try {
+        const snap = await db.ref(`school/class_configs/${classId}/subjects/compulsory`).once('value');
+        const subjects = snap.val() || {};
+        const subjectList = Object.values(subjects);
+        
+        if (subjectList.length === 0) {
+            subjectSelect.innerHTML = '<option value="">No subjects found for this class</option>';
+        } else {
+            subjectSelect.innerHTML = subjectList.map(subj => `<option value="${subj}">${subj}</option>`).join('');
+        }
+    } catch (e) {
+        console.error(e);
+        subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
+    }
+}
+
 async function submitReassignmentRequest() {
     const requestedClass = document.getElementById('req-class').value;
     const requestedSubject = document.getElementById('req-subject').value.trim();
@@ -613,70 +641,57 @@ async function loadReassignmentRequestsHistory() {
 let classStudentsCache = [ ];
 
 async function loadClassStudentsList() {
-const container = document.getElementById('class-students-list-container');
-if (!container) return;
+    const container = document.getElementById('class-students-list-container');
+    if (!container) return;
 
-code
-Code
-download
-content_copy
-expand_less
-try {
-    const snap = await db.ref('school/students').once('value');
-    const students = snap.val();
-    if (!students) {
-        container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students found in directory.</div>';
-        return;
+    try {
+        const snap = await db.ref('school/students').once('value');
+        const students = snap.val();
+        if (!students) {
+            container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students found in directory.</div>';
+            return;
+        }
+
+        const classTeacherClass = currentUser?.classTeacherOf ? currentUser.classTeacherOf : '1';
+        classStudentsCache = Object.values(students).filter(s => String(s.class) === String(classTeacherClass));
+
+        classStudentsCache.sort((a, b) => (a.roll || 999) - (b.roll || 999));
+        
+        renderClassStudentsList(classStudentsCache);
+
+    } catch(e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading students: ${e.message}</div>`;
     }
-
-    const classTeacherClass = currentUser?.assignedClasses ? currentUser.assignedClasses : '1';
-    classStudentsCache = Object.values(students).filter(s => String(s.class) === String(classTeacherClass));
-
-    classStudentsCache.sort((a, b) => (a.roll || 999) - (b.roll || 999));
-    
-    renderClassStudentsList(classStudentsCache);
-
-} catch(e) {
-    console.error(e);
-    container.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Error loading students: ${e.message}</div>`;
-}
-
 }
 
 function renderClassStudentsList(students) {
-const container = document.getElementById('class-students-list-container');
-if (!container) return;
+    const container = document.getElementById('class-students-list-container');
+    if (!container) return;
 
-code
-Code
-download
-content_copy
-expand_less
-if (students.length === 0) {
-    container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students match your search.</div>';
-    return;
-}
+    if (students.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students match your search.</div>';
+        return;
+    }
 
-container.innerHTML = students.map(s => {
-    let fullName = getStudentFullName(s.name);
-    return `
-        <div class="mobile-card student-card bg-white p-4 shadow-sm border-l-4 border-emerald-500 flex items-center justify-between" data-name="${fullName.toLowerCase()}">
-            <div class="flex items-center gap-4">
-                <img src="${SafeResolvers.photo(s.photo)}" class="w-12 h-12 rounded-xl object-cover">
-                <div>
-                    <h4 class="font-black text-gray-800 text-sm">${fullName}</h4>
-                    <span class="text-[9px] text-gray-400 font-bold uppercase mt-1">Roll No: ${s.roll || 'N/A'}</span>
+    container.innerHTML = students.map(s => {
+        let fullName = getStudentFullName(s.name);
+        return `
+            <div class="mobile-card student-card bg-white p-4 shadow-sm border-l-4 border-emerald-500 flex items-center justify-between" data-name="${fullName.toLowerCase()}">
+                <div class="flex items-center gap-4">
+                    <img src="${SafeResolvers.photo(s.photo)}" class="w-12 h-12 rounded-xl object-cover">
+                    <div>
+                        <h4 class="font-black text-gray-800 text-sm">${fullName}</h4>
+                        <span class="text-[9px] text-gray-400 font-bold uppercase mt-1">Roll No: ${s.roll || 'N/A'}</span>
+                    </div>
                 </div>
+                <button onclick="viewPupilIncidentHistory('${s.id}')" class="bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg text-xs font-bold active:scale-95 transition-all">
+                    <i class="fas fa-history mr-1"></i> View History
+                </button>
             </div>
-            <button onclick="viewPupilIncidentHistory('${s.id}')" class="bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg text-xs font-bold active:scale-95 transition-all">
-                <i class="fas fa-history mr-1"></i> View History
-            </button>
-        </div>
-    `;
-}).join('');
-
+        `;
+    }).join('');
 }
-
 function filterClassStudentsList() {
 const query = document.getElementById('student-search-input').value.toLowerCase();
 const filtered = classStudentsCache.filter(s => getStudentFullName(s.name).toLowerCase().includes(query));
@@ -690,27 +705,22 @@ document.getElementById('main-content').scrollTop = document.getElementById('mai
 }
 
 async function loadClassResultsTracker() {
-const container = document.getElementById('results-tracker-container');
-const term = document.getElementById('res-term').value;
-const year = document.getElementById('res-year').value;
-if (!container) return;
+    const container = document.getElementById('results-tracker-container');
+    const term = document.getElementById('res-term').value;
+    const year = document.getElementById('res-year').value;
+    if (!container) return;
 
-code
-Code
-download
-content_copy
-expand_less
-container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin mr-2"></i>Loading academic records...</div>';
+    container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin mr-2"></i>Loading academic records...</div>';
 
-try {
-    const classTeacherClass = currentUser?.assignedClasses ? currentUser.assignedClasses : '1';
-    const snap = await db.ref('school/students').orderByChild('class').equalTo(classTeacherClass).once('value');
-    const students = snap.val();
+    try {
+        const classTeacherClass = currentUser?.classTeacherOf ? currentUser.classTeacherOf : '1';
+        const snap = await db.ref('school/students').orderByChild('class').equalTo(classTeacherClass).once('value');
+        const students = snap.val();
 
-    if (!students) {
-        container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students enrolled in your assigned class.</div>';
-        return;
-    }
+        if (!students) {
+            container.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs italic">No students enrolled in your assigned class.</div>';
+            return;
+        }
 
     let studentList = Object.values(students);
     studentList.sort((a, b) => (a.roll || 999) - (b.roll || 999));

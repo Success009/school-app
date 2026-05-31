@@ -1,7 +1,11 @@
 // Teacher Attendance Module
-
+let activeRosterList = [ ];
 async function loadAttendanceRoster() {
-    const classVal = document.getElementById('attend-class-select').value;
+    const classVal = currentUser?.classTeacherOf;
+    if (!classVal || classVal === 'none') {
+        await alert("No explicitly assigned classroom found for your class teacher profile.");
+        return;
+    }
     const dateVal = document.getElementById('attend-date').value;
     const rosterContainer = document.getElementById('attendance-roster-container');
     const submitBtnDiv = document.getElementById('submit-roster-btn-div');
@@ -15,12 +19,6 @@ async function loadAttendanceRoster() {
     // Extract Grade and Sections matching DB structures
     let targetClass = classVal;
     let targetSection = "General";
-    if (classVal.includes('-')) {
-        const parts = classVal.split('-');
-        targetClass = parts[0];
-        targetSection = parts[1];
-    }
-
     try {
         const snap = await db.ref('school/students').once('value');
         const students = snap.val();
@@ -101,7 +99,11 @@ function toggleRosterStatus(index, status) {
 }
 
 async function submitAttendance() {
-    const classVal = document.getElementById('attend-class-select').value;
+    const classVal = currentUser?.classTeacherOf;
+    if (!classVal || classVal === 'none') {
+        await alert("You are not explicitly designated as a Class Teacher of any class.");
+        return;
+    }
     const dateVal = document.getElementById('attend-date').value;
     
     if (activeRosterList.length === 0 || !classVal || !dateVal) return;
