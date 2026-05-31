@@ -151,11 +151,17 @@ async function handleLogin() {
                         photo: t.photo || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
                         subjects: t.subjects || [ ],
                         assignedClasses: t.assignedClasses || [ ],
+                        classTeacherOf: t.classTeacherOf || 'none',
                         schedule: t.schedule || [
                             { period: '1st', class: t.assignedClasses ? t.assignedClasses[0] : '10-A', subject: t.subjects ? t.subjects[0] : 'Mathematics', time: '10:00 AM' }
                         ]
                     };
-                    throw new Error("Teacher profile not found.");
+                    localStorage.setItem('school_app_user', JSON.stringify(currentUser));
+                    hideUploadProgress();
+                    redirectUserToRoleDashboard(currentUser.role);
+                    return;
+                } else {
+                    throw new Error("Teacher profile record missing in database.");
                 }
             } else if (mapData.role === 'accountant') {
                 currentUser = {
