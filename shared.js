@@ -67,9 +67,6 @@ function redirectUserToRoleDashboard(role) {
         case ROLES.ADMIN:
             window.location.href = 'admin.html';
             break;
-        case ROLES.ACCOUNTANT:
-            window.location.href = 'accountant.html';
-            break;
         default:
             window.location.href = 'index.html';
     }

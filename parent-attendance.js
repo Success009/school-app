@@ -4,8 +4,7 @@ async function loadDashboardAttendancePercent() {
     if (!el) return;
 
     const studentId = currentUser?.student.id;
-    const studentClass = `${currentUser?.student.grade}-${currentUser?.student.section}`;
-
+    const studentClass = currentUser?.student.grade;
     if (!studentId || !studentClass) {
         el.innerText = "0%";
         return;
@@ -50,7 +49,7 @@ async function loadAttendanceHistoryAndStats() {
     if (!parentScore || !historyContainer) return;
 
     const studentId = currentUser?.student.id;
-    const studentClass = `${currentUser?.student.grade}-${currentUser?.student.section}`;
+    const studentClass = currentUser?.student.grade;
 
     if (!studentId || !studentClass) {
         parentScore.innerText = "0.0%";

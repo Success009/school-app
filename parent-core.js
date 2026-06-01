@@ -210,8 +210,6 @@ const parentViews = {
             <div id="routine-list-container" class="space-y-4">
                 <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading routine schedule...</div>
             </div>
-        `
-    }
             
             <div class="mt-8 mb-4">
                 <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Other Contacts</h3>
@@ -624,7 +622,6 @@ function listenToRecentNotices() {
             if (dashBadge) dashBadge.classList.add('hidden');
         }
     });
-}
 }
 
 async function loadParentRoutineWithGlobalTimings() {

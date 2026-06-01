@@ -163,13 +163,6 @@ async function handleLogin() {
                 } else {
                     throw new Error("Teacher profile record missing in database.");
                 }
-            } else if (mapData.role === 'accountant') {
-                currentUser = {
-                    role: ROLES.ACCOUNTANT,
-                    id: mapData.studentId || 'ACC-05',
-                    name: 'Accountant Staff',
-                    phone: phone
-                };
             } else if (mapData.role === 'admin') {
                 currentUser = {
                     role: ROLES.ADMIN,
