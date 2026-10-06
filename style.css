@@ -40,8 +40,9 @@ body {
     transition: transform 0.2s ease;
 }
 
+/* Click-shrink animation removed as per user feedback */
 .mobile-card:active {
-    transform: scale(0.98);
+    /* transform: scale(0.98); */
 }
 
 /* Larger text for better readability for older parents */

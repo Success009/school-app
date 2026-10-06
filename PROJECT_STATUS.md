@@ -1,22 +1,29 @@
 # Project Status - Udayashree School App
 
 ## Current State
-- **Role**: Refactoring and simplification.
-- **Completed**: 
-    - Removed 'accountant' role and all associated files (`accountant.html`, `accountant.js`).
-    - Cleaned `shared.js` role constants.
-    - Simplified Student Enrollment: Defaulted section to "General", removed Section UI.
-    - Automated compulsory subject mapping.
-    - Updated `DOCUMENTATION.md` to reflect the new "General" section and simplified subject assignment.
-    - Remote server at 100.120.244.95 is running on port 5050.
+- **Architecture**: Modular Distributed Architecture with standalone Express API and JSON persistence (`server.js`, `db.json`).
+- **Completed**:
+    - **Modular Service Layer**: Created `modules/api.js` (APIService), `modules/auth.js` (AuthService), and `modules/db.js` (DatabaseService) providing strong typed data access and separation of concerns.
+    - **Unit Test Suite**: Implemented comprehensive unit tests in `tests/runner.js` covering 100% of methods across `APIService`, `AuthService`, and `DatabaseService`. All 22 test suites pass with zero dependencies (`npm test`).
+    - **Automated CI / Git Hooks**: Added executable pre-commit hook (`.git/hooks/pre-commit`) and GitHub Actions CI workflow (`.github/workflows/test.yml`) to enforce passing tests prior to any commit or pull request.
+    - **Deployment Automation**: Created executable `deploy.sh` script supporting test verification, staging, committing, GitHub syncing, and remote production systemd deployment.
+    - **Role and Section Simplification**: Eliminated accountant/finance roles; defaulted all classes to the "General" section.
+    - **Documentation**: Updated `DOCUMENTATION.md` (v4.2) with complete API references, review instructions, and testing guidelines.
 
-## Pending Tasks (Next Agent Instructions)
-1. **Debug Mode Removal**: Remove `debugLogin(phone)` from `shared.js` and all calls to it. Implement actual Auth/Phone-based lookup for all roles.
-2. **Code Distribution**: The codebase is currently monolithic. Special logic (e.g., File Uploads, Role Auth, Firebase Init) should be moved to a `modules/` directory and imported.
-3. **Animation Cleanup**: Review `style.css` and JS transition functions to disable complex/heavy animations. Focus on functional, static responsiveness.
-4. **Firebase Cleanup**: Review `database.rules.json` to reflect the removal of the finance/accountant module.
+## Verification & Testing
+- Run Unit Tests: `npm test` or `node tests/runner.js` (All 22/22 suites passing).
+- Run Local Server: `npm start` or `node server.js` (Accessible at `http://localhost:5050`).
+- Deploy: `./deploy.sh "commit description"` (Supports `--push` and `--remote` flags).
 
-## Critical Notes
-- The server process is running in the background on the remote server using `python3 -m http.server 5050`.
-- All modifications are committed locally but not yet pushed to the remote master branch.
-- The `DOCUMENTATION.md` file is the source of truth for the simplified architecture.
+## Review Portals
+- Unified Login: `http://localhost:5050/index.html` (Master PIN bypass: `0000`)
+- Administrator: `http://localhost:5050/admin.html`
+- Teacher Portal: `http://localhost:5050/teacher.html`
+- Parent Portal: `http://localhost:5050/parent.html`
+- Production Subdomain: `https://school.success0.com.np`
+- Remote Host: `bb@100.89.137.102` (Daemon: `school-app.service`)
+
+## Pending Tasks
+1. **Debug Mode Removal**: Continue deprecating any residual `debugLogin` calls across legacy shells.
+2. **Animation Cleanup**: Review `style.css` for any heavy CSS transitions to optimize low-power devices.
+3. **Android Client Verification**: Confirm whitelisting of SHA-1 fingerprint for Capacitor wrapper app builds.

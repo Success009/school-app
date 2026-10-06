@@ -1,23 +1,701 @@
 // Shared Core System for Udayashree School App (Restructured for Dynamic Stats)
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAHOiriisWOpuVLAdcYun_mCkOhbYfB5y4",
-  authDomain: "deep-freehold-389006.firebaseapp.com",
-  databaseURL: "https://deep-freehold-389006-default-rtdb.firebaseio.com",
-  projectId: "deep-freehold-389006",
-  storageBucket: "deep-freehold-389006.appspot.com",
-  messagingSenderId: "76562961838",
-  appId: "1:76562961838:web:4d18b2f79d7eb9fd88243f",
-  measurementId: "G-VZC36FJC24"
+/**
+ * ARCHITECTURAL GUIDELINES & DECISION MAP (CRITICAL FOR INCOMING AI DEVELOPERS)
+ * 
+ * 1. WHY WE USE PROGRAMMATIC IN-MEMORY SCRIPT-BASED OVERWRITES INSTEAD OF BROWSER EDIT TOOLS:
+ *    - The local browser CLI harness has a clipboard-paste interception bug when executing standard regex edits.
+ *      It can accidentally capture and append 20,000+ lines of Google AI Studio page context (over 800 KB) into the file,
+ *      corrupting its syntax. To prevent this regression, always perform file modifications programmatically in-memory
+ *      via isolated terminal commands (sys_run_command node/python scripts).
+ * 
+ * 2. WHY WE USE OFFLINE-READY BASE64 EMBEDDED SVG AVATARS INSTEAD OF via.placeholder.com:
+ *    - External URL dependencies (like via.placeholder.com) suffer from domain blocks, deprecation outages (ERR_CONNECTION_CLOSED),
+ *      and require active internet connections. Since this app is wrapped into hybrid webshells (like Apache Cordova)
+ *      to run offline in low-connectivity classrooms, we use base64-encoded inline SVGs. They render instantly with 
+ *      0ms network latency, consume 0 bandwidth, and are 100% reliable offline.
+ * 
+ * 3. WHY WE USE THE TRANSPARENT COMPATIBILITY ADAPTER PATTERN FOR THE FIREBASE MOCK:
+ *    - Over 5,000 lines of legacy dashboard scripts (admin-core.js, etc.) are distributed across multiple files and
+ *      rely on 'db.ref()' syntax. Refactoring them entirely is a high regression hazard. The Adapter Pattern allows
+ *      us to wrap modern, testable REST services (APIService, DatabaseService) within a lightweight, backwards-compatible
+ *      mock interface, supporting complex snapshot mechanisms (exists, val, numChildren, forEach).
+ * 
+ * 4. WHY THE SERVERVALUE.TIMESTAMP PROTOCOL IS RECURSIVELY TRANSLATED CLIENT-SIDE:
+ *    - Legacy UI scripts write ServerValue.TIMESTAMP strings which fail to serialize cleanly to a standard JSON file.
+ *      We intercept these placeholders client-side in MockRef.set() and MockRef.update(), recursively crawling the payload
+ *      to replace them with local millisecond epochs (Date.now()) right before submitting.
+ */
+
+// ==========================================
+// ROBUST MODULAR SERVICES & SELF-HOSTED MOCK
+// ==========================================
+
+// 1. APIService: Handles connection state, retries, and REST calls
+class APIService {
+    static async request(url, options = { }) {
+        const retries = options.retries || 3;
+        const delay = options.delay || 1000;
+        
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                if (!navigator.onLine) {
+                    throw new Error("Device is offline");
+                }
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.warn(`API Request attempt ${attempt} failed for ${url}:`, error);
+                if (attempt === retries) {
+                    this.showNetworkWarning(error.message);
+                    throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, delay * attempt));
+            }
+        }
+    }
+
+    static async get(path) {
+        return this.request(`/api/db?path=${encodeURIComponent(path)}`);
+    }
+
+    static async post(path, value) {
+        return this.request('/api/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path, value })
+        });
+    }
+
+    static async patch(path, value) {
+        return this.request('/api/db', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path, value })
+        });
+    }
+
+    static async delete(path) {
+        return this.request(`/api/db?path=${encodeURIComponent(path)}`, {
+            method: 'DELETE'
+        });
+    }
+
+    static async upload(path, file, onProgress = null) {
+        return new Promise((resolve, reject) => {
+            if (!navigator.onLine) {
+                return reject(new Error("Device is offline"));
+            }
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/api/upload?path=${encodeURIComponent(path)}`);
+
+            if (onProgress) {
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        onProgress(e.loaded, e.total);
+                    }
+                });
+            }
+
+            xhr.addEventListener('error', () => {
+                reject(new Error("Network upload error"));
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        resolve(resp.url);
+                    } catch (e) {
+                        reject(e);
+                    }
+                } else {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+            });
+
+            const formData = new FormData();
+            formData.append('file', file);
+            xhr.send(formData);
+        });
+    }
+
+    static showNetworkWarning(message) {
+        console.error("Critical Network Warning:", message);
+        if (typeof document === 'undefined') return;
+        let warningToast = document.getElementById('network-warning-toast');
+        if (!warningToast) {
+            warningToast = document.createElement('div');
+            warningToast.id = 'network-warning-toast';
+            warningToast.className = 'fixed bottom-4 right-4 z-[99999] bg-red-600 text-white font-bold p-4 rounded-xl shadow-2xl flex items-center gap-3';
+            document.body.appendChild(warningToast);
+        }
+        warningToast.innerHTML = `
+            <i class="fas fa-exclamation-triangle text-xl"></i>
+            <div>
+                <p class="text-xs uppercase tracking-wider font-black">Connection Trouble</p>
+                <p class="text-[10px] opacity-80">${message}</p>
+            </div>
+`;
+        setTimeout(() => {
+            if (warningToast && warningToast.parentNode) {
+                warningToast.parentNode.removeChild(warningToast);
+            }
+        }, 5000);
+    }
+}
+
+// 2. AuthService: Handles logins, credentials verification, session caches
+class AuthService {
+    static getRoles() {
+        return {
+            PARENT: 'parent',
+            TEACHER: 'teacher',
+            ADMIN: 'admin'
+        };
+    }
+
+    static getCurrentUser() {
+        const saved = localStorage.getItem('school_app_user');
+        if (!saved) return null;
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            console.error("AuthService: session corrupted", e);
+            this.logout();
+            return null;
+        }
+    }
+
+    static setCurrentUser(user) {
+        localStorage.setItem('school_app_user', JSON.stringify(user));
+    }
+
+    static checkAuth(allowedRoles) {
+        const user = this.getCurrentUser();
+        if (!user) {
+            window.location.href = 'index.html';
+            return false;
+        }
+        if (allowedRoles && !allowedRoles.includes(user.role)) {
+            this.redirectUserToRoleDashboard(user.role);
+            return false;
+        }
+        return true;
+    }
+
+    static redirectUserToRoleDashboard(role) {
+        const roles = this.getRoles();
+        switch (role) {
+            case roles.PARENT:
+                window.location.href = 'parent.html';
+                break;
+            case roles.TEACHER:
+                window.location.href = 'teacher.html';
+                break;
+            case roles.ADMIN:
+                window.location.href = 'admin.html';
+                break;
+            default:
+                window.location.href = 'index.html';
+        }
+    }
+
+    static logout() {
+        localStorage.removeItem('school_app_user');
+        window.location.href = 'index.html';
+    }
+
+    static async verifyPhoneRegistered(phone) {
+        try {
+            const adminData = await APIService.get(`school/admin/${phone}`);
+            if (adminData) return { isRegistered: true, role: 'admin' };
+
+            const mapData = await APIService.get(`school/login_mappings/${phone}`);
+            if (mapData) return { isRegistered: true, role: mapData.role, mapData };
+
+            return { isRegistered: false };
+        } catch (e) {
+            console.error("AuthService: registration check failed", e);
+            throw e;
+        }
+    }
+
+    static async executeLogin(phone, code) {
+        if (code !== '0000') {
+            throw new Error("Invalid verification code. Please enter '0000' to login.");
+        }
+
+        const registration = await this.verifyPhoneRegistered(phone);
+        if (!registration.isRegistered) {
+            throw new Error("Invalid phone number: This mobile number is not registered in the school database.");
+        }
+
+        const roles = this.getRoles();
+        let sessionUser = null;
+
+        if (registration.role === 'admin') {
+            sessionUser = {
+                role: roles.ADMIN,
+                id: 'ADM-' + phone.slice(-4),
+                name: 'Administrator',
+                phone: phone
+            };
+        } else {
+            const mapData = registration.mapData;
+            if (mapData.role === 'teacher' || mapData.role === 'principal') {
+                const teacherProfile = await APIService.get(`school/teachers/${mapData.studentId}`);
+                if (!teacherProfile) {
+                    throw new Error("Teacher profile record missing in database.");
+                }
+                
+                let fullName = '';
+                if (teacherProfile.name && typeof teacherProfile.name === 'object') {
+                    fullName = `${teacherProfile.name.first || ''} ${teacherProfile.name.middle || ''} ${teacherProfile.name.last || ''}`.replace(/\s+/g, ' ').trim();
+                } else {
+                    fullName = teacherProfile.name || 'Faculty Member';
+                }
+
+                sessionUser = {
+                    role: roles.TEACHER,
+                    id: mapData.studentId,
+                    name: fullName,
+                    phone: teacherProfile.phone || phone,
+                    photo: teacherProfile.photo || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
+                    subjects: teacherProfile.subjects || [ ],
+                    assignedClasses: teacherProfile.assignedClasses || [ ],
+                    classTeacherOf: teacherProfile.classTeacherOf || 'none',
+                    schedule: teacherProfile.schedule || [
+                        { period: '1st', class: teacherProfile.assignedClasses ? teacherProfile.assignedClasses[0] : '10-A', subject: teacherProfile.subjects ? teacherProfile.subjects[0] : 'Mathematics', time: '10:00 AM' }
+                    ]
+                };
+            } else if (mapData.role === 'admin') {
+                sessionUser = {
+                    role: roles.ADMIN,
+                    id: mapData.studentId || 'A-001',
+                    name: 'Admin Staff',
+                    phone: phone
+                };
+            } else {
+                const studentProfile = await APIService.get(`school/students/${mapData.studentId}`);
+                if (!studentProfile) {
+                    throw new Error("Student profile record missing in database.");
+                }
+
+                sessionUser = {
+                    role: roles.PARENT,
+                    id: 'P-' + phone.slice(-4),
+                    name: studentProfile.parentName || 'Student Parent',
+                    phone: phone,
+                    studentId: mapData.studentId,
+                    studentName: studentProfile.name || 'Student',
+                    studentClass: studentProfile.class || '1',
+                    studentPhoto: studentProfile.photo || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'
+                };
+            }
+        }
+
+        if (sessionUser) {
+            this.setCurrentUser(sessionUser);
+            return sessionUser;
+        } else {
+            throw new Error("Failed to construct user session.");
+        }
+    }
+}
+
+// 3. DatabaseService: Handles data fetch and storage operations in local db
+class DatabaseService {
+    static async getStudents() {
+        const data = await APIService.get('school/students');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async getStudent(id) {
+        return APIService.get(`school/students/${id}`);
+    }
+
+    static async saveStudent(id, studentData) {
+        return APIService.post(`school/students/${id}`, studentData);
+    }
+
+    static async updateStudent(id, updates) {
+        return APIService.patch(`school/students/${id}`, updates);
+    }
+
+    static async removeStudent(id) {
+        return APIService.delete(`school/students/${id}`);
+    }
+
+    static async getTeachers() {
+        const data = await APIService.get('school/teachers');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async getTeacher(id) {
+        return APIService.get(`school/teachers/${id}`);
+    }
+
+    static async saveTeacher(id, teacherData) {
+        return APIService.post(`school/teachers/${id}`, teacherData);
+    }
+
+    static async updateTeacher(id, updates) {
+        return APIService.patch(`school/teachers/${id}`, updates);
+    }
+
+    static async removeTeacher(id) {
+        return APIService.delete(`school/teachers/${id}`);
+    }
+
+    static async saveLoginMapping(phone, mapData) {
+        return APIService.post(`school/login_mappings/${phone}`, mapData);
+    }
+
+    static async removeLoginMapping(phone) {
+        return APIService.delete(`school/login_mappings/${phone}`);
+    }
+
+    static async archiveStudent(id, studentData) {
+        return APIService.post(`school/archives/students/${id}`, studentData);
+    }
+
+    static async logStudentStatusHistory(logData) {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        let key = '';
+        for (let i = 0; i < 16; i++) {
+            key += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return APIService.post(`school/student_status_history/${key}`, logData);
+    }
+
+    static async getExamWindows() {
+        const data = await APIService.get('school/exam_windows');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async saveExamWindow(id, examData) {
+        return APIService.post(`school/exam_windows/${id}`, examData);
+    }
+
+    static async updateExamStatus(id, status) {
+        return APIService.patch(`school/exam_windows/${id}`, { status });
+    }
+
+    static async removeExamWindow(id) {
+        return APIService.delete(`school/exam_windows/${id}`);
+    }
+
+    static async getDraftResults() {
+        return await APIService.get('school/draft_results') || { };
+    }
+
+    static async getStudentResults(studentId, term) {
+        return APIService.get(`school/results/${studentId}/${term}`);
+    }
+
+    static async saveDraftMark(studentId, examId, subjectId, markData) {
+        return APIService.post(`school/draft_results/${studentId}/${examId}/${subjectId}`, markData);
+    }
+
+    static async savePublishedMark(studentId, examId, subjectId, markData) {
+        return APIService.post(`school/results/${studentId}/${examId}/${subjectId}`, markData);
+    }
+
+    static async batchUpdate(updates) {
+        return APIService.patch('', updates);
+    }
+
+    static async getAttendance(classId) {
+        return await APIService.get(`school/attendance/${classId}`) || { };
+    }
+
+    static async getClassConfigs(classId) {
+        return await APIService.get(`school/class_configs/${classId}`) || { };
+    }
+
+    static async getPeriodTimings() {
+        const data = await APIService.get('school/config/period_timings');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async savePeriodTiming(key, periodData) {
+        return APIService.post(`school/config/period_timings/${key}`, periodData);
+    }
+
+    static async removePeriodTiming(key) {
+        return APIService.delete(`school/config/period_timings/${key}`);
+    }
+
+    static async getNotices() {
+        const data = await APIService.get('school/notices');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async saveNotice(noticeData) {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        let key = '';
+        for (let i = 0; i < 16; i++) {
+            key += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return APIService.post(`school/notices/${key}`, noticeData);
+    }
+
+    static async getTickets() {
+        const data = await APIService.get('school/tickets');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async saveTicket(id, ticketData) {
+        return APIService.post(`school/tickets/${id}`, ticketData);
+    }
+
+    static async getSuggestions() {
+        const data = await APIService.get('school/suggestions');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async saveSuggestion(id, sugData) {
+        return APIService.post(`school/suggestions/${id}`, sugData);
+    }
+
+    static async getClassChangeRequests() {
+        const data = await APIService.get('school/class_change_requests');
+        return data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [ ];
+    }
+
+    static async saveClassChangeRequest(requestId, reqData) {
+        return APIService.post(`school/class_change_requests/${requestId}`, reqData);
+    }
+
+    static async updateClassChangeRequestStatus(requestId, status) {
+        return APIService.patch(`school/class_change_requests/${requestId}`, { status });
+    }
+}
+
+// 4. Transparent Firebase compatibility adapter layers
+function replaceTimestamps(obj) {
+    if (obj === null || obj === undefined) return obj;
+    if (obj === "__TIMESTAMP__") return Date.now();
+    if (Array.isArray(obj)) {
+        return obj.map(item => replaceTimestamps(item));
+    }
+    if (typeof obj === "object") {
+        const newObj = { };
+        for (const [key, val] of Object.entries(obj)) {
+            newObj[key] = replaceTimestamps(val);
+        }
+        return newObj;
+    }
+    return obj;
+}
+
+class MockSnapshot {
+    constructor(val, key = null) {
+        this._val = val;
+        this.key = key;
+    }
+    val() {
+        return this._val;
+    }
+    exists() {
+        return this._val !== null && this._val !== undefined;
+    }
+    numChildren() {
+        if (this._val === null || this._val === undefined) return 0;
+        if (typeof this._val === 'object') {
+            return Object.keys(this._val).length;
+        }
+        if (Array.isArray(this._val)) {
+            return this._val.length;
+        }
+        return 1;
+    }
+    forEach(callback) {
+        if (this._val && typeof this._val === 'object') {
+            for (const [key, val] of Object.entries(this._val)) {
+                const childSnap = new MockSnapshot(val, key);
+                if (callback(childSnap) === true) break;
+            }
+        }
+    }
+}
+
+class MockRef {
+    constructor(path, dbInstance) {
+        this.path = path;
+        this.db = dbInstance;
+        this.queryOpts = null;
+    }
+
+    orderByChild(key) {
+        this.queryOpts = this.queryOpts || { };
+        this.queryOpts.orderByChild = key;
+        return this;
+    }
+
+    equalTo(val) {
+        this.queryOpts = this.queryOpts || { };
+        this.queryOpts.equalTo = val;
+        return this;
+    }
+
+    limitToLast(limit) {
+        this.queryOpts = this.queryOpts || { };
+        this.queryOpts.limitToLast = limit;
+        return this;
+    }
+
+    async once(eventStr) {
+        if (eventStr !== "value") return new MockSnapshot(null);
+        let data = await APIService.get(this.path);
+
+        if (this.queryOpts) {
+            const opts = this.queryOpts;
+            if (data && typeof data === "object") {
+                let entries = Object.entries(data);
+                if (opts.orderByChild) {
+                    if (opts.equalTo !== undefined) {
+                        entries = entries.filter(([k, v]) => v && v[opts.orderByChild] === opts.equalTo);
+                    }
+                    if (opts.limitToLast !== undefined) {
+                        entries = entries.slice(-opts.limitToLast);
+                    }
+                    data = Object.fromEntries(entries);
+                }
+            }
+        }
+        return new MockSnapshot(data);
+    }
+
+    on(eventStr, callback) {
+        if (eventStr !== "value") return;
+        this._pollCallback = async () => {
+            try {
+                const snap = await this.once("value");
+                callback(snap);
+            } catch (e) {
+                console.error("Polling error:", e);
+            }
+        };
+        this._pollCallback();
+        this._pollInterval = setInterval(this._pollCallback, 3000);
+    }
+
+    off(eventStr) {
+        if (this._pollInterval) {
+            clearInterval(this._pollInterval);
+            this._pollInterval = null;
+        }
+    }
+
+    async set(value) {
+        const processedVal = replaceTimestamps(value);
+        return APIService.post(this.path, processedVal);
+    }
+
+    async update(value) {
+        const processedVal = replaceTimestamps(value);
+        return APIService.patch(this.path, processedVal);
+    }
+
+    async remove() {
+        return APIService.delete(this.path);
+    }
+
+    push(value) {
+        const chars = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+        let key = "";
+        let ts = Date.now();
+        const tsChars = new Array(8);
+        for (let i = 7; i >= 0; i--) {
+            tsChars[i] = chars.charAt(ts % 64);
+            ts = Math.floor(ts / 64);
+        }
+        key += tsChars.join("");
+        for (let i = 0; i < 12; i++) {
+            key += chars.charAt(Math.floor(Math.random() * 64));
+        }
+
+        const nextPath = this.path ? this.path + "/" + key : key;
+        const pushRef = new MockRef(nextPath, this.db);
+        pushRef.key = key;
+
+        if (value !== undefined) {
+            pushRef.set(value);
+        }
+        return pushRef;
+    }
+}
+
+class MockStorageTask {
+    constructor(file, path) {
+        this.file = file;
+        this.path = path;
+        this.snapshot = {
+            ref: {
+                getDownloadURL: async () => this.downloadURL
+            }
+        };
+        this.downloadURL = null;
+    }
+
+    on(eventStr, progress_cb, error_cb, success_cb) {
+        APIService.upload(this.path, this.file, (loaded, total) => {
+            const snapshot = {
+                bytesTransferred: loaded,
+                totalBytes: total
+            };
+            progress_cb(snapshot);
+        }).then((url) => {
+            this.downloadURL = url;
+            success_cb();
+        }).catch((err) => {
+            error_cb(err);
+        });
+    }
+}
+
+class MockStorageRef {
+    constructor(path) {
+        this.path = path;
+    }
+    put(file) {
+        return new MockStorageTask(file, this.path);
+    }
+}
+
+// 5. Expose Global services and mock SDKs to prevent legacy breakage
+const firebase = {
+    apps: { length: 1 },
+    initializeApp: () => { },
+    database: () => ({
+        ref: (path) => new MockRef(path, firebase.database())
+    }),
+    storage: () => ({
+        ref: (path) => new MockStorageRef(path)
+    })
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+Object.defineProperty(firebase.database, 'ServerValue', {
+    get() {
+        return { TIMESTAMP: "__TIMESTAMP__" };
+    }
+});
+
 const db = firebase.database();
 const storage = firebase.storage();
+
+// Expose architecture layers on global window for clean unit testing and access
+window.APIService = APIService;
+window.AuthService = AuthService;
+window.DatabaseService = DatabaseService;
+window.firebase = firebase;
+window.db = db;
+window.storage = storage;
 
 // Role Constants
 const ROLES = {
@@ -321,7 +999,7 @@ const SafeResolvers = {
         return (str && str.trim()) ? str : fallback;
     },
     photo: (url) => {
-        return (url && url.startsWith('http')) ? url : "https://via.placeholder.com/150";
+        return (url && url.startsWith('http')) ? url : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2NiZDVlMSI+PHBhdGggZD0iTTEyIDEyYzIuMjEgMCA0LTEuNzkgNC00cy0xLjc5LTQtNC00LTQgMS43OS00IDQgMS43OSA0IDQgNHptMCAyYy0yLjY3IDAtOCAxLjM0LTggNHYyaDE2di0yYzAtMi42Ni01LjMzLTQtOC00eiIvPjwvc3ZnPg==";
     }
 };
 

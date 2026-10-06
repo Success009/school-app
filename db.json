@@ -1,0 +1,58 @@
+{
+  "school": {
+    "admin": {
+      "9809248510": {
+        "name": "Super Admin",
+        "role": "admin"
+      }
+    },
+    "students": {
+      "US-2000-6228": {
+        "id": "US-2000-6228",
+        "name": {
+          "first": "Success",
+          "middle": "",
+          "last": "Adhikari"
+        },
+        "gender": "Male",
+        "dob": "2066-06-24",
+        "age": "17",
+        "bloodGroup": "A-",
+        "class": "4",
+        "section": "General",
+        "roll": "01",
+        "joinYear": "2000",
+        "fatherName": "",
+        "motherName": "",
+        "phone": "1111111111",
+        "parentEmail": "successadhikari1234@gmail.com",
+        "address": {
+          "current": {
+            "street": "bharatpur-10",
+            "city": "bharatpur",
+            "district": "Chitwan"
+          },
+          "permanent": {
+            "street": "bharatpur-10",
+            "city": "bharatpur",
+            "district": "Chitwan"
+          }
+        },
+        "photo": "/uploads/1784211593684-506869469.jpg",
+        "birthCertificate": "/uploads/1784211594099-564376559.jpg",
+        "transferCertificate": "/uploads/1784211594459-34993183.jpg",
+        "academic": {
+          "subjects": [],
+          "session": "2000"
+        },
+        "createdAt": 1784211594422
+      }
+    },
+    "login_mappings": {
+      "1111111111": {
+        "studentId": "US-2000-6228",
+        "role": "parent"
+      }
+    }
+  }
+}

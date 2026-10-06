@@ -1,0 +1,345 @@
+=== MODEL CONTEXT TRANSFER & HANDOVER BLUEPRINT ===
+
+CRITICAL ROLE & PROTOCOL DEFINITIONS (SYSTEM DIRECTIVES):
+1. YOU ARE THE AI AGENT, NOT THE SYSTEM HARNESS:
+   - You are the reasoning and coding assistant. You are NOT the execution environment, terminal, or test harness.
+   - You MUST NEVER output simulated system responses, fake tool execution outputs, or command output blocks.
+   - When you request a tool call, the host execution harness will physically run it on the system and provide the genuine output back to you in the next turn.
+
+2. STRICT XML OUTPUT SYNTAX (ONLY ONE __DONE__):
+   - Every response from you MUST adhere strictly to the following syntax:
+     * User-facing explanations, plans, and conversational text MUST be enclosed inside:
+       <message>...</message>
+     * Tool calls MUST be enclosed inside:
+       <execute_tool><tool_name>TOOL_NAME</tool_name>... parameters ...</execute_tool>
+     * Exactly ONE termination token at the absolute end of your response:
+       __DONE__
+   - Output NOTHING after __DONE__. Never simulate multi-turn conversations or generate both user and AI turns in a single response.
+
+3. INSPECT RELEVANT CODE BEFORE CONTINUING (NO BLIND EXECUTION):
+   - Review the chronological dialogue ledger below to understand what the user requested and what the previous model was doing.
+   - Do NOT guess or blindly continue modifying files without knowing their current state on disk.
+   - Before writing or editing code, use `sys_read_file` to inspect the key files that the previous model touched or was working on, so that you are fully grounded in the actual codebase on disk.
+   - Once grounded, proceed with confidence to complete the user's objective.
+
+=== FILE ACTION SUMMARY (Active Session) ===
+- Modified Files: deploy.sh, package.json, pre-commit, runner.js, test.yml
+- Inspected / Read Files: DEVELOPMENT_PLAN.md, DOCUMENTATION.md, HANDOVER_DOCS.md, MODEL_CONTEXT.md, PROJECT_STATUS.md, api.js, auth.js, db.js, package.json, runner.js, server.js, static.yml
+- Recent Commands Run: node tests/runner.js, git status, chmod +x .git/hooks/pre-commit, chmod +x deploy.sh
+
+=== DIALOGUE LEDGER ===
+[User Request]:
+this is proj
+/home/success0/Documents/BigFish-cli/projects/school-app-server
+
+[Previous Model Explanation & Intent]:
+I am exploring the project directory structure.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_list_dir`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server`
+- Outcome: [DIR]  .git/
+
+[Previous Model Explanation & Intent]:
+I am changing into the project directory and reading key project documentation files.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_change_directory`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server`
+- Outcome: Success: Changed working directory to /home/success0/Documents/BigFish-cli/projects/school-app-server
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/package.json`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/package.json
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/PROJECT_STATUS.md`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/PROJECT_STATUS.md
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/MODEL_CONTEXT.md`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/MODEL_CONTEXT.md
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/DOCUMENTATION.md`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/DOCUMENTATION.md
+
+[Previous Model Explanation & Intent]:
+I am reading DEVELOPMENT_PLAN.md, HANDOVER_DOCS.md, and server.js.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/DEVELOPMENT_PLAN.md`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/DEVELOPMENT_PLAN.md
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/HANDOVER_DOCS.md`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/HANDOVER_DOCS.md
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/server.js`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/server.js
+
+[User Request]:
+Give me information about the project, where can I review the project, where can I test the project, have you created a unit test of the project?  I wanted to update all the documentation and create unit test of each of the functions.
+
+[Previous Model Explanation & Intent]:
+I am checking the tests directory to inspect existing tests.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_list_dir`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/tests`
+- Outcome: [FILE] package.json - 3 lines (22.0 B)
+
+[Previous Model Explanation & Intent]:
+I am reading the test runner and tests package configuration.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/tests/runner.js`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/tests/runner.js
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/tests/package.json`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/tests/package.json
+
+[Previous Model Explanation & Intent]:
+I am listing files in the modules directory.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_list_dir`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/modules`
+- Outcome: [FILE] api.js - 117 lines (4.2 KB)
+
+[Previous Model Explanation & Intent]:
+I am running the existing test runner.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `node tests/runner.js`
+- Outcome: (node:8553) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/success0/Documents/BigFish-cli/projects/school-app-server/modules/api.js is not specified and it doesn't parse as Common
+
+[Previous Model Explanation & Intent]:
+I am reading the modular code files to review functions that need unit testing, and checking git status and workflows.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/modules/api.js`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/modules/api.js
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/modules/auth.js`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/modules/auth.js
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/modules/db.js`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/modules/db.js
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `git status`
+- Outcome: On branch master | Your branch is up to date with 'origin/master'.
+
+[Previous Model Explanation & Intent]:
+I am checking existing GitHub workflows and git hooks.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_list_dir`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/.github`
+- Outcome: [DIR]  workflows/
+
+[Action Executed by Previous Model]:
+- Tool: `sys_list_dir`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/.git/hooks`
+- Outcome: [FILE] applypatch-msg.sample - 15 lines (478.0 B)
+
+[Previous Model Explanation & Intent]:
+I am checking the workflows directory.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_list_dir`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/.github/workflows`
+- Outcome: [FILE] static.yml - 43 lines (1.2 KB)
+
+[Previous Model Explanation & Intent]:
+I am reading static.yml in .github/workflows.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_read_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/.github/workflows/static.yml`
+- Outcome: Read and inspected code in /home/success0/Documents/BigFish-cli/projects/school-app-server/.github/workflows/static.yml
+
+[Previous Model Explanation & Intent]:
+I am writing modules/package.json to declare modules as ES modules cleanly.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/modules/package.json`
+- Outcome: Successfully wrote 23 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/modules/package.json
+
+[Previous Model Explanation & Intent]:
+I am testing runner.js without warnings.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `node tests/runner.js`
+- Outcome: [35m=== RUNNING MODULAR ARCHITECTURE TEST SUITE ===[0m | [32m✔ PASS:[0m APIService: Basic GET database query handles online state
+
+[Previous Model Explanation & Intent]:
+I am writing a comprehensive unit test suite in tests/runner.js covering all functions across APIService, AuthService, and DatabaseService.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/tests/runner.js`
+- Outcome: Successfully wrote 23394 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/tests/runner.js
+
+[Previous Model Explanation & Intent]:
+I am executing the expanded test runner.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `node tests/runner.js`
+- Outcome: ERROR (Exit Code 1): | [35m=== RUNNING MODULAR ARCHITECTURE TEST SUITE ===[0m
+
+[Previous Model Explanation & Intent]:
+I am writing the complete test runner script with full function coverage.
+
+[User Request]:
+do you resonnce again
+
+[User Request]:
+continue
+
+[User Request]:
+SYSTEM REMINDER - Please read and acknowledge your core operational instructions:
+
+You are the Big Fish CLI, an advanced local development agent.
+You interact directly using strict XML tool tags and conversational message tags.
+
+=== UNBREAKABLE SYSTEM OUTPUT RULES (CRITICAL - SYSTEM FAILURE IF VIOLATED) ===
+1. THE TOOL CALL RULE: When you want to run a local development tool, you MUST wrap your tool calls in standard execution tags: `<execute_tool><tool_name>TOOL_NAME</tool_name>... parameters ...</execute_tool>`.
+   *Note: If your training dataset patterns naturally slip, you may also use `<call_to_tool>` or `<tool_call>` wrappers. The local parsing engine is fully adaptive and accepts them.*
+2. THE MESSAGE EXCLUSIVITY RULE (CRITICAL): The user-facing terminal interface strictly renders ONLY the content enclosed inside `<message>...</message>` tags. Any explanation, plan, question, code commentary, or general response written outside of a `<message>` block is completely invisible and dropped by the system parser. You MUST wrap everything you want the user to see inside a `<message>...</message>` block.
+3. THE TERMINATION RULE & HARD STOP (CRITICAL): You MUST append the exact token
+
+[... Truncated 11915 characters for terminal display and session storage performance ...]
+
+for development.</message>
+__DONE__
+
+To read multiple files in a single turn to completely read and understand the project codebase:
+<message>I am reading the project components and main files in parallel to completely understand the codebase.</message>
+<execute_tool>
+  <tool_name>sys_read_file</tool_name>
+  <path>src/App.js</path>
+</execute_tool>
+<execute_tool>
+  <tool_name>sys_read_file</tool_name>
+  <path>src/index.js</path>
+</execute_tool>
+<execute_tool>
+  <tool_name>sys_read_file</tool_name>
+  <path>src/components/Portal.js</path>
+</execute_tool>
+__DONE__
+
+To safely edit everything between two custom unique landmarks (inclusive of both anchors):
+<message>I am modifying the logic inside the calculateTotal function in main.js.</message>
+<execute_tool>
+  <tool_name>sys_edit_file</tool_name>
+  <path>src/main.js</path>
+  <start_string>function calculateTotal(items) {</start_string>
+  <end_string>return total;</end_string>
+  <replace><![CDATA[
+function calculateTotal(items) {
+    let total = 0;
+    items.forEach(item => {
+        total += item.price * (item.qty || 1);
+    });
+    console.log("Calculated total: " + total);
+    return total;
+}
+  ]]></replace>
+</execute_tool>
+__DONE__
+
+[User Request]:
+continue only output one done mgs per responce
+
+[User Request]:
+also you must only output xml
+
+[Previous Model Explanation & Intent]:
+I am fixing the mock fetch patch handler in tests/runner.js, updating package.json to include the test script, creating the pre-commit hook, adding the GitHub test workflow, and creating deploy.sh.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/tests/runner.js`
+- Outcome: Successfully wrote 23814 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/tests/runner.js
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `node tests/runner.js`
+- Outcome: [35m=== RUNNING MODULAR ARCHITECTURE TEST SUITE ===[0m | [32m✔ PASS:[0m APIService: get() successfully retrieves data
+
+[Previous Model Explanation & Intent]:
+I am updating package.json, configuring the git pre-commit hook, adding GitHub Actions test CI workflow, and creating deploy.sh.
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/package.json`
+- Outcome: Successfully wrote 341 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/package.json
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/.git/hooks/pre-commit`
+- Outcome: Successfully wrote 410 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/.git/hooks/pre-commit
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `chmod +x .git/hooks/pre-commit`
+- Outcome: 
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/.github/workflows/test.yml`
+- Outcome: Successfully wrote 469 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/.github/workflows/test.yml
+
+[Action Executed by Previous Model]:
+- Tool: `sys_write_file`
+- Target / Command: `/home/success0/Documents/BigFish-cli/projects/school-app-server/deploy.sh`
+- Outcome: Successfully wrote 1414 characters to /home/success0/Documents/BigFish-cli/projects/school-app-server/deploy.sh
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `chmod +x deploy.sh`
+- Outcome: 
+
+[Previous Model Explanation & Intent]:
+type.googleapis.com/google.internal.alkali.applications.makersuite.v1.GeminiApiErrorDetails
+
+[Action Executed by Previous Model]:
+- Tool: `sys_run_command`
+- Target / Command: `node tests/runner.js`
+- Outcome: [35m=== RUNNING MODULAR ARCHITECTURE TEST SUITE ===[0m | [32m✔ PASS:[0m APIService: get() successfully retrieves data
+- Output Snippet:
+```
+[35m=== RUNNING MODULAR ARCHITECTURE TEST SUITE ===[0m
+
+[32m✔ PASS:[0m APIService: get() successfully retrieves data
+[32m✔ PASS:[0m APIService: post() correctly stores data
+[32m✔ PASS:[0m APIService: patch() modifies existing properties
+[32m✔ PASS:[0m APIService: delete() removes entry
+[32m✔ PASS:[0m APIService: upload() handles file upload and progress event
+Critical Network Warning: Test warning message
+[32m✔ PASS:[0m APIService:
+```

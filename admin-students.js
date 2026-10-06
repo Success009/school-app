@@ -203,7 +203,7 @@ async function viewStudentProfile(studentId) {
             </div>
 
             <div class="mt-4 grid grid-cols-2 gap-3">
-                <button onclick="await alert('Attendance logs are summarized dynamically inside Parent App Dashboard!')" class="bg-gray-800 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
+                <button onclick="viewStudentAttendance('${studentId}', '${data.class}')" class="bg-gray-800 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
                     View Attendance
                 </button>
                 <button onclick="adminRouter('examsManagement')" class="bg-indigo-600 text-white p-4 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all">
@@ -473,5 +473,130 @@ async function logStudentStatusUpdate(studentId) {
     } catch (e) {
         console.error(e);
         await alert("Failed to log status update: " + e.message);
+    }
+}
+
+async function viewStudentAttendance(studentId, studentClass) {
+    let modal = document.getElementById('admin-attendance-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'admin-attendance-modal';
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000] p-4 animate-fade-in';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = `
+        <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[85vh] animate-scale-up text-left">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div>
+                    <h3 class="text-sm font-black text-gray-800 uppercase tracking-wider">Attendance History</h3>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Student ID: ${studentId} | Class ${studentClass}</p>
+                </div>
+                <button onclick="document.getElementById('admin-attendance-modal').remove()" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center active:scale-90 transition-transform">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="p-6 flex-grow overflow-y-auto space-y-4" id="admin-attendance-modal-body">
+                <div class="text-center py-10 text-gray-400 text-xs font-bold">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Loading attendance history...
+                </div>
+            </div>
+        </div>
+    `;
+
+    try {
+        const days = await DatabaseService.getAttendance(studentClass);
+        const modalBody = document.getElementById('admin-attendance-modal-body');
+        if (!modalBody) return;
+
+        if (!days || Object.keys(days).length === 0) {
+            modalBody.innerHTML = `
+                <div class="text-center py-12 text-gray-500 bg-gray-50 rounded-2xl text-xs p-6 border border-gray-100 font-bold">
+                    <i class="fas fa-info-circle text-2xl mb-2 block text-gray-400"></i>
+                    No attendance records registered for this student yet.
+                </div>
+            `;
+            return;
+        }
+
+        let totalLogs = 0;
+        let presentLogs = 0;
+        let historyList = [ ];
+
+        Object.entries(days).forEach(([dateStr, students]) => {
+            if (students && students[studentId]) {
+                const log = students[studentId];
+                totalLogs++;
+                if (log.status === 'present') presentLogs++;
+                historyList.push({
+                    date: dateStr,
+                    status: log.status,
+                    teacher: log.teacherName || log.teacher || "Faculty"
+                });
+            }
+        });
+
+        if (totalLogs === 0) {
+            modalBody.innerHTML = `
+                <div class="text-center py-12 text-gray-500 bg-gray-50 rounded-2xl text-xs p-6 border border-gray-100 font-bold">
+                    <i class="fas fa-info-circle text-2xl mb-2 block text-gray-400"></i>
+                    No attendance records registered for this student yet.
+                </div>
+            `;
+            return;
+        }
+
+        const pct = (presentLogs / totalLogs) * 100;
+        
+        // Sort history by date descending
+        historyList.sort((a, b) => b.date.localeCompare(a.date));
+
+        let historyHtml = historyList.map(h => {
+            const dateParts = h.date.split('-');
+            const dayStr = dateParts[2] || "01";
+            const monthNames = ["BAI", "JST", "ASH", "SHW", "BHD", "ASW", "KRT", "MNG", "PSH", "MGH", "FLG", "CHT"];
+            const monthIdx = parseInt(dateParts[1]) - 1;
+            const monthStr = isNaN(monthIdx) ? "JST" : (monthNames[monthIdx] || "JST");
+            const isPresent = h.status === 'present';
+
+            return `
+                <div class="flex items-center p-3 bg-white rounded-2xl border border-gray-100 shadow-sm text-left">
+                    <div class="w-10 h-10 ${isPresent ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} rounded-xl flex flex-col items-center justify-center mr-4 flex-shrink-0">
+                        <span class="text-xs font-black">${dayStr}</span>
+                        <span class="text-[8px] font-bold uppercase">${monthStr}</span>
+                    </div>
+                    <div class="flex-grow">
+                        <h4 class="text-xs font-bold text-gray-800">${isPresent ? 'Present' : 'Absent'} - Class session</h4>
+                        <p class="text-[9px] text-gray-400 mt-0.5">Teacher: ${h.teacher}</p>
+                    </div>
+                    <span class="text-[9px] font-black ${isPresent ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-2 py-1 rounded-lg uppercase">${h.status}</span>
+                </div>
+            `;
+        }).join('');
+
+        modalBody.innerHTML = `
+            <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-[9px] text-blue-500 font-bold uppercase tracking-wider">Attendance Rate</p>
+                    <h4 class="text-2xl font-black text-blue-700 mt-0.5">${pct.toFixed(1)}%</h4>
+                </div>
+                <div class="text-right text-xs font-bold text-gray-500">
+                    <p>${presentLogs} Days Present</p>
+                    <p class="text-[10px] opacity-75">${totalLogs} Total Recorded Days</p>
+                </div>
+            </div>
+            
+            <div class="space-y-2 mt-4">
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Chronological History</h4>
+                <div class="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+                    ${historyHtml}
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error(e);
+        const modalBody = document.getElementById('admin-attendance-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = `<div class="text-center py-10 text-red-400 text-xs font-bold">Failed to load attendance history: ${e.message}</div>`;
+        }
     }
 }

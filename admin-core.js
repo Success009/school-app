@@ -139,7 +139,7 @@ const adminViews = {
 
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-gray-800">Recent Notices</h3>
-                <span onclick="await alert('Opening Notice Board Manager...')" class="text-[10px] font-bold text-blue-600 uppercase cursor-pointer">View All</span>
+                <span onclick="alert('Opening Notice Board Manager...')" class="text-[10px] font-bold text-blue-600 uppercase cursor-pointer">View All</span>
             </div>
             <div id="admin-recent-notices" class="space-y-3 pb-10">
                 <div class="text-center py-6 text-gray-300 text-xs italic">No announcements found.</div>

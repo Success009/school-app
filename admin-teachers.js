@@ -39,6 +39,17 @@ async function viewTeacherProfileDetails(teacherId) {
         ];
         const divOptions = divisions.map(d => `<option value="${d.key}" ${data.division === d.key ? 'selected' : ''}>${d.val}</option>`).join('');
         
+        const assignedClasses = data.assignedClasses || [ ];
+        const classesCheckboxesHtml = [1, 2, 3, 4, 5, 6, 7, 8].map(grade => {
+            const isChecked = assignedClasses.includes(String(grade)) || assignedClasses.includes(grade);
+            return `
+                <label class="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-xl p-2 cursor-pointer select-none">
+                    <input type="checkbox" name="edit-t-assignedClasses" value="${grade}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-purple-600 border-gray-300 rounded-focus:ring-purple-500">
+                    <span class="text-xs font-bold text-gray-700">Class ${grade}</span>
+                </label>
+            `;
+        }).join('');
+        
         container.innerHTML = `
             <div class="flex flex-col items-center py-6">
                 <div class="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl mb-4">
@@ -119,6 +130,13 @@ async function viewTeacherProfileDetails(teacherId) {
                             <option value="8" ${data.classTeacherOf === '8' ? 'selected' : ''}>Class 8</option>
                         </select>
                     </div>
+
+                    <div class="pt-2">
+                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-2">Assigned Classes (Teaching Authority)</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            ${classesCheckboxesHtml}
+                        </div>
+                    </div>
                 </div>
 
                 <button onclick="updateTeacherProfile('${teacherId}')" class="w-full bg-purple-700 text-white font-black py-4 rounded-2xl shadow-md active:scale-95 transition-all text-sm mb-4">
@@ -143,6 +161,9 @@ async function updateTeacherProfile(teacherId) {
         const isHead = document.getElementById('edit-t-isHead').checked;
         const classTeacherOf = document.getElementById('edit-t-classTeacherOf').value;
 
+        const assignedCheckboxes = document.querySelectorAll('input[name="edit-t-assignedClasses"]:checked');
+        const assignedClasses = Array.from(assignedCheckboxes).map(cb => cb.value);
+
         if (!title) {
             await alert("Professional Title cannot be empty!");
             return;
@@ -157,7 +178,8 @@ async function updateTeacherProfile(teacherId) {
             department: dept,
             division: div,
             isDepartmentHead: isHead,
-            classTeacherOf: classTeacherOf
+            classTeacherOf: classTeacherOf,
+            assignedClasses: assignedClasses
         };
 
         await db.ref('school/teachers/' + teacherId).update(updates);

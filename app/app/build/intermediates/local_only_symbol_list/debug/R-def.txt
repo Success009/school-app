@@ -1,0 +1,9 @@
+R_DEF: Internal format may change without notice
+local
+drawable logo
+id logo_view
+id offline_layout
+id retry_button
+id webview
+layout activity_main
+string app_name

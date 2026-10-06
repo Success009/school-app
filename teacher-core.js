@@ -199,7 +199,7 @@ const teacherViews = {
                     <span id="seq-student-index" class="absolute right-4 top-4 text-[9px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-wider">...</span>
 
                     <div class="w-24 h-24 rounded-2xl overflow-hidden border-2 border-gray-50 shadow-md mb-3">
-                        <img id="seq-student-photo" src="https://via.placeholder.com/150" class="w-full h-full object-cover">
+                        <img id="seq-student-photo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2NiZDVlMSI+PHBhdGggZD0iTTEyIDEyYzIuMjEgMCA0LTEuNzkgNC00cy0xLjc5LTQtNC00LTQgMS43OS00IDQgMS43OSA0IDQgNHptMCAyYy0yLjY3IDAtOCAxLjM0LTggNHYyaDE2di0yYzAtMi42Ni01LjMzLTQtOC00eiIvPjwvc3ZnPg==" class="w-full h-full object-cover">
                     </div>
 
                     <h4 id="seq-student-name" class="font-black text-gray-800 text-lg">...</h4>

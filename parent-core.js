@@ -553,7 +553,7 @@ async function loadMyTeachersList() {
             const fullName = `${t.name?.first || ''} ${t.name?.middle || ''} ${t.name?.last || ''}`.replace(/\s+/g, ' ').trim() || t.name || 'Faculty Member';
             const profTitle = t.professionalTitle || 'Subject Teacher';
             const phone = t.phone || '';
-            const photo = t.photo || 'https://via.placeholder.com/150';
+            const photo = t.photo || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2NiZDVlMSI+PHBhdGggZD0iTTEyIDEyYzIuMjEgMCA0LTEuNzkgNC00cy0xLjc5LTQtNC00LTQgMS43OS00IDQgMS43OSA0IDQgNHptMCAyYy0yLjY3IDAtOCAxLjM0LTggNHYyaDE2di0yYzAtMi42Ni01LjMzLTQtOC00eiIvPjwvc3ZnPg==';
 
             // Resolve which subjects this teacher teaches the child (intersect of student's schedule and teacher's subjects)
             const scheduleItems = (currentUser?.student?.schedule || [ ]).filter(s => {
