@@ -16,14 +16,14 @@ Authentication in the Udayashree School Application uses a cellular OTP architec
 |     Backend Checks:                                                           |
 |       [A] Validate Stamp Signature & Expiry (within 300s, unused nonce)       |
 |       [B] Whitelist Verification (Must exist in db.json)                      |
-|       [C] Test Bypass Check: If starts with '000', return static test mode    |
+|       [C] Developer Mode Check: If starts with '..' or '.#', skip SMS         |
 |       [D] Rate Limiting (1 request / 60s per phone, 10 / 10m per IP)          |
 |     <-- Dispatches SMS via cellular gateway OR returns test mode success      |
 |                                                                               |
 |  3. Verify OTP: POST /api/auth/otp/verify                                     |
 |     Payload: { phone, otp }                                                   |
 |     Backend Checks:                                                           |
-|       [A] If otp == '000000' and registered -> Bypass live gateway            |
+|       [A] If test prefix & otp == '000000' and registered -> Bypass live gateway |
 |       [B] Otherwise -> Verify with SMS Gateway                                |
 |       [C] Issue Persistent Session Token (HMAC-SHA256 signed payload)         |
 |     <-- Returns JWT-like persistent session token & user profile              |
@@ -67,22 +67,23 @@ Direct SMS gateway dispatch costs real currency per SMS message. To prevent mali
 
 ---
 
-## 4. Zero-Cost Test Bypass Mode
+## 4. Zero-Cost Developer Mode & Production Privacy
 
 ### Purpose & Architecture
-Live automated integration tests and Play Store test reviews require logging in without incurring SMS costs or relying on external cellular connectivity.
+Internal QA verification and Play Store pre-launch reviews require logging in without incurring continuous SMS cellular charges. To protect real school consumers (parents and teachers) in production, this mode is designed with zero leakage: no test flags, backdoor labels, or debug messages are returned to the client UI.
 
 ### How It Operates
-1. **Triggering Test Mode**:
-   Input a phone number prefixed with `000` (e.g., `0009765954850`).
+1. **Triggering Developer Mode**:
+   Input a registered phone number prefixed with `..` or `.#` (e.g., `..9845212500` or `.#9845212500`).
 2. **Backend Processing (`controllers/authController.js`)**:
-   - The server strips the leading `000`, obtaining the underlying phone number (`9765954850`).
-   - It checks whether `9765954850` is registered in `db.json`. If registered:
-     - Gateway SMS transmission is completely skipped (zero cost).
-     - Returns `{ success: true, message: "[Test Mode] Verification bypass active.", cooldown_seconds: 3 }`.
+   - The server normalizes the input by stripping `..` or `.#`, obtaining the underlying phone number (`9845212500`).
+   - It verifies whether `9845212500` exists in `db.json`. If registered:
+     - Real cellular SMS transmission is skipped.
+     - A standard production-like JSON success response is returned so consumer interfaces remain completely clean.
 3. **Verification**:
-   - Enter `000000` in the 6-digit verification code input.
-   - The backend accepts `000000` without calling the gateway, constructs the genuine user profile from `db.json`, and signs a persistent session token.
+   - In Step 2, the UI displays the clean 10-digit number (never showing the prefix).
+   - Enter `000000` in the verification code input.
+   - The backend requires **both** the active developer prefix on the phone request AND the `000000` code. Attempting `000000` on a normal consumer phone number without the prefix is strictly rejected.
 
 ---
 

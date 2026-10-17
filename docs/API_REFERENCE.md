@@ -33,31 +33,21 @@ Local Dev:   http://localhost:5050
   "stamp": "1792167841000.abc123def456.789xyz..."
 }
 ```
-* **Test Mode Request**:
+* **Developer Test Mode Request**:
 ```json
 {
-  "phone": "0009765954850",
+  "phone": "..9765954850",
   "stamp": "1792167841000.abc123def456.789xyz..."
 }
 ```
-* **Response (200 OK - Live)**:
+* **Response (200 OK)**:
 ```json
 {
   "success": true,
-  "message": "Verification code dispatched to your phone.",
-  "sms_job_id": 12,
+  "message": "Verification code sent to your mobile number.",
+  "sms_job_id": 999999,
   "cooldown_seconds": 60,
   "expires_in_seconds": 300
-}
-```
-* **Response (200 OK - Test Mode)**:
-```json
-{
-  "success": true,
-  "message": "[Test Mode] Verification bypass active. Enter 000000 to log in.",
-  "sms_job_id": 999999,
-  "cooldown_seconds": 3,
-  "expires_in_seconds": 600
 }
 ```
 * **Error Responses**:

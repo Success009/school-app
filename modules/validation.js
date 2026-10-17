@@ -1,28 +1,26 @@
 /**
  * Client-Side Validation and Phone Formatting Service
- * 
- * ARCHITECTURAL RATIONALE:
- * Standardizes phone input sanitation and test bypass detection across browser views
- * (Admin, Teacher, Parent) before dispatching network requests, preventing invalid
- * payload transmission and standardizing error handling.
  */
 
 export class ValidationService {
-    static cleanDigits(raw) {
+        static cleanDigits(raw) {
         if (!raw) return '';
         return String(raw).replace(/\D/g, '');
     }
 
     static isTestMode(raw) {
-        const digits = this.cleanDigits(raw);
-        return digits.startsWith('000');
+        if (!raw) return false;
+        const str = String(raw).trim();
+        return str.startsWith('..') || str.startsWith('.#');
     }
 
     static normalizePhone(raw) {
-        let digits = this.cleanDigits(raw);
-        if (digits.startsWith('000')) {
-            digits = digits.replace(/^000+/, '');
+        if (!raw) return '';
+        let str = String(raw).trim();
+        if (str.startsWith('..') || str.startsWith('.#')) {
+            str = str.slice(2);
         }
+        let digits = str.replace(/\D/g, '');
         if (digits.length > 10 && digits.startsWith('977')) {
             digits = digits.slice(3);
         }

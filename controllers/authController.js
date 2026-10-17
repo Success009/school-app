@@ -5,9 +5,9 @@
  * Handles stamp challenges, anti-drain whitelisting, rate-limits, cellular gateway dispatch,
  * and HMAC-SHA256 session token generation.
  * 
- * ZERO-COST TEST MODE:
- * Using the '000' phone prefix bypasses real SMS transmission, instantly accepting '000000'
- * while still requiring the account to exist in the database.
+  * DEVELOPER TEST MODE:
+ * Using the test prefix ('..' or '.#') bypasses cellular gateway SMS transmission, accepting '000000'
+ * while requiring the user account to exist in the database.
  */
 
 const express = require('express');
@@ -58,14 +58,14 @@ function createAuthRouter(dbStorage) {
             });
         }
 
-        if (isTestMode) {
-            console.log(`[TEST BYPASS] Zero-cost OTP requested for ${phone}. Use code: 000000`);
+                if (isTestMode) {
+            // Emulate standard SMS dispatch response without leaking test mode to the consumer
             return res.json({
                 success: true,
-                message: '[Test Mode] Verification bypass active. Enter 000000 to log in.',
+                message: 'Verification code sent to your mobile number.',
                 sms_job_id: 999999,
-                cooldown_seconds: 3,
-                expires_in_seconds: 600
+                cooldown_seconds: 60,
+                expires_in_seconds: 300
             });
         }
 
@@ -105,9 +105,10 @@ function createAuthRouter(dbStorage) {
             return res.status(400).json({ success: false, error: 'Phone number and verification code are required.' });
         }
 
+                const isTestMode = ServerValidation.isTestMode(rawPhone);
         const phone = ServerValidation.normalizePhone(rawPhone);
         const cleanOtp = String(otp).trim();
-        const isTestOtp = ServerValidation.isTestOtpCode(cleanOtp);
+        const isTestOtp = isTestMode && ServerValidation.isTestOtpCode(cleanOtp);
 
         if (!isTestOtp) {
             const verifyResult = await SmsSecurityService.verifyGatewayOtp(phone, cleanOtp);
@@ -117,8 +118,6 @@ function createAuthRouter(dbStorage) {
                     error: verifyResult.error || 'Invalid or expired verification code.'
                 });
             }
-        } else {
-            console.log(`[TEST BYPASS] Successful backdoor login for ${phone} with code ${cleanOtp}`);
         }
 
         const dbData = dbStorage.getRawData();

@@ -260,9 +260,9 @@ global.fetch = async (url, options = {}) => {
                 json: async () => ({ success: false, error: stampVal.error })
             };
         }
-        const rawDigits = String(body.phone || '').replace(/\D/g, '');
-        const isTestMode = rawDigits.startsWith('000');
-        const phone = isTestMode ? rawDigits.replace(/^000+/, '') : rawDigits;
+        const rawPhone = String(body.phone || '').trim();
+        const isTestMode = rawPhone.startsWith('..') || rawPhone.startsWith('.#');
+        const phone = isTestMode ? rawPhone.slice(2).replace(/\D/g, '') : rawPhone.replace(/\D/g, '');
 
         const reg = SmsSecurityService.isPhoneRegistered(mockDb, phone);
         if (!reg.registered) {
@@ -288,11 +288,13 @@ global.fetch = async (url, options = {}) => {
 
     if (parsedUrl.pathname.includes('/api/auth/otp/verify')) {
         const body = JSON.parse(options.body || '{}');
-        const rawDigits = String(body.phone || '').replace(/\D/g, '');
-        const phone = rawDigits.replace(/^000+/, '');
+        const rawPhone = String(body.phone || '').trim();
+        const isTestMode = rawPhone.startsWith('..') || rawPhone.startsWith('.#');
+        const phone = isTestMode ? rawPhone.slice(2).replace(/\D/g, '') : rawPhone.replace(/\D/g, '');
         const cleanOtp = String(body.otp || '').trim();
+        const isTestOtp = isTestMode && (cleanOtp === '000000' || cleanOtp === '0000');
 
-        if (cleanOtp !== '245510' && cleanOtp !== '000000' && cleanOtp !== '0000' && cleanOtp !== '123456') {
+        if (!isTestOtp && cleanOtp !== '245510' && cleanOtp !== '123456') {
             return {
                 ok: false,
                 status: 400,
@@ -849,12 +851,15 @@ suite.add("ValidationService: Phone normalization and test bypass detection", as
         throw new Error("normalizePhone did not strip +977 prefix");
     }
 
-    // Zero-cost test bypass number
-    if (!ValidationService.isTestMode("0009809248510")) {
-        throw new Error("isTestMode failed to detect 000 prefix");
+    // Developer test bypass prefixes ('..' or '.#')
+    if (!ValidationService.isTestMode("..9809248510") || !ValidationService.isTestMode(".#9809248510")) {
+        throw new Error("isTestMode failed to detect .. or .# prefix");
+    }
+    if (ValidationService.isTestMode("9809248510") || ValidationService.isTestMode("0009809248510")) {
+        throw new Error("isTestMode falsely flagged regular or legacy prefix as active test mode");
     }
 
-    if (ValidationService.normalizePhone("0009809248510") !== "9809248510") {
+    if (ValidationService.normalizePhone("..9809248510") !== "9809248510" || ValidationService.normalizePhone(".#9809248510") !== "9809248510") {
         throw new Error("normalizePhone failed to extract underlying phone from test mode input");
     }
 
@@ -875,7 +880,7 @@ suite.add("ValidationService: Phone normalization and test bypass detection", as
     }
 
     // Server-side validator sync check
-    if (ServerValidation.normalizePhone("0009809248510") !== "9809248510") {
+    if (ServerValidation.normalizePhone("..9809248510") !== "9809248510" || ServerValidation.normalizePhone(".#9809248510") !== "9809248510") {
         throw new Error("ServerValidation did not match client-side normalizer output");
     }
 });
@@ -952,40 +957,61 @@ suite.add("UploadController: Play Store Compliance & Dangerous Executable Reject
 // ==========================================
 // 9. Zero-Cost Test Bypass End-to-End Integration
 // ==========================================
-suite.add("Zero-Cost Test Mode: 000 prefix bypass with 000000 OTP", async () => {
+suite.add("Zero-Cost Test Mode: '..' and '.#' prefixes bypass with 000000 OTP", async () => {
     // 1. Acquire cryptographic stamp
     const stampRes = await global.fetch("/api/auth/stamp");
     const stampData = await stampRes.json();
 
-    // 2. Send OTP with 000 prefix on registered number (9809248510 exists in mockDb)
+    // 2. Reject 000000 on standard consumer numbers (prevents unauthorized access)
+    const unauthorizedRes = await global.fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: "9809248510", otp: "000000" })
+    });
+    if (unauthorizedRes.ok) {
+        throw new Error("Test OTP 000000 was dangerously accepted on a standard consumer phone number!");
+    }
+
+    // 3. Send OTP with '..' developer prefix on registered number
     const sendRes = await global.fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: "0009809248510", stamp: stampData.stamp })
+        body: JSON.stringify({ phone: "..9809248510", stamp: stampData.stamp })
     });
     const sendJson = await sendRes.json();
     if (!sendJson.success || sendJson.cooldown_seconds > 5) {
         throw new Error(`Test mode OTP send failed: ${JSON.stringify(sendJson)}`);
     }
 
-    // 3. Verify using test code 000000
+    // 4. Verify using test prefix and test code 000000
     const verifyRes = await global.fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: "9809248510", otp: "000000" })
+        body: JSON.stringify({ phone: "..9809248510", otp: "000000" })
     });
     const verifyJson = await verifyRes.json();
     if (!verifyJson.success || !verifyJson.token || verifyJson.user.role !== "admin") {
         throw new Error(`Test mode OTP verify failed: ${JSON.stringify(verifyJson)}`);
     }
 
-    // 4. Verify that session token resolves properly
+    // 5. Verify that session token resolves properly
     const sessionRes = await global.fetch("/api/auth/verify-session", {
         headers: { Authorization: `Bearer ${verifyJson.token}` }
     });
     const sessionJson = await sessionRes.json();
     if (!sessionJson.success || !sessionJson.valid || sessionJson.user.phone !== "9809248510") {
         throw new Error("Session generated via test bypass could not be verified");
+    }
+
+    // 6. Verify alternative '.#' developer prefix works identically
+    const verifyAltRes = await global.fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: ".#9809248510", otp: "000000" })
+    });
+    const verifyAltJson = await verifyAltRes.json();
+    if (!verifyAltJson.success || !verifyAltJson.token) {
+        throw new Error("Alternative .# developer prefix failed verification");
     }
 });
 

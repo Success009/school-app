@@ -41,10 +41,11 @@ function startCooldownTimer(durationSeconds = 60) {
     }, 1000);
 }
 
-function showStep2() {
+function showStep2(displayPhone) {
     loginStep = 2;
+    const phoneToShow = displayPhone || (tempPhone ? tempPhone.replace(/^(\.\.|\.#)/, '') : '');
     document.getElementById('login-title').innerText = "Verify SMS Code";
-    document.getElementById('login-desc').innerText = `Enter the 6-digit verification code sent to +977 ${tempPhone}`;
+    document.getElementById('login-desc').innerText = `Enter the 6-digit verification code sent to +977 ${phoneToShow}`;
     document.getElementById('step-1-view').classList.add('hidden');
     document.getElementById('step-2-view').classList.remove('hidden');
 
@@ -126,13 +127,21 @@ async function requestSecurityStamp() {
 }
 
 async function sendOTP() {
-    const phoneInput = document.getElementById('login-phone').value.trim();
-    const phone = phoneInput.replace(/\D/g, '');
+    const rawInput = document.getElementById('login-phone').value.trim();
+    const isTest = rawInput.startsWith('..') || rawInput.startsWith('.#');
+    const prefix = isTest ? rawInput.slice(0, 2) : '';
 
-    if (phone.length < 10) {
+    let digits = rawInput.slice(prefix.length).replace(/\D/g, '');
+    if (digits.length > 10 && digits.startsWith('977')) {
+        digits = digits.slice(3);
+    }
+
+    if (digits.length !== 10) {
         await alert('Please enter a valid 10-digit mobile number');
         return;
     }
+
+    const payloadPhone = prefix + digits;
 
     const sendBtn = document.getElementById('send-otp-btn');
     if (sendBtn) {
@@ -148,7 +157,7 @@ async function sendOTP() {
         const res = await fetch('/api/auth/otp/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, stamp })
+            body: JSON.stringify({ phone: payloadPhone, stamp })
         });
 
         const data = await res.json();
@@ -164,8 +173,8 @@ async function sendOTP() {
             return;
         }
 
-        tempPhone = phone;
-        showStep2();
+        tempPhone = payloadPhone;
+        showStep2(digits);
         startCooldownTimer(data.cooldown_seconds || 60);
 
     } catch (error) {
@@ -214,7 +223,17 @@ async function resendOTP() {
 }
 
 async function handleLogin() {
-    const phone = tempPhone || document.getElementById('login-phone').value.trim().replace(/\D/g, '');
+    let phone = tempPhone;
+    if (!phone) {
+        const rawInput = document.getElementById('login-phone').value.trim();
+        const isTest = rawInput.startsWith('..') || rawInput.startsWith('.#');
+        const prefix = isTest ? rawInput.slice(0, 2) : '';
+        let digits = rawInput.slice(prefix.length).replace(/\D/g, '');
+        if (digits.length > 10 && digits.startsWith('977')) {
+            digits = digits.slice(3);
+        }
+        phone = prefix + digits;
+    }
     const inputs = document.querySelectorAll('.otp-input');
     let code = '';
     inputs.forEach(input => code += input.value.trim());

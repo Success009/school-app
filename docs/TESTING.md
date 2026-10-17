@@ -20,7 +20,7 @@ npm test
 | **ValidationService** | `modules/validation.js` | Phone normalization, +977 stripping, test mode detection, sanitize |
 | **DbStorageService** | `controllers/dbStorage.js` | Deep nested get/set, slash patch notation, path deletion, atomic saves |
 | **UploadController Security** | `controllers/uploadController.js` | Google Play compliance: whitelist verification & executable rejection |
-| **Zero-Cost Test Bypass** | Full Integration | End-to-end `000` prefix bypass dispatch and `000000` OTP login |
+| **Developer Test Bypass** | Full Integration | End-to-end `..` and `.#` prefix bypass dispatch and `000000` OTP verification |
 
 ---
 
