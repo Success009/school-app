@@ -30,20 +30,37 @@ public class MainActivity extends AppCompatActivity {
         offlineLayout = findViewById(R.id.offline_layout);
         retryButton = findViewById(R.id.retry_button);
 
-        // Configure WebView settings for modern web apps
+                // Configure hardened WebView settings for security and offline caching
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setDatabaseEnabled(true);
         webSettings.setLoadsImagesAutomatically(true);
+
+        // SECURITY HARDENING:
+        // 1. NEVER allow mixed content (HTTP assets over HTTPS) to eliminate MitM injection
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        }
+        // 2. Disable local file scheme and content access to prevent local sandbox exfiltration
+        webSettings.setAllowFileAccess(false);
+        webSettings.setAllowContentAccess(false);
+        webSettings.setGeolocationEnabled(false);
+
+        // 3. Intelligent cache strategy: prioritize cache if offline, network if online
+        if (isOnline()) {
+            webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        } else {
+            webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         }
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                showOfflineView();
+                // If offline and no cache exists, display offline fallback layout
+                if (!isOnline()) {
+                    showOfflineView();
+                }
             }
         });
 
@@ -61,12 +78,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkAndLoad() {
+        WebSettings webSettings = webView.getSettings();
         if (isOnline()) {
+            webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
             offlineLayout.setVisibility(View.GONE);
             webView.setVisibility(View.VISIBLE);
             webView.loadUrl(TARGET_URL);
         } else {
-            showOfflineView();
+            // Attempt to load from cache so parents/teachers can view previously loaded records
+            webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+            offlineLayout.setVisibility(View.GONE);
+            webView.setVisibility(View.VISIBLE);
+            webView.loadUrl(TARGET_URL);
         }
     }
 

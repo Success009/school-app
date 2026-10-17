@@ -10,6 +10,7 @@ To maintain modularity and high signal-to-noise ratio, comprehensive documentati
 
 - 🏛️ **[System Architecture & Modularity](docs/ARCHITECTURE.md)**: Three-tier design, modular controllers, blast-radius containment, and failure isolation.
 - 🔒 **[Security & Authentication](docs/SECURITY_AUTH.md)**: Anti-tamper cryptographic stamps, phone whitelisting, rate limits, and persistent HMAC sessions.
+- 🛡️ **[Security Bridges & Offline Resilience](docs/SECURITY_BRIDGES_AND_OFFLINE.md)**: Android WebView hardening, gateway tunnel security, offline student/roster viewing, and context-efficient isolation.
 - 📱 **[Google Play Store Compliance](docs/PLAY_STORE_COMPLIANCE.md)**: Play Store policy analysis, why in-app APK updaters violate policy 4.5, and how WebView PWA enables compliant zero-touch web updates.
 - 📡 **[REST API Reference](docs/API_REFERENCE.md)**: Full API endpoint contracts, request/response payloads, and status codes.
 - 🧪 **[Testing & Verification](docs/TESTING.md)**: Headless test runner, polyfill architecture, and test coverage mapping.

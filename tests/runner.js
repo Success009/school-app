@@ -6,6 +6,7 @@ import { APIService } from '../modules/api.js';
 import { AuthService } from '../modules/auth.js';
 import { DatabaseService } from '../modules/db.js';
 import { ValidationService } from '../modules/validation.js';
+import { OfflineStore } from '../modules/offlineStore.js';
 import { SmsSecurityService } from '../smsSecurity.js';
 
 const { DbStorageService } = require('../controllers/dbStorage.js');
@@ -985,6 +986,29 @@ suite.add("Zero-Cost Test Mode: 000 prefix bypass with 000000 OTP", async () => 
     const sessionJson = await sessionRes.json();
     if (!sessionJson.success || !sessionJson.valid || sessionJson.user.phone !== "9809248510") {
         throw new Error("Session generated via test bypass could not be verified");
+    }
+});
+
+// ==========================================
+// 10. OfflineStore Unit Tests
+// ==========================================
+suite.add("OfflineStore: Cache and retrieve offline student and teacher data", async () => {
+    const studentData = {
+        id: "STU-999",
+        name: { first: "Kiran", last: "Gurung" },
+        class: "10",
+        results: { GPA: "3.90" }
+    };
+
+    const saved = OfflineStore.cacheStudentRecord("STU-999", studentData);
+    if (!saved) throw new Error("OfflineStore.cacheStudentRecord returned false");
+
+    const record = OfflineStore.getStudentRecord("STU-999");
+    if (!record || !record.data || record.data.id !== "STU-999") {
+        throw new Error("OfflineStore.getStudentRecord failed to retrieve cached student");
+    }
+    if (typeof record.cachedAt !== 'number') {
+        throw new Error("OfflineStore record missing cachedAt timestamp");
     }
 });
 
