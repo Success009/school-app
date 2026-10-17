@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Udayashree English School - Offline Mode</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #172554;
+      --accent: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --amber: #d97706;
+      --green: #16a34a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 1.25rem 1rem; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .badge { display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fef3c7; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #f59e0b; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    p.subtitle { font-size: 0.85rem; color: #cbd5e1; margin-top: 0.2rem; }
+    main { flex: 1; max-width: 600px; width: 100%; margin: 0 auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card-title { font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .contact-item { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .contact-item:last-child { border-bottom: none; }
+    .call-btn { background: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; padding: 0.35rem 0.75rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.8rem; }
+    .period-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+    .period-table th, .period-table td { padding: 0.45rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .period-table th { background: #f1f5f9; color: var(--text-muted); font-weight: 600; }
+    .retry-box { text-align: center; padding: 1rem; }
+    .btn-retry { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; max-width: 280px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .btn-retry:active { transform: scale(0.98); }
+    footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="badge"><span class="status-dot"></span> Offline Standby Mode</div>
+    <h1>Udayashree English School</h1>
+    <p class="subtitle">Classes 1 - 8 | Bharatpur, Chitwan</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="card-title">📡 Network Status</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        You are currently viewing offline emergency records. Live database synchronization requires an active internet connection.
+      </p>
+      <div class="retry-box">
+        <button class="btn-retry" onclick="attemptReconnect()">🔄 Reconnect to Live Portal</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📞 Emergency School Contacts</div>
+      <div class="contact-item">
+        <div><strong>Principal's Desk</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">Academic & Administration</span></div>
+        <a href="tel:9809248510" class="call-btn">Call</a>
+      </div>
+      <div class="contact-item">
+        <div><strong>Front Office</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">General Inquiries</span></div>
+        <a href="tel:056520000" class="call-btn">Call</a>
+      </div>
+      <div class="contact-item">
+        <div><strong>School Bus Coordinator</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">Transport Status</span></div>
+        <a href="tel:9800000000" class="call-btn">Call</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⏰ Bell Schedule (Class 1 - 8)</div>
+      <table class="period-table">
+        <thead>
+          <tr><th>Slot</th><th>Timing</th><th>Activity</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Morning</td><td>10:00 - 10:15</td><td>School Assembly</td></tr>
+          <tr><td>Period 1</td><td>10:15 - 11:00</td><td>Core Subjects</td></tr>
+          <tr><td>Period 2</td><td>11:00 - 11:45</td><td>Core Subjects</td></tr>
+          <tr><td>Period 3</td><td>11:45 - 12:30</td><td>Core Subjects</td></tr>
+          <tr><td>Tiffin</td><td>12:30 - 01:15</td><td>Lunch Break</td></tr>
+          <tr><td>Period 4</td><td>01:15 - 02:00</td><td>Practical / Activity</td></tr>
+          <tr><td>Period 5</td><td>02:00 - 02:45</td><td>Language / Arts</td></tr>
+          <tr><td>Period 6</td><td>02:45 - 03:30</td><td>Review & Dismissal</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" id="offline-notices-card">
+      <div class="card-title">📢 Cached Announcements</div>
+      <div id="offline-notices-container" style="font-size: 0.85rem; color: var(--text-muted);">
+        No previously cached announcements on this device. Notices will automatically download when online.
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Udayashree English Secondary School • Powered by Big Fish Native Shell
+  </footer>
+
+  <script>
+    function loadCachedNotices() {
+      try {
+        const stored = localStorage.getItem('school_cached_notices');
+        if (stored) {
+          const notices = JSON.parse(stored);
+          const container = document.getElementById('offline-notices-container');
+          if (notices && notices.length > 0) {
+            container.innerHTML = notices.slice(0, 3).map(n => `
+              <div style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                <strong style="color: #0f172a;">${n.title || 'Announcement'}</strong>
+                <p style="margin-top: 0.2rem;">${n.content || n.message || ''}</p>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function attemptReconnect() {
+      if (window.AndroidBridge && window.AndroidBridge.retryConnection) {
+        window.AndroidBridge.retryConnection();
+      } else {
+        window.location.href = "https://school.success0.com.np/";
+      }
+    }
+
+    window.addEventListener('online', function() {
+      attemptReconnect();
+    });
+
+    loadCachedNotices();
+  </script>
+</body>
+</html>

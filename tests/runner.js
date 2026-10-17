@@ -1,7 +1,16 @@
 // tests/runner.js - Polyfill-based headless test runner for browser modules
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 import { APIService } from '../modules/api.js';
 import { AuthService } from '../modules/auth.js';
 import { DatabaseService } from '../modules/db.js';
+import { ValidationService } from '../modules/validation.js';
+import { SmsSecurityService } from '../smsSecurity.js';
+
+const { DbStorageService } = require('../controllers/dbStorage.js');
+const { ServerValidation } = require('../controllers/validation.js');
+const { ALLOWED_MIME_TYPES } = require('../controllers/uploadController.js');
 
 // 1. Browser polyfills for headless environment
 const storageMock = {};
@@ -230,6 +239,92 @@ global.fetch = async (url, options = {}) => {
             };
         }
     }
+
+    if (parsedUrl.pathname.includes('/api/auth/stamp')) {
+        const stampData = SmsSecurityService.generateStamp();
+        return {
+            ok: true,
+            status: 200,
+            json: async () => ({ success: true, ...stampData })
+        };
+    }
+
+        if (parsedUrl.pathname.includes('/api/auth/otp/send')) {
+        const body = JSON.parse(options.body || '{}');
+        const stampVal = SmsSecurityService.validateStamp(body.stamp);
+        if (!stampVal.valid) {
+            return {
+                ok: false,
+                status: 403,
+                json: async () => ({ success: false, error: stampVal.error })
+            };
+        }
+        const rawDigits = String(body.phone || '').replace(/\D/g, '');
+        const isTestMode = rawDigits.startsWith('000');
+        const phone = isTestMode ? rawDigits.replace(/^000+/, '') : rawDigits;
+
+        const reg = SmsSecurityService.isPhoneRegistered(mockDb, phone);
+        if (!reg.registered) {
+            return {
+                ok: false,
+                status: 403,
+                json: async () => ({ success: false, error: 'Mobile number not registered.' })
+            };
+        }
+        if (isTestMode) {
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({ success: true, sms_job_id: 999999, cooldown_seconds: 3, test_mode: true })
+            };
+        }
+        return {
+            ok: true,
+            status: 200,
+            json: async () => ({ success: true, sms_job_id: 1001, cooldown_seconds: 60 })
+        };
+    }
+
+    if (parsedUrl.pathname.includes('/api/auth/otp/verify')) {
+        const body = JSON.parse(options.body || '{}');
+        const rawDigits = String(body.phone || '').replace(/\D/g, '');
+        const phone = rawDigits.replace(/^000+/, '');
+        const cleanOtp = String(body.otp || '').trim();
+
+        if (cleanOtp !== '245510' && cleanOtp !== '000000' && cleanOtp !== '0000' && cleanOtp !== '123456') {
+            return {
+                ok: false,
+                status: 400,
+                json: async () => ({ success: false, error: 'Invalid verification code.' })
+            };
+        }
+        const user = { phone: phone, role: 'admin', id: 'ADM-8510', name: 'Super Admin' };
+        const token = SmsSecurityService.createSessionToken(user);
+        return {
+            ok: true,
+            status: 200,
+            json: async () => ({ success: true, token, user })
+        };
+    }
+
+    if (parsedUrl.pathname.includes('/api/auth/verify-session')) {
+        const auth = options.headers && options.headers.Authorization;
+        const token = auth ? auth.replace('Bearer ', '').trim() : '';
+        const user = SmsSecurityService.verifySessionToken(token);
+        if (!user) {
+            return {
+                ok: false,
+                status: 401,
+                json: async () => ({ success: false, valid: false })
+            };
+        }
+        return {
+            ok: true,
+            status: 200,
+            json: async () => ({ success: true, valid: true, user })
+        };
+    }
+
     return {
         ok: true,
         status: 200,
@@ -593,6 +688,304 @@ suite.add("DatabaseService: Notices, Tickets, Suggestions, and Requests", async 
     await DatabaseService.updateClassChangeRequestStatus("REQ-02", "approved");
     const req = await APIService.get("school/class_change_requests/REQ-02");
     if (!req || req.status !== "approved") throw new Error("updateClassChangeRequestStatus failed");
+});
+
+// ==========================================
+// 4. SMS & Security Infrastructure Unit Tests
+// ==========================================
+
+suite.add("SmsSecurityService: Cryptographic Stamp generation and anti-tamper signature", async () => {
+    const stampData = SmsSecurityService.generateStamp();
+    if (!stampData.stamp || typeof stampData.stamp !== 'string') {
+        throw new Error("Failed to generate stamp string");
+    }
+    const parts = stampData.stamp.split('.');
+    if (parts.length !== 3) {
+        throw new Error(`Stamp format invalid: ${stampData.stamp}`);
+    }
+
+    // Wait slightly to pass min age check (150ms)
+    await new Promise(r => setTimeout(r, 150));
+
+    // Valid stamp should pass
+    const validation = SmsSecurityService.validateStamp(stampData.stamp);
+    if (!validation.valid) {
+        throw new Error(`Valid stamp rejected: ${validation.error}`);
+    }
+
+    // Replay attack: using the exact same stamp second time must fail
+    const replay = SmsSecurityService.validateStamp(stampData.stamp);
+    if (replay.valid) {
+        throw new Error("Replay protection failed: consumed stamp was accepted");
+    }
+
+    // Tampered signature must fail
+    const forgedStamp = `${parts[0]}.${parts[1]}.badsignature1234567890`;
+    const forgedValidation = SmsSecurityService.validateStamp(forgedStamp);
+    if (forgedValidation.valid) {
+        throw new Error("Security check accepted forged stamp signature");
+    }
+
+    // Expired timestamp must fail
+    const expiredTime = Date.now() - 400000;
+    const expiredStamp = `${expiredTime}.${parts[1]}.${parts[2]}`;
+    const expiredValidation = SmsSecurityService.validateStamp(expiredStamp);
+    if (expiredValidation.valid) {
+        throw new Error("Security check accepted expired stamp");
+    }
+});
+
+suite.add("SmsSecurityService: Rate limiting and cooldown enforcement", async () => {
+    const testPhone = "9809999999";
+    const testIp = "192.168.1.100";
+
+    // 1. Initial check is allowed
+    const initialCheck = SmsSecurityService.checkRateLimits(testPhone, testIp);
+    if (!initialCheck.allowed) {
+        throw new Error("First request should be allowed");
+    }
+
+    // Record dispatch
+    SmsSecurityService.recordOtpDispatch(testPhone, testIp);
+
+    // 2. Immediate second request within 60s cooldown MUST be blocked
+    const cooldownCheck = SmsSecurityService.checkRateLimits(testPhone, testIp);
+    if (cooldownCheck.allowed) {
+        throw new Error("Cooldown check failed: allowed request during active 60s cooldown");
+    }
+    if (!cooldownCheck.retry_after_seconds || cooldownCheck.retry_after_seconds <= 0) {
+        throw new Error("Cooldown did not return remaining retry_after_seconds");
+    }
+});
+
+suite.add("SmsSecurityService: Phone whitelist check against school database", async () => {
+    // Admin check
+    const adminReg = SmsSecurityService.isPhoneRegistered(mockDb, "9809248510");
+    if (!adminReg.registered || adminReg.role !== 'admin') {
+        throw new Error("Admin phone registration check failed");
+    }
+
+    // Login mappings check (teacher/parent)
+    const parentReg = SmsSecurityService.isPhoneRegistered(mockDb, "9800000001");
+    if (!parentReg.registered || parentReg.role !== 'parent') {
+        throw new Error("Parent phone registration check failed");
+    }
+
+    // Unregistered phone check
+    const unreg = SmsSecurityService.isPhoneRegistered(mockDb, "9841112233");
+    if (unreg.registered) {
+        throw new Error("Unregistered phone was accepted by whitelist");
+    }
+});
+
+suite.add("SmsSecurityService: Persistent session token creation and verification", async () => {
+    const userPayload = {
+        id: "ADM-8510",
+        phone: "9809248510",
+        role: "admin",
+        name: "Super Admin"
+    };
+
+    const token = SmsSecurityService.createSessionToken(userPayload);
+    if (!token || typeof token !== 'string') {
+        throw new Error("Failed to create session token");
+    }
+
+    // Verify valid token
+    const decoded = SmsSecurityService.verifySessionToken(token);
+    if (!decoded || decoded.id !== "ADM-8510" || decoded.role !== "admin") {
+        throw new Error("Decoded session token did not match original payload");
+    }
+
+    // Tampered token must fail
+    const tampered = token.slice(0, -4) + "abcd";
+    const tamperedDecoded = SmsSecurityService.verifySessionToken(tampered);
+    if (tamperedDecoded !== null) {
+        throw new Error("Tampered session token signature was accepted");
+    }
+});
+
+suite.add("AuthService: OTP and Persistent Session integration", async () => {
+    // 1. Fetch stamp
+    const stamp = await AuthService.fetchStamp();
+    if (!stamp || typeof stamp !== 'string') throw new Error("fetchStamp failed");
+
+    // 2. Send OTP
+    const sendRes = await AuthService.sendOtp("9809248510");
+    if (!sendRes.success || sendRes.cooldown_seconds !== 60) {
+        throw new Error("AuthService.sendOtp failed");
+    }
+
+    // 3. Verify OTP and store persistent session
+    const verifyRes = await AuthService.verifyOtp("9809248510", "245510");
+    if (!verifyRes.success || !verifyRes.token) {
+        throw new Error("AuthService.verifyOtp failed");
+    }
+
+    // Check localStorage persistence
+    const savedToken = AuthService.getAuthToken();
+    if (!savedToken || savedToken !== verifyRes.token) {
+        throw new Error("Auth token was not stored in persistent storage");
+    }
+
+        // 4. Validate session without re-authentication
+    const isValidSession = await AuthService.validateSession();
+    if (!isValidSession) {
+        throw new Error("Persistent session validation failed (user prompted to re-authenticate)");
+    }
+});
+
+// ==========================================
+// 6. ValidationService Unit Tests
+// ==========================================
+suite.add("ValidationService: Phone normalization and test bypass detection", async () => {
+    // Normal 10-digit number
+    if (ValidationService.cleanDigits("+977 980-924-8510") !== "9779809248510") {
+        throw new Error("cleanDigits did not extract numbers properly");
+    }
+
+    if (ValidationService.normalizePhone("+977 980-924-8510") !== "9809248510") {
+        throw new Error("normalizePhone did not strip +977 prefix");
+    }
+
+    // Zero-cost test bypass number
+    if (!ValidationService.isTestMode("0009809248510")) {
+        throw new Error("isTestMode failed to detect 000 prefix");
+    }
+
+    if (ValidationService.normalizePhone("0009809248510") !== "9809248510") {
+        throw new Error("normalizePhone failed to extract underlying phone from test mode input");
+    }
+
+    // National 10-digit validator
+    if (!ValidationService.isValidPhone("9809248510")) {
+        throw new Error("isValidPhone rejected valid 10-digit number");
+    }
+    if (ValidationService.isValidPhone("980924851") || ValidationService.isValidPhone("abcdefghij")) {
+        throw new Error("isValidPhone accepted invalid length or characters");
+    }
+
+    // Test bypass OTP verification
+    if (!ValidationService.isTestOtpCode("000000") || !ValidationService.isTestOtpCode("0000")) {
+        throw new Error("isTestOtpCode failed to recognize 000000 / 0000");
+    }
+    if (ValidationService.isTestOtpCode("123456")) {
+        throw new Error("isTestOtpCode falsely flagged live code 123456 as test code");
+    }
+
+    // Server-side validator sync check
+    if (ServerValidation.normalizePhone("0009809248510") !== "9809248510") {
+        throw new Error("ServerValidation did not match client-side normalizer output");
+    }
+});
+
+// ==========================================
+// 7. DbStorageService Unit Tests
+// ==========================================
+suite.add("DbStorageService: Deep path get, set, patch, and delete operations", async () => {
+    // Instantiate test database in memory / isolated temp path
+    const testDbPath = `/tmp/test-school-db-${Date.now()}.json`;
+    const storage = new DbStorageService(testDbPath);
+
+    // Initial state
+    if (!storage.getRawData() || !storage.getRawData().school) {
+        throw new Error("Initial DB state missing school root object");
+    }
+
+    // Deep nested set
+    storage.set("school/config/branding/primaryColor", "#1d4ed8");
+    const retrievedColor = storage.get("school/config/branding/primaryColor");
+    if (retrievedColor !== "#1d4ed8") {
+        throw new Error(`Expected #1d4ed8, got ${retrievedColor}`);
+    }
+
+    // Deep patch with nested keys
+    storage.patch("school/config/branding", {
+        logoUrl: "/logo.png",
+        "theme/font": "Inter"
+    });
+    if (storage.get("school/config/branding/logoUrl") !== "/logo.png") {
+        throw new Error("Patch failed to set shallow property");
+    }
+    if (storage.get("school/config/branding/theme/font") !== "Inter") {
+        throw new Error("Patch failed to set nested property with slash syntax");
+    }
+
+    // Non-existent path returns null
+    if (storage.get("school/non_existent_key") !== null) {
+        throw new Error("Querying non-existent key did not return null");
+    }
+
+    // Delete path
+    storage.delete("school/config/branding/theme");
+    if (storage.get("school/config/branding/theme") !== null) {
+        throw new Error("Deleted path was still accessible");
+    }
+});
+
+// ==========================================
+// 8. Google Play Store Compliance & Upload MIME Safety
+// ==========================================
+suite.add("UploadController: Play Store Compliance & Dangerous Executable Rejection", async () => {
+    // Safe media types must be accepted
+    if (!ALLOWED_MIME_TYPES.has("image/jpeg") || !ALLOWED_MIME_TYPES.has("image/png") || !ALLOWED_MIME_TYPES.has("application/pdf")) {
+        throw new Error("Standard document and image MIME types missing from whitelist");
+    }
+
+    // Dangerous executable binaries must be rejected (Google Play Device Abuse Policy)
+    const dangerousTypes = [
+        "application/vnd.android.package-archive", // APK files
+        "application/x-msdownload",              // EXE / DLL
+        "application/x-sh",                      // Shell scripts
+        "text/javascript",                       // Untrusted JS uploads
+        "application/octet-stream"               // Raw generic binaries
+    ];
+
+    for (const danger of dangerousTypes) {
+        if (ALLOWED_MIME_TYPES.has(danger)) {
+            throw new Error(`Dangerous executable MIME type ${danger} was permitted by upload policy!`);
+        }
+    }
+});
+
+// ==========================================
+// 9. Zero-Cost Test Bypass End-to-End Integration
+// ==========================================
+suite.add("Zero-Cost Test Mode: 000 prefix bypass with 000000 OTP", async () => {
+    // 1. Acquire cryptographic stamp
+    const stampRes = await global.fetch("/api/auth/stamp");
+    const stampData = await stampRes.json();
+
+    // 2. Send OTP with 000 prefix on registered number (9809248510 exists in mockDb)
+    const sendRes = await global.fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: "0009809248510", stamp: stampData.stamp })
+    });
+    const sendJson = await sendRes.json();
+    if (!sendJson.success || sendJson.cooldown_seconds > 5) {
+        throw new Error(`Test mode OTP send failed: ${JSON.stringify(sendJson)}`);
+    }
+
+    // 3. Verify using test code 000000
+    const verifyRes = await global.fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: "9809248510", otp: "000000" })
+    });
+    const verifyJson = await verifyRes.json();
+    if (!verifyJson.success || !verifyJson.token || verifyJson.user.role !== "admin") {
+        throw new Error(`Test mode OTP verify failed: ${JSON.stringify(verifyJson)}`);
+    }
+
+    // 4. Verify that session token resolves properly
+    const sessionRes = await global.fetch("/api/auth/verify-session", {
+        headers: { Authorization: `Bearer ${verifyJson.token}` }
+    });
+    const sessionJson = await sessionRes.json();
+    if (!sessionJson.success || !sessionJson.valid || sessionJson.user.phone !== "9809248510") {
+        throw new Error("Session generated via test bypass could not be verified");
+    }
 });
 
 // Run test runner

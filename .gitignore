@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+app/app/build/
+app/build/
+app/.gradle/
+.gradle/
+*.log
+.DS_Store

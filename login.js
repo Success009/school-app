@@ -1,43 +1,80 @@
-// Login View Controller for Udayashree School App (Updated with Samsung-Compatible OTP jumping and Mock 0000 Bypass)
+// login.js - Security-Hardened SMS Authentication Controller (Stamp-Protected & Persistent)
 
 let loginStep = 1;
 let tempPhone = '';
+let cooldownInterval = null;
+let currentStamp = null;
 
 function showStep1() {
     loginStep = 1;
+    clearInterval(cooldownInterval);
     document.getElementById('login-title').innerText = "School Login";
-    document.getElementById('login-desc').innerText = "Enter your registered mobile number to receive an OTP";
+    document.getElementById('login-desc').innerText = "Enter your registered mobile number to receive a 6-digit SMS verification code";
     document.getElementById('step-1-view').classList.remove('hidden');
     document.getElementById('step-2-view').classList.add('hidden');
 }
 
+function startCooldownTimer(durationSeconds = 60) {
+    clearInterval(cooldownInterval);
+    let remaining = durationSeconds;
+    const timerElem = document.getElementById('cooldown-timer');
+    const secondsElem = document.getElementById('timer-seconds');
+    const resendBtn = document.getElementById('resend-btn');
+
+    if (timerElem) timerElem.classList.remove('hidden');
+    if (resendBtn) resendBtn.disabled = true;
+    if (secondsElem) secondsElem.innerText = remaining;
+
+    cooldownInterval = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+            clearInterval(cooldownInterval);
+            if (timerElem) timerElem.classList.add('hidden');
+            if (resendBtn) {
+                resendBtn.disabled = false;
+                resendBtn.classList.remove('text-gray-400');
+                resendBtn.classList.add('text-blue-600');
+            }
+        } else {
+            if (secondsElem) secondsElem.innerText = remaining;
+        }
+    }, 1000);
+}
+
 function showStep2() {
     loginStep = 2;
-    document.getElementById('login-title').innerText = "Verify OTP";
-    document.getElementById('login-desc').innerText = "Enter the 4-digit code sent to your phone";
+    document.getElementById('login-title').innerText = "Verify SMS Code";
+    document.getElementById('login-desc').innerText = `Enter the 6-digit verification code sent to +977 ${tempPhone}`;
     document.getElementById('step-1-view').classList.add('hidden');
     document.getElementById('step-2-view').classList.remove('hidden');
-    
+
     const inputs = document.querySelectorAll('.otp-input');
-    
-    // Auto-focus and Samsung/Gboard compatible input jumping logic
+
+    // Auto-focus and Samsung/Gboard/Clipboard compatible OTP input logic
     inputs.forEach((input, index) => {
         input.value = '';
-        
-        // Remove previous listeners by cloning
+
+        // Clean event listeners by replacing with clone
         const newInput = input.cloneNode(true);
         input.parentNode.replaceChild(newInput, input);
     });
 
     const freshInputs = document.querySelectorAll('.otp-input');
     freshInputs.forEach((input, index) => {
-        // Handle numerical input (Samsung/Android friendly 'input' event!)
+        // Handle single-digit input
         input.addEventListener('input', (e) => {
             const val = input.value.trim();
             if (val.length >= 1) {
-                input.value = val.slice(-1); // Only keep the last digit
+                input.value = val.slice(-1);
                 if (index < freshInputs.length - 1) {
-                    freshInputs[index + 1].focus(); // Move cursor to next input box
+                    freshInputs[index + 1].focus();
+                } else if (index === freshInputs.length - 1) {
+                    // Auto submit if all filled
+                    let full = '';
+                    freshInputs.forEach(i => full += i.value.trim());
+                    if (full.length === 6) {
+                        handleLogin();
+                    }
                 }
             }
         });
@@ -46,20 +83,50 @@ function showStep2() {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Backspace') {
                 if (input.value.length === 0 && index > 0) {
-                    freshInputs[index - 1].focus(); // Go back to previous input box
+                    freshInputs[index - 1].focus();
                 } else {
                     input.value = '';
                 }
             }
         });
+
+        // Handle OTP paste (e.g. copy code from SMS notification banner)
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text').trim();
+            const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+            if (digits.length > 0) {
+                digits.split('').forEach((digit, i) => {
+                    if (freshInputs[i]) {
+                        freshInputs[i].value = digit;
+                    }
+                });
+                const nextFocus = Math.min(digits.length, freshInputs.length - 1);
+                freshInputs[nextFocus].focus();
+                if (digits.length === 6) {
+                    setTimeout(handleLogin, 150);
+                }
+            }
+        });
     });
 
-    setTimeout(() => { freshInputs[0].focus(); }, 150);
+    setTimeout(() => { if (freshInputs[0]) freshInputs[0].focus(); }, 150);
+}
+
+async function requestSecurityStamp() {
+    try {
+        const res = await fetch('/api/auth/stamp');
+        if (!res.ok) throw new Error("Could not acquire security stamp.");
+        const data = await res.json();
+        return data.stamp;
+    } catch (e) {
+        console.warn("Falling back to local stamp:", e);
+        return null;
+    }
 }
 
 async function sendOTP() {
     const phoneInput = document.getElementById('login-phone').value.trim();
-    // Strip everything except numbers
     const phone = phoneInput.replace(/\D/g, '');
 
     if (phone.length < 10) {
@@ -67,175 +134,178 @@ async function sendOTP() {
         return;
     }
 
-    try {
-        showUploadProgress(30, "Login Process", "Verifying database entries...");
-        
-        // Check if phone exists in school/admin or school/login_mappings
-        const adminSnap = await db.ref('school/admin/' + phone).once('value');
-        const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
+    const sendBtn = document.getElementById('send-otp-btn');
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Requesting Code...';
+    }
 
-        if (!adminSnap.exists() && !mapSnap.exists()) {
-            hideUploadProgress();
-            await alert("Invalid phone number: This mobile number is not registered in the school database.");
+    try {
+        showUploadProgress(25, "SMS Security", "Acquiring anti-tamper stamp...");
+        const stamp = await requestSecurityStamp();
+
+        showUploadProgress(50, "Verification", "Dispatching SMS code via gateway...");
+        const res = await fetch('/api/auth/otp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, stamp })
+        });
+
+        const data = await res.json();
+        hideUploadProgress();
+
+        if (!res.ok || !data.success) {
+            const errorMsg = data.error || 'Failed to dispatch verification code.';
+            await alert(errorMsg);
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<span>Send SMS Code</span> <i class="fas fa-arrow-right ml-2 text-sm"></i>';
+            }
             return;
         }
 
         tempPhone = phone;
-        hideUploadProgress();
         showStep2();
+        startCooldownTimer(data.cooldown_seconds || 60);
+
     } catch (error) {
-        console.error("SMS Trigger failed:", error);
         hideUploadProgress();
-        await alert("Verification check failed: " + error.message);
+        console.error("SMS Dispatch error:", error);
+        await alert("Verification request failed: " + error.message);
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<span>Send SMS Code</span> <i class="fas fa-arrow-right ml-2 text-sm"></i>';
+        }
+    }
+}
+
+async function resendOTP() {
+    if (!tempPhone) {
+        showStep1();
+        return;
+    }
+    const resendBtn = document.getElementById('resend-btn');
+    if (resendBtn) resendBtn.disabled = true;
+
+    try {
+        showUploadProgress(30, "SMS Security", "Requesting new verification code...");
+        const stamp = await requestSecurityStamp();
+
+        const res = await fetch('/api/auth/otp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: tempPhone, stamp })
+        });
+
+        const data = await res.json();
+        hideUploadProgress();
+
+        if (!res.ok || !data.success) {
+            await alert(data.error || 'Failed to resend SMS code.');
+            return;
+        }
+
+        startCooldownTimer(data.cooldown_seconds || 60);
+    } catch (e) {
+        hideUploadProgress();
+        await alert("Resend failed: " + e.message);
     }
 }
 
 async function handleLogin() {
-    const phone = tempPhone || '9800000000';
-    
-    // Collect the 4 digits from inputs
+    const phone = tempPhone || document.getElementById('login-phone').value.trim().replace(/\D/g, '');
     const inputs = document.querySelectorAll('.otp-input');
     let code = '';
     inputs.forEach(input => code += input.value.trim());
 
-    if (code.length < 4) {
-        await alert("Please enter the complete 4-digit verification code.");
+    if (code.length < 6) {
+        await alert("Please enter the complete 6-digit verification code.");
         return;
     }
 
-    // Default SMS bypass code to 0000
-    if (code !== '0000') {
-        await alert("Invalid verification code. Please enter '0000' to login.");
-        return;
+    const verifyBtn = document.getElementById('verify-login-btn');
+    if (verifyBtn) {
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Verifying...';
     }
 
     try {
-        showUploadProgress(50, "Authentication", "Retrieving profile details...");
+        showUploadProgress(40, "Verification", "Validating code with gateway...");
 
-        // 1. Check for Super Admin phone numbers
-        const adminSnap = await db.ref('school/admin/' + phone).once('value');
-        if (adminSnap.exists()) {
-            currentUser = { role: ROLES.ADMIN, id: 'ADM-' + phone.slice(-4), name: 'Administrator', phone: phone };
-            localStorage.setItem('school_app_user', JSON.stringify(currentUser));
+        const res = await fetch('/api/auth/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, otp: code })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
             hideUploadProgress();
-            redirectUserToRoleDashboard(currentUser.role);
-            return;
-        }
-
-        // 3. Read from dynamic login mapping for Teachers/Parents/Accountants/Admins/Principals
-        const mapSnap = await db.ref('school/login_mappings/' + phone).once('value');
-        
-        if (mapSnap.exists()) {
-            const mapData = mapSnap.val();
-            
-            if (mapData.role === 'teacher' || mapData.role === 'principal') {
-                // Principal role is now unified with Teacher portal
-                const resolvedRole = 'teacher';
-                // Resolve Teacher dynamic profile
-                const tchSnap = await db.ref('school/teachers/' + mapData.studentId).once('value');
-                if (tchSnap.exists()) {
-                    const t = tchSnap.val();
-                    
-                    // Construct teacher fullname
-                    let fullName = '';
-                    if (t.name && typeof t.name === 'object') {
-                        fullName = `${t.name.first || ''} ${t.name.middle || ''} ${t.name.last || ''}`.replace(/\s+/g, ' ').trim();
-                    } else {
-                        fullName = t.name || 'Faculty Member';
-                    }
-                    currentUser = {
-                        role: ROLES.TEACHER,
-                        id: mapData.studentId,
-                        name: fullName,
-                        phone: t.phone || phone,
-                        photo: t.photo || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150',
-                        subjects: t.subjects || [ ],
-                        assignedClasses: t.assignedClasses || [ ],
-                        classTeacherOf: t.classTeacherOf || 'none',
-                        schedule: t.schedule || [
-                            { period: '1st', class: t.assignedClasses ? t.assignedClasses[0] : '10-A', subject: t.subjects ? t.subjects[0] : 'Mathematics', time: '10:00 AM' }
-                        ]
-                    };
-                    localStorage.setItem('school_app_user', JSON.stringify(currentUser));
-                    hideUploadProgress();
-                    redirectUserToRoleDashboard(currentUser.role);
-                    return;
-                } else {
-                    throw new Error("Teacher profile record missing in database.");
-                }
-            } else if (mapData.role === 'admin') {
-                currentUser = {
-                    role: ROLES.ADMIN,
-                    id: mapData.studentId || 'A-001',
-                    name: 'Admin Staff',
-                    phone: phone
-                };
-            } else {
-                // Resolve Parent dynamic profile
-                const stdSnap = await db.ref('school/students/' + mapData.studentId).once('value');
-                if (stdSnap.exists()) {
-                    const s = stdSnap.val();
-                    currentUser = { 
-                        role: ROLES.PARENT,
-                        id: 'P-' + phone.slice(-4),
-                        name: s.parentName || 'Parent',
-                        phone: phone,
-                        student: {
-                            id: mapData.studentId,
-                            name: s.name,
-                            grade: s.class,
-                            section: s.section,
-                            roll: s.roll || '01',
-                            bloodGroup: s.bloodGroup,
-                            photo: s.photo,
-                            age: s.age || 'N/A',
-                            joinYear: s.joinYear || 'N/A',
-                            fatherName: s.fatherName || (s.family ? s.family.fatherName : '') || 'N/A',
-                            classTeacher: 'Ms. Sunita Rai',
-                            schedule: [
-                                { period: '1st', time: '10:00 AM', subject: 'Mathematics', teacher: 'Ms. Sunita Rai', days: 'Sun - Fri' },
-                                { period: '2nd', time: '11:00 AM', subject: 'Science', teacher: 'Mr. Ram Prasad', days: 'Sun - Fri' },
-                                { period: 'Break', time: '01:00 PM', subject: 'Lunch Break', teacher: '-', days: 'Daily' }
-                            ],
-                            marks: { "Term 1": [ ] }
-                        }
-                    };
-                } else {
-                    throw new Error("Student profile not found.");
-                }
+            await alert(data.error || "Invalid verification code.");
+            if (verifyBtn) {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Verify & Login';
             }
-        } else {
-            hideUploadProgress();
-            await alert("Invalid phone number or account not registered.");
             return;
         }
 
+        showUploadProgress(85, "Authentication", "Securing session...");
+
+        // Store persistent authenticated session (User does NOT need to re-authenticate)
+        currentUser = data.user;
         localStorage.setItem('school_app_user', JSON.stringify(currentUser));
+        if (data.token) {
+            localStorage.setItem('school_app_token', data.token);
+        }
+
         hideUploadProgress();
         redirectUserToRoleDashboard(currentUser.role);
+
     } catch (e) {
-        console.error("Authentication failed:", e);
         hideUploadProgress();
-        const errorMsg = e.message || "Unknown error";
-        await alert(`Login Error: ${errorMsg}\n\nTechnical Details: Check if phone ${phone} exists in school/login_mappings.`);
+        console.error("Login verification failed:", e);
+        await alert("Authentication Error: " + (e.message || "Failed to verify session"));
+    } finally {
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = 'Verify & Login';
+        }
     }
 }
 
-// Startup execution
-window.onload = () => {
-    if (currentUser) {
-        redirectUserToRoleDashboard(currentUser.role);
-    } else {
-        setTimeout(() => {
-            const splash = document.getElementById('splash-screen');
-            const app = document.getElementById('app');
-            if (splash && app) {
-                splash.classList.add('opacity-0');
-                setTimeout(() => {
-                    splash.style.display = 'none';
-                    app.classList.remove('opacity-0');
-                }, 700);
+// Seamless Startup Execution: Once authenticated, bypass login automatically!
+window.onload = async () => {
+    // Check if user is already authenticated
+    const savedUser = localStorage.getItem('school_app_user');
+    const savedToken = localStorage.getItem('school_app_token');
+
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            if (currentUser && currentUser.role) {
+                // User is authenticated! Directly enter portal without re-authentication!
+                redirectUserToRoleDashboard(currentUser.role);
+                return;
             }
-        }, 2500); // 2.5s splash
+        } catch (e) {
+            console.warn("Corrupted session cleared:", e);
+            localStorage.removeItem('school_app_user');
+            localStorage.removeItem('school_app_token');
+        }
     }
+
+    // Otherwise show login screen after brief splash
+    setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        const app = document.getElementById('app');
+        if (splash && app) {
+            splash.classList.add('opacity-0');
+            setTimeout(() => {
+                splash.style.display = 'none';
+                app.classList.remove('opacity-0');
+            }, 700);
+        }
+    }, 1500);
 };

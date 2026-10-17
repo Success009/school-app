@@ -10,6 +10,22 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "multer": "^1.4.5-lts.1"
-  }
+    "multer": "^1.4.5-lts.1",
+    "puppeteer": "^24.43.1"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Success009/school-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Success009/school-app/issues"
+  },
+  "homepage": "https://github.com/Success009/school-app#readme"
 }

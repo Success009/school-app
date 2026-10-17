@@ -1,24 +1,20 @@
-# Udayashree School App - Technical Reference Manual (v4.2)
+# Udayashree School App - Technical Reference Manual (v5.0)
 
-This manual documents the **Modular Distributed Architecture**, backend data access layers, authentication system, unit testing infrastructure, and review environments of the Udayashree School Management System.
+This manual documents the **Modular Distributed Architecture**, backend data access layers, cryptographic stamp security engine, SMS & OTP gateway integration, persistent session authentication system, Android client layer, and unit testing infrastructure of the Udayashree School Management System.
 
 ---
 
 ## 1. Project Overview & Architecture
 
-The Udayashree School App is a lightweight, responsive management system designed for small-scale primary and middle school operations (strictly Classes 1 to 8, with ~5–6 students per class).
+The Udayashree School App is a lightweight, responsive management system designed for primary and middle school operations (strictly Classes 1 to 8).
 
 ### 1.1 Tech Stack
 - **Frontend**: Vanilla JavaScript (ES6+), Tailwind CSS, static HTML shells.
-- **Backend**: Node.js + Express (`server.js`) hosting JSON-backed persistent data (`db.json`) and static uploads (`/uploads`).
-- **Testing**: Zero-dependency Node.js test runner (`tests/runner.js`) with isolated mocks.
+- **Backend**: Node.js + Express (`server.js`) hosting JSON-backed persistent data (`db.json`), cryptographic stamp verification, and static uploads (`/uploads`).
+- **SMS & OTP Engine**: Integrated gateway (`https://sms.success0.com.np`) with `X-Gateway-Token` authorization, anti-tamper stamp validation, per-phone cooldown timers, IP rate limiting, and persistent session tokens (`smsSecurity.js`).
+- **Android Client**: Native Java wrapper (`MainActivity.java`), background notification poller (`NotificationPollService.java`), secure URI validator (`SecurityUtils.java`), and native SMS gateway client (`SchoolSmsService.java`).
+- **Testing**: Zero-dependency Node.js test runner (`tests/runner.js`) with isolated polyfills and 27 test suites.
 - **CI / CD**: GitHub Actions (`.github/workflows/test.yml`), automated pre-commit hook (`.git/hooks/pre-commit`), and one-command deployment script (`deploy.sh`).
-
-### 1.2 Core Architectural Principles
-- **No Heavy Bundlers**: Client runs directly on modern browsers via native scripts and ES module adapters.
-- **Zero-Bandwidth Offline Graphic Fallbacks**: Fallback profile avatars use inline URL-safe base64 SVGs to ensure full functionality without external CDNs or network connectivity.
-- **Flat Sectioning ("No-Section Protocol")**: All classes default to the "General" section.
-- **Strict Role Boundaries**: Enforced roles for `admin`, `teacher`, and `parent`. All billing and finance modules have been eliminated to keep the scope focused.
 
 ---
 
@@ -31,20 +27,35 @@ The Udayashree School App is a lightweight, responsive management system designe
 │       └── test.yml              # CI automated unit test runner workflow
 ├── .git/hooks/
 │   └── pre-commit                # Automated pre-commit test validation hook
-├── modules/                      # Modular services & strong-typed backend DAL
+├── app/                          # Native Android wrapper project (Gradle)
+│   └── app/src/
+│       ├── main/java/.../
+│       │   ├── BootReceiver.java          # Boot receiver for background tasks
+│       │   ├── MainActivity.java          # Fullscreen WebView native shell
+│       │   ├── NotificationHelper.java    # Android notification channels & banners
+│       │   ├── NotificationPollService.java # Long-polling notification service
+│       │   ├── SchoolSmsModels.java       # Typed SMS request and response DTOs
+│       │   ├── SchoolSmsService.java      # OkHttp/HttpURLConnection SMS API client
+│       │   └── SecurityUtils.java         # Allowed host validation & sanitization
+│       └── test/java/.../
+│           ├── SchoolSmsModelsTest.java   # Android unit tests for SMS models
+│           └── SecurityUtilsTest.java     # Android unit tests for security rules
+├── modules/                      # Modular browser services & DAL
 │   ├── api.js                   # APIService (HTTP methods, uploads, offline handling)
-│   ├── auth.js                  # AuthService (Sessions, PIN validation, role guards)
+│   ├── auth.js                  # AuthService (Sessions, OTP, stamps, role guards)
 │   ├── db.js                    # DatabaseService (Comprehensive Data Access Layer)
 │   └── package.json             # ES module declaration
 ├── tests/
-│   ├── runner.js                # Complete unit test suite (22 suites / all functions)
+│   ├── runner.js                # Complete unit test suite (27 suites / all functions)
 │   └── package.json             # Test configuration
 ├── uploads/                     # Upload directory for student/teacher photo assets
 ├── admin.html                   # Admin dashboard portal
 ├── teacher.html                 # Teacher & attendance portal
 ├── parent.html                  # Parent & student report card portal
-├── index.html                   # Single sign-on and unified login screen
+├── index.html                   # Single sign-on and 6-digit OTP login screen
+├── login.js                     # Login controller with auto-advance OTP & paste support
 ├── shared.js                    # Compatibility adapter and mock Firebase interfaces
+├── smsSecurity.js               # Cryptographic stamp engine & SMS gateway proxy
 ├── server.js                    # Local & production Express backend API
 ├── db.json                      # Local JSON persistence store
 ├── deploy.sh                    # Automated test, commit, push, and remote deploy script
@@ -56,142 +67,116 @@ The Udayashree School App is a lightweight, responsive management system designe
 
 ---
 
-## 3. Modular Service Functions Reference
+## 3. SMS & OTP Security Architecture
 
-### 3.1 APIService (`modules/api.js`)
-Handles all communication between frontend interfaces and the backend database/storage.
-- `request(endpoint, options)`: Core network call wrapper supporting automatic retries (up to 3 attempts), query timeouts, and offline status checks.
-- `get(path)`: Retrieves data from `/api/db?path=<encoded_path>`.
-- `post(path, data)`: Persists new objects or replaces data at specified paths.
-- `patch(path, data)`: Partially updates specific fields or nested paths.
-- `delete(path)`: Removes records from the database.
-- `upload(file, onProgress)`: Submits `multipart/form-data` file uploads to `/api/upload` with upload progress events.
-- `showNetworkWarning(message)`: Renders temporary user-facing toast notifications for offline/network interruptions.
+The SMS system provides military-grade security against spam, credential abuse, clock manipulation, and replay attacks.
 
-### 3.2 AuthService (`modules/auth.js`)
-Manages authentication, session state, route guards, and dashboard redirection.
-- `getRoles()`: Returns the set of recognized role constants (`admin`, `teacher`, `parent`).
-- `getSession()`: Retrieves currently authenticated user session from `sessionStorage`.
-- `setSession(sessionData)`: Writes authenticated session details to `sessionStorage`.
-- `logout()`: Clears active sessions and redirects to `index.html`.
-- `checkAuth(allowedRoles)`: Guard function that inspects current session role against permitted roles, redirecting unauthorized users.
-- `redirectUserToRoleDashboard(role)`: Navigates authenticated users directly to their designated dashboard (`admin.html`, `teacher.html`, or `parent.html`).
-- `verifyPhoneRegistered(phone)`: Checks if a supplied mobile number is registered under any role.
-- `executeLogin(phone, pin, role)`: Validates PIN codes (including master bypass `0000`) and constructs user sessions.
+### 3.1 Anti-Tampering Challenge Stamps (`/api/auth/stamp`)
+Before any OTP request can be submitted:
+1. The client requests a challenge stamp from `GET /api/auth/stamp`.
+2. The server generates a unique payload: `${timestamp}.${nonce}.${signature}`:
+   - `timestamp`: Milliseconds since epoch.
+   - `nonce`: Cryptographically secure 16-byte random hex string.
+   - `signature`: HMAC-SHA256 of `${timestamp}:${nonce}` signed with `STAMP_SECRET`.
+3. The stamp expires after 5 minutes (`300000 ms`).
+4. Replay attacks are prohibited: each `nonce` is logged in an in-memory ledger and rejected if reused.
+5. All signature comparisons use `crypto.timingSafeEqual` with byte-length verification to prevent timing attacks.
 
-### 3.3 DatabaseService (`modules/db.js`)
-Provides strongly-typed access to all database operations.
-- **Students**:
-  - `getStudents(classId)`: Lists students (optionally filtered by class).
-  - `getStudent(id)`: Fetches individual student profile.
-  - `saveStudent(studentData)`: Enrolls a new student.
-  - `updateStudent(id, updates)`: Updates student details.
-  - `removeStudent(id)`: Deletes student record.
-- **Teachers**:
-  - `getTeachers()`: Retrieves all faculty members.
-  - `getTeacher(id)`: Retrieves a specific faculty member.
-  - `saveTeacher(teacherData)`: Registers faculty profile.
-  - `updateTeacher(id, updates)`: Updates faculty record.
-  - `removeTeacher(id)`: Deletes faculty record.
-- **Login Mappings**:
-  - `getLoginMap()`: Retrieves all registered phone-to-role mappings.
-  - `setLoginMapping(phone, mappingData)`: Sets or updates phone credential mapping.
-- **Soft Delete & Archiving**:
-  - `archiveRecord(type, id, reason)`: Archives student or teacher records for data preservation.
-  - `getStatusHistory(type, id)`: Fetches change logs and audit history.
-- **Exam Windows & Grading**:
-  - `getExamWindows()`: Lists active/past exam windows.
-  - `saveExamWindow(windowData)`: Configures an exam window.
-  - `removeExamWindow(windowId)`: Removes an exam window.
-  - `getMarks(examId, classId, subjectId)`: Retrieves marks roster.
-  - `saveMarks(examId, classId, subjectId, marksData)`: Saves grade inputs.
-- **Attendance & Timings**:
-  - `getAttendance(classId, date)`: Retrieves daily attendance log.
-  - `saveAttendance(classId, date, attendanceData)`: Records attendance.
-  - `getClassConfigs()`: Retrieves class subject configurations.
-  - `getPeriodTimings()`: Retrieves global bell schedule.
-  - `savePeriodTimings(timings)`: Saves period timings.
-- **Notices, Tickets & Feedback**:
-  - `getNotices()` / `createNotice(noticeData)`: School announcement broadcast.
-  - `getTickets()` / `createTicket(ticketData)` / `updateTicket(ticketId, updates)`: Parent support tickets.
-  - `getSuggestions()` / `submitSuggestion(suggestionData)`: Faculty suggestions.
-  - `getReassignmentRequests()` / `submitReassignmentRequest(requestData)`: Teacher schedule reassignment requests.
+### 3.2 Cooldowns and Rate Limiting
+- **Per-Phone Cooldown**: 60 seconds between successive OTP requests to the same mobile number.
+- **Hourly Phone Quota**: Maximum 5 OTP requests per hour per phone number.
+- **IP Rate Limit**: Maximum 10 OTP requests per 10-minute window per IP.
+- **Phone Whitelisting**: The system verifies that the phone number exists in `db.json` under admin, teacher, or parent mapping before issuing an SMS.
+
+### 3.3 Persistent Sessions (One-Time Authentication)
+Users do not need to re-authenticate every time they launch or refresh the application:
+1. Upon successful OTP verification, the server generates a persistent HMAC-signed session token (`base64Url(payload).signature`).
+2. The client stores the token in `localStorage`.
+3. On page launch, `AuthService.validateSession()` calls `POST /api/auth/session/verify`.
+4. If valid, the user is directly navigated to their role dashboard (`admin.html`, `teacher.html`, or `parent.html`) without prompting for login.
 
 ---
 
-## 4. How to Review and Run the Project
+## 4. API Endpoints Reference
 
-### 4.1 Running Locally
-Start the integrated Express server:
+### 4.1 Authentication & SMS Endpoints
+- **`GET /api/auth/stamp`**
+  - Generates a fresh cryptographic challenge stamp.
+  - Response: `{ "success": true, "stamp": "...", "expires_in_seconds": 300 }`
+
+- **`POST /api/auth/otp/send`**
+  - Body: `{ "phone": "9809248510", "stamp": "..." }`
+  - Validates challenge stamp, checks cooldowns, verifies database registration, and proxies request to remote SMS Gateway.
+  - Response: `{ "success": true, "sms_job_id": 42, "cooldown_seconds": 60 }`
+
+- **`POST /api/auth/otp/verify`**
+  - Body: `{ "phone": "9809248510", "otp": "245510" }`
+  - Verifies code via Gateway (or master test bypasses `000000` / `123456`).
+  - Response: `{ "success": true, "token": "...", "user": { ... } }`
+
+- **`POST /api/auth/session/verify`**
+  - Headers: `Authorization: Bearer <token>` or body `{ "token": "..." }`
+  - Validates persistent session signature.
+  - Response: `{ "success": true, "user": { ... } }`
+
+- **`POST /api/sms/send`**
+  - Body: `{ "phone": "...", "message": "..." }`
+  - Proxies general SMS announcements to parents and faculty.
+
+---
+
+## 5. Modular Service Functions Reference
+
+### 5.1 APIService (`modules/api.js`)
+- `request(endpoint, options)`: Network wrapper supporting retries, query timeouts, and offline status checks.
+- `get(path)`: Retrieves data from `/api/db?path=<encoded_path>`.
+- `post(path, data)`: Persists new records.
+- `patch(path, data)`: Partially updates fields.
+- `delete(path)`: Removes records.
+- `upload(file, onProgress)`: Multipart file upload to `/api/upload`.
+- `showNetworkWarning(message)`: Renders temporary toast notification.
+
+### 5.2 AuthService (`modules/auth.js`)
+- `fetchStamp()`: Retrieves fresh security stamp from `/api/auth/stamp`.
+- `sendOtp(phone)`: Requests 6-digit OTP code with anti-tamper stamp.
+- `verifyOtp(phone, otp)`: Verifies OTP, receives and saves persistent session token.
+- `validateSession()`: Validates saved session so user does not need to re-login.
+- `getAuthToken()` / `setAuthToken(token)`: Manages persistent storage in `localStorage`.
+- `getRoles()`: Returns role constants (`admin`, `teacher`, `parent`).
+- `getSession()` / `setSession()`: Session storage accessors.
+- `logout()`: Clears persistent token and session, redirects to login.
+- `checkAuth(allowedRoles)`: Guard enforcing route security.
+- `redirectUserToRoleDashboard(role)`: Directs user to appropriate portal.
+
+### 5.3 DatabaseService (`modules/db.js`)
+- Complete DAL covering students, teachers, login mappings, exam windows, marks, attendance, bell schedules, notices, tickets, and feedback.
+
+---
+
+## 6. How to Review and Run the Project
+
+### 6.1 Running Locally
 ```bash
 npm start
 # or
 node server.js
 ```
-The server will boot on `http://localhost:5050` (or `PORT` defined in environment).
+The server runs on `http://localhost:5050`.
 
-### 4.2 Where to Review Each Role
-Open your browser and navigate to:
-- **Login Screen**: `http://localhost:5050/index.html` (or `http://localhost:5050/`)
-- **Admin Dashboard**: `http://localhost:5050/admin.html`
-- **Teacher Dashboard & Attendance**: `http://localhost:5050/teacher.html`
-- **Parent Portal & Report Cards**: `http://localhost:5050/parent.html`
-
-### 4.3 Default Credentials / Master Bypass
-- Any registered phone number can log in using their registered PIN.
-- Development / Master PIN bypass: `0000` is accepted for all registered accounts.
-
-### 4.4 Remote & Production Environments
-- **Production Subdomain**: `https://school.success0.com.np`
-- **Remote Host**: `bb@100.89.137.102` (Systemd service: `school-app.service`)
-- **APK Portal**: Hosted on local network at `http://100.120.244.95:4000`
-
----
-
-## 5. Unit Testing Suite
-
-### 5.1 How to Run Tests
-To execute the unit tests locally:
+### 6.2 Testing
+Execute all 27 unit test suites locally:
 ```bash
 npm test
-# or directly
+# or
 node tests/runner.js
 ```
 
-### 5.2 Test Coverage (22 Suites)
-The test runner is located in `tests/runner.js` and provides comprehensive test coverage without third-party runner dependencies:
-1. `APIService: get()` — Successfully queries backend data.
-2. `APIService: post()` — Stores records accurately.
-3. `APIService: patch()` — Selectively updates fields and nested values.
-4. `APIService: delete()` — Deletes records at specified paths.
-5. `APIService: upload()` — Handles multipart file uploads and progress callbacks.
-6. `APIService: showNetworkWarning()` — Generates network alert UI elements.
-7. `APIService: handles offline gracefully` — Detects offline status and retries properly.
-8. `AuthService: getRoles()` — Validates role list constants.
-9. `AuthService: session storage` — Confirms getter and setter persistence.
-10. `AuthService: logout()` — Clears session and triggers redirection.
-11. `AuthService: checkAuth()` — Restricts unauthorized roles and grants permitted roles.
-12. `AuthService: redirectUserToRoleDashboard()` — Redirects each role to correct view.
-13. `AuthService: verifyPhoneRegistered()` — Validates phone registry across roles.
-14. `AuthService: executeLogin()` — Validates credentials and constructs active sessions.
-15. `DatabaseService: Student operations` — Covers get, save, update, remove.
-16. `DatabaseService: Teacher operations` — Covers get, save, update, remove.
-17. `DatabaseService: Login mapping operations` — Covers retrieval and update.
-18. `DatabaseService: Archive and Status History` — Verifies soft deletes and logs.
-19. `DatabaseService: Exam Window operations` — Verifies scheduling and deletion.
-20. `DatabaseService: Results and Marks operations` — Covers mark entry and lookup.
-21. `DatabaseService: Attendance, Class Configs, and Period Timings` — Verifies routine and attendance.
-22. `DatabaseService: Notices, Tickets, Suggestions, and Requests` — Verifies communication channels.
+Run Android native unit tests:
+```bash
+cd app && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew testDebugUnitTest --no-daemon --console=plain < /dev/null
+```
 
-### 5.3 Automated Pre-Commit Hook & GitHub Actions
-- **Pre-commit hook**: `.git/hooks/pre-commit` automatically runs `node tests/runner.js` before every `git commit`. Any failing test aborts the commit.
-- **CI Workflow**: `.github/workflows/test.yml` automatically executes unit tests on push and pull requests to `master`.
-
----
-
-## 6. Deployment Script (`deploy.sh`)
-
-To test, commit, and deploy changes:
+### 6.3 Deployment (`deploy.sh`)
 ```bash
 # Test, stage, and commit locally:
 ./deploy.sh "Your commit message"

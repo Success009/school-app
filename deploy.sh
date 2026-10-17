@@ -27,12 +27,12 @@ if [[ "$*" == *"--push"* ]]; then
 fi
 
 if [[ "$*" == *"--remote"* ]]; then
-    REMOTE_HOST="bb@100.89.137.102"
-    TARGET_DIR="school-app-deploy/"
+    REMOTE_HOST="root@100.89.137.102"
+    TARGET_DIR="/home/bb/school-app-server/"
     echo "Deploying via rsync to $REMOTE_HOST:$TARGET_DIR ..."
-    rsync -avz --exclude '.git' --exclude 'node_modules' ./ "$REMOTE_HOST:$TARGET_DIR"
+    rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude '.git' --exclude 'node_modules' --exclude 'app' ./ "$REMOTE_HOST:$TARGET_DIR"
     echo "Restarting remote systemd daemon..."
-    sshpass -p "pariwarik" ssh "$REMOTE_HOST" "sudo systemctl restart school-app.service || true"
+    ssh -o StrictHostKeyChecking=no "$REMOTE_HOST" "systemctl restart school-app.service && systemctl is-active school-app.service"
     echo -e "\033[32m✔ Remote deployment completed.\033[0m"
 fi
 
