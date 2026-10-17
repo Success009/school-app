@@ -15,19 +15,19 @@ class ServerValidation {
         return String(raw).replace(/\D/g, '');
     }
 
-    static isTestMode(raw) {
+        static isTestMode(raw) {
         if (!raw) return false;
         const str = String(raw).trim();
-        return str.startsWith('..') || str.startsWith('.#');
+        return str.startsWith('..');
     }
 
     /**
-     * Extract the canonical 10-digit phone number, stripping test prefixes or national codes.
+     * Extract the canonical 10-digit phone number, stripping the '..' test prefix or national codes.
      */
     static normalizePhone(raw) {
         if (!raw) return '';
         let str = String(raw).trim();
-        if (str.startsWith('..') || str.startsWith('.#')) {
+        if (str.startsWith('..')) {
             str = str.slice(2);
         }
         let digits = str.replace(/\D/g, '');
@@ -46,12 +46,12 @@ class ServerValidation {
     }
 
     /**
-     * Check if a code matches the developer test verification code.
+     * Check if a code matches the developer test verification code (accepts 4, 5, or 6 zeros).
      */
     static isTestOtpCode(code) {
         if (!code) return false;
         const clean = String(code).trim();
-        return clean === '000000' || clean === '0000';
+        return /^0{4,6}$/.test(clean);
     }
 }
 

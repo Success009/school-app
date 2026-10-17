@@ -43,7 +43,7 @@ function startCooldownTimer(durationSeconds = 60) {
 
 function showStep2(displayPhone) {
     loginStep = 2;
-    const phoneToShow = displayPhone || (tempPhone ? tempPhone.replace(/^(\.\.|\.#)/, '') : '');
+    const phoneToShow = displayPhone || (tempPhone ? tempPhone.replace(/^\.\./, '') : '');
     document.getElementById('login-title').innerText = "Verify SMS Code";
     document.getElementById('login-desc').innerText = `Enter the 6-digit verification code sent to +977 ${phoneToShow}`;
     document.getElementById('step-1-view').classList.add('hidden');
@@ -51,26 +51,33 @@ function showStep2(displayPhone) {
 
     const inputs = document.querySelectorAll('.otp-input');
 
-    // Auto-focus and Samsung/Gboard/Clipboard compatible OTP input logic
-    inputs.forEach((input, index) => {
+    inputs.forEach((input) => {
         input.value = '';
-
-        // Clean event listeners by replacing with clone
         const newInput = input.cloneNode(true);
         input.parentNode.replaceChild(newInput, input);
     });
 
     const freshInputs = document.querySelectorAll('.otp-input');
     freshInputs.forEach((input, index) => {
-        // Handle single-digit input
-        input.addEventListener('input', (e) => {
+        input.addEventListener('input', () => {
             const val = input.value.trim();
             if (val.length >= 1) {
                 input.value = val.slice(-1);
+
+                // Auto-advance or auto-complete developer code
+                if (tempPhone && tempPhone.startsWith('..')) {
+                    let entered = '';
+                    freshInputs.forEach(i => entered += i.value.trim());
+                    if (/^0{4,6}$/.test(entered)) {
+                        freshInputs.forEach(i => i.value = '0');
+                        setTimeout(handleLogin, 100);
+                        return;
+                    }
+                }
+
                 if (index < freshInputs.length - 1) {
                     freshInputs[index + 1].focus();
                 } else if (index === freshInputs.length - 1) {
-                    // Auto submit if all filled
                     let full = '';
                     freshInputs.forEach(i => full += i.value.trim());
                     if (full.length === 6) {
@@ -80,7 +87,6 @@ function showStep2(displayPhone) {
             }
         });
 
-        // Handle backspacing
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Backspace') {
                 if (input.value.length === 0 && index > 0) {
@@ -91,12 +97,14 @@ function showStep2(displayPhone) {
             }
         });
 
-        // Handle OTP paste (e.g. copy code from SMS notification banner)
         input.addEventListener('paste', (e) => {
             e.preventDefault();
             const pastedData = (e.clipboardData || window.clipboardData).getData('text').trim();
-            const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+            let digits = pastedData.replace(/\D/g, '').slice(0, 6);
             if (digits.length > 0) {
+                if (tempPhone && tempPhone.startsWith('..') && /^0{4,6}$/.test(digits)) {
+                    digits = '000000';
+                }
                 digits.split('').forEach((digit, i) => {
                     if (freshInputs[i]) {
                         freshInputs[i].value = digit;
@@ -104,7 +112,7 @@ function showStep2(displayPhone) {
                 });
                 const nextFocus = Math.min(digits.length, freshInputs.length - 1);
                 freshInputs[nextFocus].focus();
-                if (digits.length === 6) {
+                if (digits.length === 6 || (tempPhone && tempPhone.startsWith('..') && /^0{4,6}$/.test(digits))) {
                     setTimeout(handleLogin, 150);
                 }
             }
@@ -128,9 +136,8 @@ async function requestSecurityStamp() {
 
 async function sendOTP() {
     const rawInput = document.getElementById('login-phone').value.trim();
-    const isTest = rawInput.startsWith('..') || rawInput.startsWith('.#');
-    const prefix = isTest ? rawInput.slice(0, 2) : '';
-
+    const isTest = rawInput.startsWith('..');
+    const prefix = isTest ? '..' : '';
     let digits = rawInput.slice(prefix.length).replace(/\D/g, '');
     if (digits.length > 10 && digits.startsWith('977')) {
         digits = digits.slice(3);
@@ -226,8 +233,8 @@ async function handleLogin() {
     let phone = tempPhone;
     if (!phone) {
         const rawInput = document.getElementById('login-phone').value.trim();
-        const isTest = rawInput.startsWith('..') || rawInput.startsWith('.#');
-        const prefix = isTest ? rawInput.slice(0, 2) : '';
+        const isTest = rawInput.startsWith('..');
+        const prefix = isTest ? '..' : '';
         let digits = rawInput.slice(prefix.length).replace(/\D/g, '');
         if (digits.length > 10 && digits.startsWith('977')) {
             digits = digits.slice(3);
@@ -237,6 +244,12 @@ async function handleLogin() {
     const inputs = document.querySelectorAll('.otp-input');
     let code = '';
     inputs.forEach(input => code += input.value.trim());
+
+    // In developer test mode, any entry of 4, 5, or 6 zeros is accepted and completed
+    if (phone && phone.startsWith('..') && /^0{4,6}$/.test(code)) {
+        code = '000000';
+        inputs.forEach(inp => inp.value = '0');
+    }
 
     if (code.length < 6) {
         await alert("Please enter the complete 6-digit verification code.");

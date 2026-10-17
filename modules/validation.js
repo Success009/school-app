@@ -8,16 +8,16 @@ export class ValidationService {
         return String(raw).replace(/\D/g, '');
     }
 
-    static isTestMode(raw) {
+        static isTestMode(raw) {
         if (!raw) return false;
         const str = String(raw).trim();
-        return str.startsWith('..') || str.startsWith('.#');
+        return str.startsWith('..');
     }
 
     static normalizePhone(raw) {
         if (!raw) return '';
         let str = String(raw).trim();
-        if (str.startsWith('..') || str.startsWith('.#')) {
+        if (str.startsWith('..')) {
             str = str.slice(2);
         }
         let digits = str.replace(/\D/g, '');
@@ -35,7 +35,7 @@ export class ValidationService {
     static isTestOtpCode(code) {
         if (!code) return false;
         const clean = String(code).trim();
-        return clean === '000000' || clean === '0000';
+        return /^0{4,6}$/.test(clean);
     }
 
     static sanitize(str) {

@@ -74,17 +74,16 @@ Internal QA verification and Play Store pre-launch reviews require logging in wi
 
 ### How It Operates
 1. **Triggering Developer Mode**:
-   Input a registered phone number prefixed with `..` or `.#` (e.g., `..9845212500` or `.#9845212500`).
+   Input a registered phone number prefixed with `..` (e.g., `..9845212500`).
 2. **Backend Processing (`controllers/authController.js`)**:
-   - The server normalizes the input by stripping `..` or `.#`, obtaining the underlying phone number (`9845212500`).
+   - The server normalizes the input by stripping `..`, obtaining the underlying phone number (`9845212500`).
    - It verifies whether `9845212500` exists in `db.json`. If registered:
      - Real cellular SMS transmission is skipped.
      - A standard production-like JSON success response is returned so consumer interfaces remain completely clean.
 3. **Verification**:
    - In Step 2, the UI displays the clean 10-digit number (never showing the prefix).
-   - Enter `000000` in the verification code input.
-   - The backend requires **both** the active developer prefix on the phone request AND the `000000` code. Attempting `000000` on a normal consumer phone number without the prefix is strictly rejected.
-
+   - Enter `0000`, `00000`, or `000000` in the verification code input.
+   - The backend accepts 4, 5, or 6 zeros when the `..` prefix is present. Attempting zeros on a normal consumer phone number without the prefix is strictly rejected.
 ---
 
 ## 5. Persistent Session Tokens
