@@ -60,9 +60,10 @@ public class NotificationPollService extends Service {
     private void checkForNewNotices() {
         HttpURLConnection urlConnection = null;
         try {
-            URL url = new URL(NOTICES_URL);
+                        URL url = new URL(NOTICES_URL);
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("GET");
+            urlConnection.setRequestProperty("User-Agent", "UdayashreeSchoolApp/1.0 (Android Native Background)");
             urlConnection.setConnectTimeout(10000);
             urlConnection.setReadTimeout(10000);
 

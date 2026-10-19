@@ -1049,5 +1049,35 @@ suite.add("OfflineStore: Cache and retrieve offline student and teacher data", a
     }
 });
 
+// ==========================================
+// 11. Security & Platform Authentication Tests
+// ==========================================
+suite.add("Security: Platform-aware token generation and differentiation (Web vs App)", async () => {
+    const user = { phone: "9809248510", role: "admin", id: "ADM-8510", name: "Super Admin" };
+
+    const webToken = SmsSecurityService.createSessionToken(user, "web");
+    const appToken = SmsSecurityService.createSessionToken(user, "android_app");
+
+    if (!webToken || !appToken) throw new Error("Failed to generate platform session tokens");
+    if (webToken === appToken) throw new Error("Platform tokens should be cryptographically distinct across platforms");
+
+    const verifiedWeb = SmsSecurityService.verifySessionToken(webToken);
+    const verifiedApp = SmsSecurityService.verifySessionToken(appToken);
+
+    if (!verifiedWeb || verifiedWeb.platform !== "web") {
+        throw new Error("Web token failed platform verification");
+    }
+    if (!verifiedApp || verifiedApp.platform !== "android_app") {
+        throw new Error("App token failed platform verification");
+    }
+});
+
+suite.add("NotificationController: Modular notification and notice synchronization", async () => {
+    const { createNotificationRouter } = require('../controllers/notificationController.js');
+    if (typeof createNotificationRouter !== 'function') {
+        throw new Error("createNotificationRouter is not exported properly");
+    }
+});
+
 // Run test runner
 suite.run();

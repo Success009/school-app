@@ -331,13 +331,20 @@ class SmsSecurityService {
     /**
      * Generate persistent tamper-proof session token.
      */
-    static createSessionToken(userPayload) {
+        static createSessionToken(userPayload, platform = 'web_browser') {
+        const clientPlatform = platform || userPayload.client_platform || 'web_browser';
+        const isMobile = clientPlatform === 'mobile_app';
+        const validityDurationMs = isMobile ? 90 * 24 * 60 * 60 * 1000 : 14 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+
         const payload = {
             id: userPayload.id,
             phone: userPayload.phone,
             role: userPayload.role,
             name: userPayload.name,
-            issuedAt: Date.now()
+            platform: clientPlatform,
+            issuedAt: now,
+            expiresAt: now + validityDurationMs
         };
         const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
         const signature = crypto
@@ -349,14 +356,14 @@ class SmsSecurityService {
     }
 
     /**
-     * Verify persistent session token.
+     * Verify persistent session token and validate platform lifetime.
      */
     static verifySessionToken(token) {
         if (!token || typeof token !== 'string') return null;
         const parts = token.split('.');
         if (parts.length !== 2) return null;
 
-                const [encoded, signature] = parts;
+        const [encoded, signature] = parts;
         const expectedSig = crypto
             .createHmac('sha256', SESSION_SECRET)
             .update(encoded)
@@ -370,7 +377,11 @@ class SmsSecurityService {
 
         try {
             const jsonStr = Buffer.from(encoded, 'base64url').toString('utf8');
-            return JSON.parse(jsonStr);
+            const data = JSON.parse(jsonStr);
+            if (data.expiresAt && Date.now() > data.expiresAt) {
+                return null; // Expired token
+            }
+            return data;
         } catch (e) {
             return null;
         }

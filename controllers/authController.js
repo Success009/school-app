@@ -177,13 +177,21 @@ function createAuthRouter(dbStorage) {
             }
         }
 
-        const sessionToken = SmsSecurityService.createSessionToken(sessionUser);
+                const clientPlatformHeader = req.headers['x-client-platform'] || '';
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobileApp = clientPlatformHeader === 'android-app' || /UdayashreeSchoolApp|okhttp/i.test(userAgent);
+        const clientPlatform = isMobileApp ? 'mobile_app' : 'web_browser';
+
+        sessionUser.client_platform = clientPlatform;
+        const sessionToken = SmsSecurityService.createSessionToken(sessionUser, clientPlatform);
 
         res.json({
             success: true,
             message: 'Authentication successful.',
             token: sessionToken,
-            user: sessionUser
+            user: sessionUser,
+            client_platform: clientPlatform,
+            is_mobile_app: isMobileApp
         });
     });
 
@@ -205,7 +213,9 @@ function createAuthRouter(dbStorage) {
         res.json({
             success: true,
             valid: true,
-            user: decoded
+            user: decoded,
+            client_platform: decoded.platform || 'web_browser',
+            is_mobile_app: decoded.platform === 'mobile_app'
         });
     });
 

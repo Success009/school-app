@@ -31,11 +31,15 @@ public class MainActivity extends AppCompatActivity {
         retryButton = findViewById(R.id.retry_button);
 
                 // Configure hardened WebView settings for security and offline caching
-        WebSettings webSettings = webView.getSettings();
+                WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setDatabaseEnabled(true);
         webSettings.setLoadsImagesAutomatically(true);
+
+        // Append custom client tag to recognize native mobile app client
+        String defaultUa = webSettings.getUserAgentString();
+        webSettings.setUserAgentString(defaultUa + " UdayashreeSchoolApp/1.0 (Android Native)");
 
         // SECURITY HARDENING:
         // 1. NEVER allow mixed content (HTTP assets over HTTPS) to eliminate MitM injection

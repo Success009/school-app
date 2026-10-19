@@ -17,6 +17,7 @@ const { DbStorageService } = require('./controllers/dbStorage.js');
 const { createAuthRouter } = require('./controllers/authController.js');
 const { createDbRouter } = require('./controllers/dbController.js');
 const { createUploadRouter } = require('./controllers/uploadController.js');
+const { createNotificationRouter } = require('./controllers/notificationController.js');
 const { SmsSecurityService } = require('./smsSecurity.js');
 
 const app = express();
@@ -34,10 +35,12 @@ const dbStorage = new DbStorageService(DB_FILE);
 const authRouter = createAuthRouter(dbStorage);
 const dbRouter = createDbRouter(dbStorage);
 const uploadRouter = createUploadRouter(path.join(__dirname, 'uploads'));
+const notificationRouter = createNotificationRouter(dbStorage);
 
 app.use('/api/auth', authRouter);
 app.use('/api/db', dbRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/notifications', notificationRouter);
 
 // SMS broadcast endpoint for staff announcements
 app.post('/api/sms/send', async (req, res) => {
@@ -59,10 +62,22 @@ app.post('/api/sms/send', async (req, res) => {
     }
 
     const phone = String(rawPhone).replace(/\D/g, '');
-    const sendResult = await SmsSecurityService.sendGatewaySms(phone, message);
+        const sendResult = await SmsSecurityService.sendGatewaySms(phone, message);
     if (!sendResult.success) {
         return res.status(502).json(sendResult);
     }
+
+    // Mirror to school/notices so connected Android devices trigger native push notifications
+    const noticeId = 'NOTICE_SMS_' + Date.now();
+    dbStorage.set(`school/notices/${noticeId}`, {
+        id: noticeId,
+        title: 'School Announcement',
+        message: message,
+        category: 'broadcast',
+        target_role: 'all',
+        timestamp: Date.now(),
+        author: { id: user.id, name: user.name, role: user.role }
+    });
 
     res.json(sendResult);
 });

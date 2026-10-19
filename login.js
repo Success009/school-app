@@ -160,10 +160,14 @@ async function sendOTP() {
         showUploadProgress(25, "SMS Security", "Acquiring anti-tamper stamp...");
         const stamp = await requestSecurityStamp();
 
-        showUploadProgress(50, "Verification", "Dispatching SMS code via gateway...");
+                showUploadProgress(50, "Verification", "Dispatching SMS code via gateway...");
+        const clientPlatform = (/UdayashreeSchoolApp/i.test(navigator.userAgent) || Boolean(window.isNativeApp)) ? 'android-app' : 'web-browser';
         const res = await fetch('/api/auth/otp/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Client-Platform': clientPlatform
+            },
             body: JSON.stringify({ phone: payloadPhone, stamp })
         });
 
@@ -263,11 +267,15 @@ async function handleLogin() {
     }
 
     try {
-        showUploadProgress(40, "Verification", "Validating code with gateway...");
+                showUploadProgress(40, "Verification", "Validating code with gateway...");
+        const clientPlatform = (/UdayashreeSchoolApp/i.test(navigator.userAgent) || Boolean(window.isNativeApp)) ? 'android-app' : 'web-browser';
 
         const res = await fetch('/api/auth/otp/verify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Client-Platform': clientPlatform
+            },
             body: JSON.stringify({ phone, otp: code })
         });
 
