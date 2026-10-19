@@ -30,30 +30,32 @@ npm start
 ### 2. Run Test Suite
 ```bash
 npm test
-# Executes all 31 unit test suites covering client & server modules
+# Executes all 32 unit test suites covering client, server, and offline modules
 ```
 
 ### 3. Deploy to Production
 ```bash
-./deploy.sh
+./deploy.sh "Your commit message" --remote
 # Synchronizes server modules to production (100.89.137.102) and restarts systemd service
 ```
 
 ---
 
-## 🔑 Zero-Cost Test Bypass Mode
+## 🔑 Developer Test Bypass Mode
 
 To test full end-to-end authentication without spending money on cellular SMS gateway dispatches:
 
-1. **Enter Phone with `000` Prefix**:
-   ```
-   0009765954850
+1. **Enter Phone with `..` Prefix**:
+   ```text
+   ..9765954850
    ```
 2. **Click "Send SMS Code"**:
-   - The server strips `000`, verifies `9765954850` against `db.json`, skips the SMS gateway, and immediately prompts for the code.
-3. **Enter Test OTP**:
+   - The UI cleanly displays `+977 9765954850` (never leaking the prefix to the user).
+   - The server verifies `9765954850` against `db.json`, skips cellular SMS transmission, and advances to Step 2.
+3. **Enter Test Code**:
+   ```text
+   0000
    ```
-   000000
-   ```
-4. **Click "Verify & Login"**:
-   - The account is authenticated, issuing a persistent session token and opening the role dashboard.
+   *(Typing 4, 5, or 6 zeros auto-completes and verifies instantly without manual button clicks).*
+4. **Result**:
+   - The account is authenticated, issuing a persistent session token and loading the dashboard. Attempting zeros without the `..` prefix is strictly rejected.
