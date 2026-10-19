@@ -17,7 +17,7 @@ function createNotificationRouter(dbStorage) {
      * GET /api/notifications
      * Retrieve all notices, optionally filtered by 'since' timestamp or target role.
      */
-    router.get('/', (req, res) => {
+    const handleGetNotices = (req, res) => {
         const noticesMap = dbStorage.get('school/notices') || {};
         const since = parseInt(req.query.since || '0', 10);
         const role = String(req.query.role || 'all').toLowerCase();
@@ -39,7 +39,10 @@ function createNotificationRouter(dbStorage) {
             count: list.length,
             notices: list
         });
-    });
+    };
+
+    router.get('/', handleGetNotices);
+    router.get('/poll', handleGetNotices);
 
     /**
      * POST /api/notifications
