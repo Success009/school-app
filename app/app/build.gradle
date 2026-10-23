@@ -7,7 +7,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.udayashree.schoolapp"
+        applicationId "com.udayashree.success0"
         minSdk 24
         targetSdk 34
         versionCode 2
