@@ -8,7 +8,19 @@ if (checkAuth([ROLES.ADMIN])) {
 }
 
 const adminViews = {
-    
+
+    schoolSetup: {
+        title: 'School Setup Wizard',
+        render: () => {
+            setTimeout(() => {
+                if (typeof initAdminSetup === 'function') {
+                    initAdminSetup();
+                }
+            }, 50);
+            return `<div id="setup-engine-container"></div>`;
+        }
+    },
+
     subjectManager: {
         title: 'Subject Configuration',
         render: () => `
@@ -72,6 +84,24 @@ const adminViews = {
                     <i class="fas fa-chalkboard-teacher text-purple-600 text-xl mb-2"></i>
                     <h4 id="stat-teachers" class="text-2xl font-black">...</h4>
                     <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wide mt-1">Teachers</p>
+                </div>
+            </div>
+
+                        <!-- Quick Launch School Setup Banner (Desktop & Mobile) -->
+            <div onclick="adminRouter('schoolSetup')" class="mobile-card !p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800 text-white rounded-2xl shadow-lg mb-6 cursor-pointer active:scale-98 transition-all flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl backdrop-blur-sm">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-200">System Foundation</span>
+                        <h3 class="text-base font-black">Configure Classes & Subjects</h3>
+                        <p class="text-xs text-blue-100 opacity-80 mt-0.5">Define classes, curriculum, and book publications.</p>
+                    </div>
+                </div>
+                <div class="hidden sm:flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-colors">
+                    <span>Open Setup</span>
+                    <i class="fas fa-arrow-right text-xs"></i>
                 </div>
             </div>
 

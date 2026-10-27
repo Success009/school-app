@@ -31,32 +31,30 @@
    - **Protection against Brute Force**: Any standard consumer number entering `000000` without the `..` prefix is strictly rejected and routed to the gateway.
 
 5. **Real-Time Push Notifications & Background Service (`controllers/notificationController.js`)**:
-   - Fully modular notification router mounted at `/api/notifications`.
-   - Android background polling service (`NotificationPollService.java`) queries `/api/notifications/poll` every 15 minutes or receives immediate notices.
-   - Real system notification tray alerts raised using Android `NotificationChannel` with high priority.
+   - Fully modular notification router mounted at `/api/notifications` and `/api/notifications/poll`.
+   - Android background polling service (`NotificationPollService.java`) queries `/api/db?path=school/notices` and handles high-priority system notifications with Android `NotificationChannel`.
    - In-app notices and broadcasts sent via admin or SMS broadcasts automatically mirror into the notification queue.
    - **Zero App Rebuilds Required**: All functional screens, dashboards, and logic are delivered directly via the web app (`https://school.success0.com.np`).
 
-6. **Production Obfuscation & Comment Stripping (`build-prod.js`)**:
+6. **Modular School Setup Engine (Step 1 Foundation)**:
+   - Created `modules/setupModule.js` and responsive frontend `admin-setup.js` for desktop and mobile devices.
+   - Allows administrators to dynamically configure classes (e.g., Nursery to Class 10).
+   - Manages compulsory class subjects and book publication details without overcomplicated optional tiers.
+   - Includes 1-click subject cloning between classes to rapidly configure curricula.
+   - Isolated unit tests verifying class creation, subject addition, removal, and cloning.
+
+7. **Production Obfuscation & Comment Stripping (`build-prod.js`)**:
    - Automated Terser-based production pipeline removes all code comments, minifies identifiers, and obfuscates scripts in `dist/`.
    - Leaves development code unminified and readable for rapid debugging during development.
 
-7. **Server Modularization (`server.js` & `controllers/`)**:
-   - Decoupled `server.js` into modular controllers (`controllers/authController.js`, `controllers/dbController.js`, `controllers/uploadController.js`, `controllers/notificationController.js`, `controllers/dbStorage.js`).
-   - Implemented atomic database writes (`write-to-temp-then-rename`) in `DbStorageService`.
-   - Restricted file uploads to safe MIME types (`image/*`, `application/pdf`) to comply with Google Play security policies.
+8. **Google Play Store Compliance**:
+   - Packaged with `targetSdk 36` and `minSdk 24`.
+   - Zero camera / dangerous permissions declared.
+   - Live privacy policy deployed at `https://school.success0.com.np/privacy.html`.
+   - Application ID aligned to `com.udayashree.success0`.
 
-8. **WebView & System Bridge Security Hardening (`MainActivity.java`)**:
-   - Replaced mixed content allowances with `MIXED_CONTENT_NEVER_ALLOW`.
-   - Disabled local file access (`setAllowFileAccess(false)`, `setAllowContentAccess(false)`).
-   - Zero `@JavascriptInterface` attack surface, eliminating RCE vulnerability.
-
-9. **Offline Capability Layer (`modules/offlineStore.js`)**:
-   - LocalStorage cache for student records and teacher rosters.
-   - Intelligent fallback via `WebSettings.LOAD_CACHE_ELSE_NETWORK` when offline.
-
-10. **Automated Test Suite**:
-   - 34/34 unit tests passing across client, server, and offline modules (`npm test`).
+9. **Automated Test Suite**:
+   - **35/35 unit tests passing** across client, server, setup, and offline modules (`npm test`).
    - 4/4 standalone offline store tests passing (`node tests/offlineStore.test.js`).
 
 ---
@@ -67,4 +65,4 @@
 - **Production Server**: `root@100.89.137.102` (`/home/bb/school-app-server`)
 - **SMS Gateway Server**: `https://sms.success0.com.np` (daemon port 8090)
 - **Mobile Test Device**: Connected at `root@100.120.244.95` (`32a5a9ae`)
-- **Current App Package**: `com.udayashree.schoolapp.debug`
+- **Current App Package**: `com.udayashree.success0`

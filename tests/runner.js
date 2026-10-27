@@ -7,6 +7,7 @@ import { AuthService } from '../modules/auth.js';
 import { DatabaseService } from '../modules/db.js';
 import { ValidationService } from '../modules/validation.js';
 import { OfflineStore } from '../modules/offlineStore.js';
+import { SetupModule } from '../modules/setupModule.js';
 import { SmsSecurityService } from '../smsSecurity.js';
 
 const { DbStorageService } = require('../controllers/dbStorage.js');
@@ -658,9 +659,30 @@ suite.add("DatabaseService: Attendance, Class Configs, and Period Timings", asyn
     const p2 = await APIService.get("school/config/period_timings/period_2");
     if (!p2 || p2.name !== "Period 2") throw new Error("savePeriodTiming failed");
 
-    await DatabaseService.removePeriodTiming("period_2");
+        await DatabaseService.removePeriodTiming("period_2");
     const p2Removed = await APIService.get("school/config/period_timings/period_2");
     if (p2Removed !== null) throw new Error("removePeriodTiming failed");
+
+    // Modular Class & Subject Setup Verification
+    await DatabaseService.saveClass("class_8", { name: "Class 8", order: 8 });
+    const classList = await DatabaseService.getClasses();
+    if (!classList.find(c => c.id === "class_8")) throw new Error("saveClass or getClasses failed");
+
+    await DatabaseService.saveClassSubject("class_8", "sub_sci", { name: "Science", publisher: "Vedanta" });
+    const class8Cfg = await DatabaseService.getClassConfigs("class_8");
+    if (!class8Cfg.subjects || !class8Cfg.subjects.compulsory || !class8Cfg.subjects.compulsory.sub_sci) {
+        throw new Error("saveClassSubject failed");
+    }
+
+    await DatabaseService.removeClassSubject("class_8", "sub_sci");
+    const class8AfterSubDel = await DatabaseService.getClassConfigs("class_8");
+    if (class8AfterSubDel.subjects && class8AfterSubDel.subjects.compulsory && class8AfterSubDel.subjects.compulsory.sub_sci) {
+        throw new Error("removeClassSubject failed");
+    }
+
+    await DatabaseService.removeClass("class_8");
+    const classListAfterDel = await DatabaseService.getClasses();
+    if (classListAfterDel.find(c => c.id === "class_8")) throw new Error("removeClass failed");
 });
 
 // Notices, Tickets, Suggestions, and Class Change Requests
@@ -1077,6 +1099,48 @@ suite.add("NotificationController: Modular notification and notice synchronizati
     if (typeof createNotificationRouter !== 'function') {
         throw new Error("createNotificationRouter is not exported properly");
     }
+});
+
+// ==========================================
+// 12. Modular School Setup Module Tests
+// ==========================================
+suite.add("SetupModule: Class creation, subject addition, and cloning workflow", () => {
+    const setup = new SetupModule();
+
+    // 1. Initial State
+    if (setup.classes.length !== 8) throw new Error("Default classes should be 1 through 8");
+
+    // 2. Add Class
+    const newClass = setup.addClass("Class 9", 9);
+    if (!newClass || !setup.classes.find(c => c.id === "class_9")) throw new Error("addClass failed");
+
+    // 3. Add Compulsory Subject with Publisher
+    const sub = setup.addSubject("class_9", "Computer Science", "KEC Publications");
+    if (!sub || sub.name !== "Computer Science" || sub.publisher !== "KEC Publications") {
+        throw new Error("addSubject failed");
+    }
+
+    const classSubjects = setup.getSubjectsForClass("class_9");
+    if (classSubjects.length !== 1 || classSubjects[0].name !== "Computer Science") {
+        throw new Error("getSubjectsForClass failed");
+    }
+
+    // 4. Clone Subjects to another class
+    setup.addClass("Class 10", 10);
+    const clonedCount = setup.cloneSubjects("class_9", "class_10");
+    if (clonedCount !== 1) throw new Error("cloneSubjects count mismatch");
+    const class10Subjects = setup.getSubjectsForClass("class_10");
+    if (class10Subjects.length !== 1 || class10Subjects[0].name !== "Computer Science") {
+        throw new Error("cloneSubjects verification failed");
+    }
+
+    // 5. Remove Subject
+    setup.removeSubject("class_9", sub.id);
+    if (setup.getSubjectsForClass("class_9").length !== 0) throw new Error("removeSubject failed");
+
+    // 6. Remove Class
+    setup.removeClass("class_9");
+    if (setup.classes.find(c => c.id === "class_9")) throw new Error("removeClass failed");
 });
 
 // Run test runner

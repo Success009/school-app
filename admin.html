@@ -30,6 +30,11 @@
 
     <!-- Logic scripts -->
     <script src="shared.js?v=4.3"></script>
+        <script type="module">
+        import { SetupModule } from './modules/setupModule.js';
+        window.SetupModule = SetupModule;
+    </script>
+    <script src="admin-setup.js?v=5.0"></script>
     <script src="admin-subjects.js?v=4.3"></script>
     <script src="admin-students.js?v=4.3"></script>
     <script src="admin-teachers.js?v=4.3"></script>

@@ -413,8 +413,33 @@ class DatabaseService {
         return await APIService.get(`school/attendance/${classId}`) || { };
     }
 
+        static async getClasses() {
+        const data = await APIService.get('school/classes');
+        if (!data) return [ ];
+        if (Array.isArray(data)) return data;
+        return Object.entries(data).map(([id, val]) => (typeof val === 'object' && val !== null ? { id, ...val } : { id, name: val }));
+    }
+
+    static async saveClass(classId, classData) {
+        return APIService.post(`school/classes/${classId}`, classData);
+    }
+
+    static async removeClass(classId) {
+        await APIService.delete(`school/classes/${classId}`);
+        await APIService.delete(`school/class_configs/${classId}`);
+        return { success: true };
+    }
+
     static async getClassConfigs(classId) {
         return await APIService.get(`school/class_configs/${classId}`) || { };
+    }
+
+    static async saveClassSubject(classId, subjectId, subjectData) {
+        return APIService.post(`school/class_configs/${classId}/subjects/compulsory/${subjectId}`, subjectData);
+    }
+
+    static async removeClassSubject(classId, subjectId) {
+        return APIService.delete(`school/class_configs/${classId}/subjects/compulsory/${subjectId}`);
     }
 
     static async getPeriodTimings() {
