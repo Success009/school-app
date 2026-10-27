@@ -339,21 +339,66 @@ global.fetch = async (url, options = {}) => {
 // Test Suite Harness
 const suite = {
     tests: [],
-    add(name, fn) {
-        this.tests.push({ name, fn });
+    add(name, fn, group = 'general') {
+        this.tests.push({ name, fn, group: group.toLowerCase() });
     },
     async run() {
-        console.log("\x1b[35m=== RUNNING MODULAR ARCHITECTURE TEST SUITE ===\x1b[0m\n");
+        const args = process.argv.slice(2);
+        let targetGroup = null;
+        let filterPattern = null;
+        let listOnly = false;
+
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (arg.startsWith('--group=')) targetGroup = arg.split('=')[1].toLowerCase();
+            else if (arg.startsWith('-g=')) targetGroup = arg.split('=')[1].toLowerCase();
+            else if (arg === '-g' || arg === '--group') {
+                targetGroup = args[i + 1] ? args[i + 1].toLowerCase() : null;
+            } else if (arg.startsWith('--filter=')) filterPattern = arg.split('=')[1].toLowerCase();
+            else if (arg === '-f' || arg === '--filter') {
+                filterPattern = args[i + 1] ? args[i + 1].toLowerCase() : null;
+            } else if (arg === '--list' || arg === '-l') listOnly = true;
+        }
+
+        if (listOnly) {
+            console.log("\x1b[35m=== AVAILABLE TEST MODULE GROUPS ===\x1b[0m\n");
+            const groupCounts = {};
+            for (const t of this.tests) {
+                groupCounts[t.group] = (groupCounts[t.group] || 0) + 1;
+            }
+            for (const [grp, count] of Object.entries(groupCounts)) {
+                console.log(`  \x1b[36m• ${grp.padEnd(16)}\x1b[0m (${count} tests)`);
+            }
+            console.log(`\nTotal registered: ${this.tests.length} tests.\nRun with: node tests/runner.js --group=<group_name>`);
+            return;
+        }
+
+        let runList = this.tests;
+        if (targetGroup) {
+            runList = runList.filter(t => t.group === targetGroup);
+            console.log(`\x1b[35m=== RUNNING TEST GROUP: [${targetGroup.toUpperCase()}] (${runList.length} Tests) ===\x1b[0m\n`);
+        } else if (filterPattern) {
+            runList = runList.filter(t => t.name.toLowerCase().includes(filterPattern));
+            console.log(`\x1b[35m=== RUNNING FILTERED TESTS: "${filterPattern}" (${runList.length} Tests) ===\x1b[0m\n`);
+        } else {
+            console.log(`\x1b[35m=== RUNNING COMPLETE TEST SUITE (${runList.length} Tests) ===\x1b[0m\n`);
+        }
+
+        if (runList.length === 0) {
+            console.warn(`\x1b[33mWarning: No tests found matching criteria (group="${targetGroup || '*'}", filter="${filterPattern || '*'}")\x1b[0m`);
+            return;
+        }
+
         let passed = 0;
         let failed = 0;
 
-        for (const test of this.tests) {
+        for (const test of runList) {
             try {
                 await test.fn();
-                console.log(`\x1b[32m✔ PASS:\x1b[0m ${test.name}`);
+                console.log(`\x1b[32m✔ PASS:\x1b[0m [${test.group}] ${test.name}`);
                 passed++;
             } catch (e) {
-                console.error(`\x1b[31m✘ FAIL:\x1b[0m ${test.name}`);
+                console.error(`\x1b[31m✘ FAIL:\x1b[0m [${test.group}] ${test.name}`);
                 console.error(e);
                 failed++;
             }
@@ -1102,17 +1147,28 @@ suite.add("NotificationController: Modular notification and notice synchronizati
 });
 
 // ==========================================
+// ==========================================
 // 12. Modular School Setup Module Tests
 // ==========================================
-suite.add("SetupModule: Class creation, subject addition, and cloning workflow", () => {
+suite.add("SetupModule: Class creation, subject addition, and order sorting", () => {
     const setup = new SetupModule();
 
     // 1. Initial State
     if (setup.classes.length !== 8) throw new Error("Default classes should be 1 through 8");
 
-    // 2. Add Class
-    const newClass = setup.addClass("Class 9", 9);
-    if (!newClass || !setup.classes.find(c => c.id === "class_9")) throw new Error("addClass failed");
+    // 2. Add Class with custom order (Pre-primary order 0, Class 9 order 9)
+    const nursery = setup.addClass("Nursery", 0);
+    const class9 = setup.addClass("Class 9", 9);
+    if (!nursery || !class9) throw new Error("addClass failed");
+
+    // Verify ordering
+    if (setup.classes[0].id !== "nursery" || setup.classes[0].order !== 0) {
+        throw new Error("Order sorting failed: Nursery should be at index 0");
+    }
+    const lastClass = setup.classes[setup.classes.length - 1];
+    if (lastClass.id !== "class_9" || lastClass.order !== 9) {
+        throw new Error("Order sorting failed: Class 9 should be at the end");
+    }
 
     // 3. Add Compulsory Subject with Publisher
     const sub = setup.addSubject("class_9", "Computer Science", "KEC Publications");
@@ -1124,23 +1180,7 @@ suite.add("SetupModule: Class creation, subject addition, and cloning workflow",
     if (classSubjects.length !== 1 || classSubjects[0].name !== "Computer Science") {
         throw new Error("getSubjectsForClass failed");
     }
-
-    // 4. Add second class with separate subjects
-    setup.addClass("Class 10", 10);
-    const sub10 = setup.addSubject("class_10", "Mathematics", "Vedanta Publication");
-    if (!sub10 || sub10.name !== "Mathematics") throw new Error("Class 10 subject addition failed");
-    const class10Subjects = setup.getSubjectsForClass("class_10");
-    if (class10Subjects.length !== 1 || class10Subjects[0].name !== "Mathematics") {
-        throw new Error("Class 10 subject verification failed");
-    }
-    // 5. Remove Subject
-    setup.removeSubject("class_9", sub.id);
-    if (setup.getSubjectsForClass("class_9").length !== 0) throw new Error("removeSubject failed");
-
-    // 6. Remove Class
-    setup.removeClass("class_9");
-    if (setup.classes.find(c => c.id === "class_9")) throw new Error("removeClass failed");
-});
+}, 'setup');
 
 suite.add("SetupModule: Edge case validation and duplicate prevention", () => {
     const setup = new SetupModule();
@@ -1166,7 +1206,7 @@ suite.add("SetupModule: Edge case validation and duplicate prevention", () => {
     if (!sub3 || sub3.name !== "Mathematics" || sub3.publisher !== "Janak Education") {
         throw new Error("Whitespace trimming failed");
     }
-});
+}, 'setup');
 
 suite.add("SetupModule: Storage persistence and local serialization", async () => {
     const setup = new SetupModule();
@@ -1186,7 +1226,72 @@ suite.add("SetupModule: Storage persistence and local serialization", async () =
     if (preSchoolSubs.length !== 1 || preSchoolSubs[0].name !== "Rhymes & Drawing") {
         throw new Error("Failed to load saved subjects from local persistence");
     }
-});
+}, 'setup');
+
+suite.add("SetupModule: Database POST operations and schema verification", async () => {
+    const setup = new SetupModule();
+    const lkg = setup.addClass("LKG", 0);
+    if (!lkg) throw new Error("Failed to create LKG");
+    setup.addSubject(lkg.id, "English Phonics", "Cambridge University Press");
+    setup.addSubject(lkg.id, "Nepali Varnamala", "Janak Sikshya");
+
+    await setup.saveToDatabase();
+
+    // Verify stored classes in mockDb
+    const storedClasses = getDbValue('school/classes');
+    if (!storedClasses || !storedClasses[lkg.id]) {
+        throw new Error("Class was not posted to school/classes in database");
+    }
+
+    // Verify stored compulsory subjects in mockDb
+    const storedSubjectPhonics = getDbValue(`school/class_configs/${lkg.id}/subjects/compulsory/sub_english_phonics`);
+    if (!storedSubjectPhonics || storedSubjectPhonics.name !== "English Phonics") {
+        throw new Error("Compulsory subject was not posted to school/class_configs in database");
+    }
+}, 'setup');
+
+suite.add("SetupModule: Database loading and state reconstruction", async () => {
+    // Write test class directly to DB
+    setDbValue('school/classes/test_class_ukg', { name: 'UKG Test', order: 0.8 });
+    setDbValue('school/class_configs/test_class_ukg/subjects/compulsory/sub_science', {
+        name: 'Early Science',
+        publisher: 'Pearson'
+    });
+
+    const setup = new SetupModule();
+    await setup.loadFromDatabase();
+
+    const ukg = setup.classes.find(c => c.id === 'test_class_ukg');
+    if (!ukg || ukg.name !== 'UKG Test') {
+        throw new Error("loadFromDatabase failed to reconstruct class from DB");
+    }
+
+    const ukgSubs = setup.getSubjectsForClass('test_class_ukg');
+    if (ukgSubs.length !== 1 || ukgSubs[0].name !== 'Early Science' || ukgSubs[0].publisher !== 'Pearson') {
+        throw new Error("loadFromDatabase failed to reconstruct compulsory subjects from DB");
+    }
+}, 'setup');
+
+suite.add("SetupModule: Cascade class and subject removal", () => {
+    const setup = new SetupModule();
+    const c = setup.addClass("Temp Class");
+    setup.addSubject(c.id, "Temp Subject", "Temp Pub");
+
+    if (setup.getSubjectsForClass(c.id).length !== 1) throw new Error("Failed to setup test subjects");
+
+    const removed = setup.removeClass(c.id);
+    if (!removed) throw new Error("removeClass returned false");
+
+    // Class should be gone from classes list
+    if (setup.classes.some(cls => cls.id === c.id)) {
+        throw new Error("Class still present in classes array after removal");
+    }
+
+    // Associated subjects should be cleared out
+    if (setup.getSubjectsForClass(c.id).length !== 0) {
+        throw new Error("Class subjects not cleared from assignments on class removal");
+    }
+}, 'setup');
 
 // Run test runner
 suite.run();

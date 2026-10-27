@@ -1,6 +1,7 @@
-// admin-setup.js - Core School Setup & Curriculum Module (Desktop Administration)
+// admin-setup.js - Core School Setup & Curriculum Module (Desktop + Mobile Responsive)
 
 let setupEngine = null;
+let currentMobileView = 'classes'; // 'classes' | 'subjects' for mobile screens
 
 async function initAdminSetup() {
     const container = document.getElementById('setup-engine-container');
@@ -35,29 +36,30 @@ function renderInitialLayout() {
 
     container.innerHTML = `
         <div class="space-y-4 max-w-6xl mx-auto">
-            <!-- Top Action Header (Inside App View) -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-gray-200 gap-3">
-                <div class="flex items-center gap-3">
-                    <button onclick="handleBackNavigation()" class="text-xs font-bold text-gray-600 hover:text-blue-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+            <!-- Top Action Header (Single clean navigation) -->
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200 gap-3">
+                <div class="flex items-center gap-2.5">
+                    <button onclick="handleBackNavigation()" class="text-gray-600 hover:text-blue-700 p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center text-sm font-bold" title="Back to Dashboard">
                         <i class="fas fa-arrow-left"></i>
-                        <span>Back to Dashboard</span>
+                        <span class="hidden sm:inline ml-1.5 text-xs">Dashboard</span>
                     </button>
                     <div>
-                        <h2 class="text-base font-black text-gray-800">Classes & Curriculum Setup</h2>
-                        <p class="text-[11px] text-gray-400">Manage school grades and compulsory subjects</p>
+                        <h2 class="text-base font-black text-gray-800 leading-tight">Classes & Curriculum</h2>
+                        <p class="text-[11px] text-gray-400 hidden sm:block">Configure school classes and compulsory subjects</p>
                     </div>
                 </div>
 
-                <button onclick="saveSetupConfig()" id="btn-save-setup" class="bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition-all flex items-center gap-2 active:scale-95">
+                <button onclick="saveSetupConfig()" id="btn-save-setup" class="bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5 active:scale-95 shrink-0">
                     <i class="fas fa-check-circle"></i>
                     <span>Save Changes</span>
                 </button>
             </div>
 
-            <!-- Two-Column Desktop Layout -->
+            <!-- Responsive Master-Detail Layout -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                <!-- Left Column: Classes Master List (4 Cols) -->
-                <div class="md:col-span-4 mobile-card !p-4 !m-0">
+                
+                <!-- Panel 1: Classes Master List -->
+                <div id="panel-classes" class="md:col-span-4 mobile-card !p-4 !m-0 ${currentMobileView === 'subjects' ? 'hidden md:block' : 'block'}">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="text-xs font-black uppercase tracking-wider text-gray-700">
                             Active Classes (<span id="classes-count">${setupEngine.classes.length}</span>)
@@ -76,11 +78,20 @@ function renderInitialLayout() {
                     <div id="classes-list-container" class="space-y-1.5 overflow-y-auto max-h-[500px] pr-0.5"></div>
                 </div>
 
-                <!-- Right Column: Subjects & Publications for Active Class (8 Cols) -->
-                <div class="md:col-span-8 mobile-card !p-4 !m-0">
-                    <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
+                <!-- Panel 2: Subjects & Publications for Selected Class -->
+                <div id="panel-subjects" class="md:col-span-8 mobile-card !p-4 !m-0 ${currentMobileView === 'classes' ? 'hidden md:block' : 'block'}">
+                    <!-- Mobile Back-to-Classes Navigation Bar (Mobile Only) -->
+                    <div class="md:hidden flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+                        <button onclick="switchMobileView('classes')" class="text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1.5 py-1 px-2.5 bg-blue-50 rounded-lg transition-colors">
+                            <i class="fas fa-chevron-left text-[10px]"></i>
+                            <span>All Classes</span>
+                        </button>
+                        <span id="mobile-class-badge" class="text-xs font-black text-gray-700"></span>
+                    </div>
+
+                    <div class="flex justify-between items-center pb-2.5 border-b border-gray-100 mb-3">
                         <div>
-                            <span class="text-[10px] font-black uppercase text-blue-700 tracking-wider">Curriculum Manager</span>
+                            <span class="text-[10px] font-black uppercase text-blue-700 tracking-wider">Compulsory Curriculum</span>
                             <h3 id="active-class-title" class="text-base font-black text-gray-800">Class Subjects</h3>
                         </div>
                     </div>
@@ -149,23 +160,24 @@ function renderClassesList() {
 function renderSubjectsList() {
     const subjectsContainer = document.getElementById('subjects-list-container');
     const titleEl = document.getElementById('active-class-title');
+    const badgeEl = document.getElementById('mobile-class-badge');
     if (!subjectsContainer || !setupEngine) return;
 
     const currentClass = setupEngine.classes.find(c => c.id === setupEngine.activeClassId);
     if (!currentClass) {
         if (titleEl) titleEl.textContent = "Class Subjects";
+        if (badgeEl) badgeEl.textContent = "";
         subjectsContainer.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs italic">Select or add a class first.</div>`;
         return;
     }
 
-    if (titleEl) {
-        titleEl.textContent = `${currentClass.name} - Compulsory Subjects`;
-    }
+    if (titleEl) titleEl.textContent = `${currentClass.name} - Subjects`;
+    if (badgeEl) badgeEl.textContent = currentClass.name;
 
     const subjects = setupEngine.getSubjectsForClass(currentClass.id);
     if (subjects.length === 0) {
         subjectsContainer.innerHTML = `
-            <div class="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl p-6">
+            <div class="text-center py-10 text-gray-400 border border-dashed border-gray-200 rounded-xl p-5">
                 <i class="fas fa-book-open text-2xl text-gray-300 mb-2"></i>
                 <p class="text-xs font-bold text-gray-600">No compulsory subjects configured for ${currentClass.name}</p>
                 <p class="text-[11px] text-gray-400 mt-0.5">Use the form above to add subjects for this class.</p>
@@ -191,10 +203,30 @@ function renderSubjectsList() {
 }
 
 function selectSetupClass(classId) {
-    if (!setupEngine || setupEngine.activeClassId === classId) return;
+    if (!setupEngine) return;
     setupEngine.activeClassId = classId;
     renderClassesList();
     renderSubjectsList();
+
+    // On mobile, automatically navigate into subjects view when a class is selected
+    if (window.innerWidth < 768) {
+        switchMobileView('subjects');
+    }
+}
+
+function switchMobileView(view) {
+    currentMobileView = view;
+    const panelClasses = document.getElementById('panel-classes');
+    const panelSubjects = document.getElementById('panel-subjects');
+    if (!panelClasses || !panelSubjects) return;
+
+    if (view === 'classes') {
+        panelClasses.classList.remove('hidden');
+        panelSubjects.classList.add('hidden');
+    } else {
+        panelClasses.classList.add('hidden');
+        panelSubjects.classList.remove('hidden');
+    }
 }
 
 function handleAddNewClass() {

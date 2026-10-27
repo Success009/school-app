@@ -49,10 +49,26 @@
    - Non-destructive DOM updates: Class switching and subject additions update localized DOM lists without whole-container reflashes.
    - Integrated in-app navigation with "Back to Dashboard" and "Save Changes".
 
-8. **Automated Headless Test Suite**:
-   - **37/37 unit tests passing** across client, server, setup, and offline modules (`npm test`).
-   - Complete test coverage for setup module: validation, whitespace trimming, duplicate rejection, and persistence.
-   - 4/4 standalone offline store tests passing (`node tests/offlineStore.test.js`).
+8. **Modular CLI Test Runner & Automated Verification**:
+   - **40/40 tests passing** in the accumulated test suite (`npm test`).
+   - CLI flags supported for isolated module testing:
+     - `node tests/runner.js --group=setup` (runs isolated setup module tests)
+     - `node tests/runner.js --list` (displays available module test groups)
+     - `node tests/runner.js --filter=<keyword>` (runs tests matching keyword)
+   - Setup Module test coverage:
+     - Class creation, order sorting (Nursery=0 to Class 10=10), and compulsory subject creation.
+     - Input validation, whitespace trimming, and duplicate class/subject rejection.
+     - Database POST schema verification (`school/classes/:id` and `school/class_configs/:id`).
+     - Database GET loading and state reconstruction.
+     - Cascade class and subject removal.
+     - Storage persistence and local serialization.
+
+9. **UI & Navigation Architecture**:
+   - **Single Unified Back Navigation**: Eliminated redundant duplicate buttons across all headers and content views.
+   - **Responsive Master-Detail Pattern**:
+     - On Desktop (>= 768px): Classes and Subjects panels display side-by-side simultaneously.
+     - On Mobile (< 768px): Dedicated Master-Detail view. Tap a class to slide into that class's subjects with a clean `← All Classes` arrow navigation.
+   - Integrated into Admin Dashboard at `adminRouter('schoolSetup')`.
 
 ---
 
