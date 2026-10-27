@@ -1125,15 +1125,14 @@ suite.add("SetupModule: Class creation, subject addition, and cloning workflow",
         throw new Error("getSubjectsForClass failed");
     }
 
-    // 4. Clone Subjects to another class
+    // 4. Add second class with separate subjects
     setup.addClass("Class 10", 10);
-    const clonedCount = setup.cloneSubjects("class_9", "class_10");
-    if (clonedCount !== 1) throw new Error("cloneSubjects count mismatch");
+    const sub10 = setup.addSubject("class_10", "Mathematics", "Vedanta Publication");
+    if (!sub10 || sub10.name !== "Mathematics") throw new Error("Class 10 subject addition failed");
     const class10Subjects = setup.getSubjectsForClass("class_10");
-    if (class10Subjects.length !== 1 || class10Subjects[0].name !== "Computer Science") {
-        throw new Error("cloneSubjects verification failed");
+    if (class10Subjects.length !== 1 || class10Subjects[0].name !== "Mathematics") {
+        throw new Error("Class 10 subject verification failed");
     }
-
     // 5. Remove Subject
     setup.removeSubject("class_9", sub.id);
     if (setup.getSubjectsForClass("class_9").length !== 0) throw new Error("removeSubject failed");
@@ -1141,6 +1140,52 @@ suite.add("SetupModule: Class creation, subject addition, and cloning workflow",
     // 6. Remove Class
     setup.removeClass("class_9");
     if (setup.classes.find(c => c.id === "class_9")) throw new Error("removeClass failed");
+});
+
+suite.add("SetupModule: Edge case validation and duplicate prevention", () => {
+    const setup = new SetupModule();
+
+    // 1. Rejects empty class names
+    if (setup.addClass("") !== null) throw new Error("Should reject empty class name");
+    if (setup.addClass("   ") !== null) throw new Error("Should reject whitespace class name");
+
+    // 2. Rejects duplicate class
+    const added1 = setup.addClass("Class 11");
+    if (!added1) throw new Error("Should allow new class");
+    const added2 = setup.addClass("Class 11");
+    if (added2 !== null) throw new Error("Should reject duplicate class");
+
+    // 3. Rejects duplicate subject in same class
+    const sub1 = setup.addSubject("class_11", "English", "Oxford");
+    if (!sub1) throw new Error("Should allow first subject");
+    const sub2 = setup.addSubject("class_11", "English", "Cambridge");
+    if (sub2 !== null) throw new Error("Should reject duplicate subject name in same class");
+
+    // 4. Trims whitespace properly
+    const sub3 = setup.addSubject("class_11", "  Mathematics  ", "  Janak Education  ");
+    if (!sub3 || sub3.name !== "Mathematics" || sub3.publisher !== "Janak Education") {
+        throw new Error("Whitespace trimming failed");
+    }
+});
+
+suite.add("SetupModule: Storage persistence and local serialization", async () => {
+    const setup = new SetupModule();
+    const addedClass = setup.addClass("Pre-School", 0);
+    setup.addSubject(addedClass.id, "Rhymes & Drawing", "Childcraft Books");
+
+    const saveResult = await setup.saveToDatabase();
+    if (!saveResult || !saveResult.success) throw new Error("saveToDatabase failed");
+
+    // Create fresh instance and load
+    const freshSetup = new SetupModule();
+    await freshSetup.loadFromDatabase();
+
+    const loadedPreSchool = freshSetup.classes.find(c => c.id === addedClass.id);
+    if (!loadedPreSchool) throw new Error("Failed to load saved class from local persistence");
+    const preSchoolSubs = freshSetup.getSubjectsForClass(addedClass.id);
+    if (preSchoolSubs.length !== 1 || preSchoolSubs[0].name !== "Rhymes & Drawing") {
+        throw new Error("Failed to load saved subjects from local persistence");
+    }
 });
 
 // Run test runner

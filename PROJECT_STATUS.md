@@ -36,25 +36,22 @@
    - In-app notices and broadcasts sent via admin or SMS broadcasts automatically mirror into the notification queue.
    - **Zero App Rebuilds Required**: All functional screens, dashboards, and logic are delivered directly via the web app (`https://school.success0.com.np`).
 
-6. **Modular School Setup Engine (Step 1 Foundation)**:
-   - Created `modules/setupModule.js` and responsive frontend `admin-setup.js` for desktop and mobile devices.
-   - Allows administrators to dynamically configure classes (e.g., Nursery to Class 10).
-   - Manages compulsory class subjects and book publication details without overcomplicated optional tiers.
-   - Includes 1-click subject cloning between classes to rapidly configure curricula.
-   - Isolated unit tests verifying class creation, subject addition, removal, and cloning.
+6. **Modular Architecture & Environment Separation**:
+   - **Administrator Portal (`admin.html`)**: Exclusively Desktop view for school office workstations. Features high-density clean card views, non-destructive DOM updates, and rapid keyboard entry.
+   - **Teacher Portal (`teacher.html`)**: Exclusively Mobile view for faculty smartphones (attendance, marks, homework).
+   - **Parent Portal (`parent.html`)**: Exclusively Mobile view for parent smartphones (report cards, announcements, notices).
+   - **Component Modularity**: Each subsystem is isolated into a standalone ES module under `modules/` with pure testable business logic and zero page re-renders.
 
-7. **Production Obfuscation & Comment Stripping (`build-prod.js`)**:
-   - Automated Terser-based production pipeline removes all code comments, minifies identifiers, and obfuscates scripts in `dist/`.
-   - Leaves development code unminified and readable for rapid debugging during development.
+7. **Core School Setup Engine (`modules/setupModule.js` & `admin-setup.js`)**:
+   - Streamlined, focused class configuration (Classes 1 to 8 by default, custom grades like Nursery, Class 9).
+   - Compulsory subjects configuration with optional book/publisher details.
+   - Native application design language (`style.css`, `blue-700`, `.mobile-card`, clean typography).
+   - Non-destructive DOM updates: Class switching and subject additions update localized DOM lists without whole-container reflashes.
+   - Integrated in-app navigation with "Back to Dashboard" and "Save Changes".
 
-8. **Google Play Store Compliance**:
-   - Packaged with `targetSdk 36` and `minSdk 24`.
-   - Zero camera / dangerous permissions declared.
-   - Live privacy policy deployed at `https://school.success0.com.np/privacy.html`.
-   - Application ID aligned to `com.udayashree.success0`.
-
-9. **Automated Test Suite**:
-   - **35/35 unit tests passing** across client, server, setup, and offline modules (`npm test`).
+8. **Automated Headless Test Suite**:
+   - **37/37 unit tests passing** across client, server, setup, and offline modules (`npm test`).
+   - Complete test coverage for setup module: validation, whitespace trimming, duplicate rejection, and persistence.
    - 4/4 standalone offline store tests passing (`node tests/offlineStore.test.js`).
 
 ---

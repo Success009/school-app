@@ -1,10 +1,8 @@
-// modules/setupModule.js - Modular School Setup Engine (Classes & Compulsory Subjects)
+// modules/setupModule.js - Isolated School Setup Engine (Classes & Compulsory Subjects)
 import { DatabaseService } from './db.js';
 
 export class SetupModule {
-    constructor(containerId = null, options = {}) {
-        this.containerId = containerId;
-        this.step = 1; // 1: Classes, 2: Class Subjects & Books
+    constructor(options = {}) {
         this.classes = options.classes || [
             { id: '1', name: 'Class 1', order: 1 },
             { id: '2', name: 'Class 2', order: 2 },
@@ -21,10 +19,10 @@ export class SetupModule {
 
     // Class Operations
     addClass(name, order = null) {
-        if (!name || !name.trim()) return null;
+        if (!name || typeof name !== 'string' || !name.trim()) return null;
         const cleanName = name.trim();
-        const id = cleanName.toLowerCase().replace(/\s+/g, '_');
-        if (this.classes.some(c => c.id === id)) return null;
+        const id = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (!id || this.classes.some(c => c.id === id)) return null;
 
         const newClass = {
             id,
@@ -38,21 +36,25 @@ export class SetupModule {
     }
 
     removeClass(classId) {
+        if (!classId) return false;
+        const exists = this.classes.some(c => c.id === classId);
+        if (!exists) return false;
         this.classes = this.classes.filter(c => c.id !== classId);
         delete this.assignments[classId];
         if (this.activeClassId === classId) {
             this.activeClassId = this.classes.length > 0 ? this.classes[0].id : null;
         }
+        return true;
     }
 
     // Subject Operations
     addSubject(classId, name, publisher = '') {
-        if (!classId || !name || !name.trim()) return null;
+        if (!classId || !name || typeof name !== 'string' || !name.trim()) return null;
         if (!this.assignments[classId]) this.assignments[classId] = [];
 
         const cleanName = name.trim();
-        const subId = 'sub_' + cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-        
+        const subId = 'sub_' + cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
         // Prevent duplicate subject in the same class
         if (this.assignments[classId].some(s => s.name.toLowerCase() === cleanName.toLowerCase())) {
             return null;
@@ -61,53 +63,50 @@ export class SetupModule {
         const newSub = {
             id: subId,
             name: cleanName,
-            publisher: (publisher || '').trim()
+            publisher: typeof publisher === 'string' ? publisher.trim() : ''
         };
         this.assignments[classId].push(newSub);
         return newSub;
     }
 
     removeSubject(classId, subjectId) {
-        if (!this.assignments[classId]) return;
+        if (!classId || !subjectId || !this.assignments[classId]) return false;
+        const initialLen = this.assignments[classId].length;
         this.assignments[classId] = this.assignments[classId].filter(s => s.id !== subjectId);
+        return this.assignments[classId].length < initialLen;
     }
 
     getSubjectsForClass(classId) {
         return this.assignments[classId] || [];
     }
 
-    // Clone subjects from one class to another (e.g. Class 1 subjects copied to Class 2)
-    cloneSubjects(sourceClassId, targetClassId) {
-        if (!this.assignments[sourceClassId] || !this.assignments[targetClassId]) return 0;
-        const sourceSubs = this.assignments[sourceClassId];
-        let addedCount = 0;
-        for (const sub of sourceSubs) {
-            if (!this.assignments[targetClassId].some(s => s.name.toLowerCase() === sub.name.toLowerCase())) {
-                this.assignments[targetClassId].push({
-                    id: sub.id,
-                    name: sub.name,
-                    publisher: sub.publisher
-                });
-                addedCount++;
-            }
-        }
-        return addedCount;
-    }
-
     // Async Database Sync
     async loadFromDatabase() {
         try {
-            const dbClasses = await DatabaseService.getClasses();
-            if (dbClasses && dbClasses.length > 0) {
-                this.classes = dbClasses;
+            if (typeof localStorage !== 'undefined') {
+                const cachedClasses = localStorage.getItem('school_setup_classes');
+                const cachedAssignments = localStorage.getItem('school_setup_assignments');
+                if (cachedClasses) this.classes = JSON.parse(cachedClasses);
+                if (cachedAssignments) this.assignments = JSON.parse(cachedAssignments);
+                if (this.classes.length > 0 && !this.activeClassId) {
+                    this.activeClassId = this.classes[0].id;
+                }
             }
-            // Load subjects for each class
-            for (const c of this.classes) {
-                const cfg = await DatabaseService.getClassConfigs(c.id);
-                if (cfg && cfg.subjects && cfg.subjects.compulsory) {
-                    this.assignments[c.id] = Object.entries(cfg.subjects.compulsory).map(([id, val]) => {
-                        return typeof val === 'object' && val !== null ? { id, ...val } : { id, name: val, publisher: '' };
-                    });
+        } catch (_) {}
+
+        try {
+            if (typeof DatabaseService !== 'undefined' && DatabaseService && DatabaseService.getClasses) {
+                const dbClasses = await DatabaseService.getClasses();
+                if (dbClasses && dbClasses.length > 0) {
+                    this.classes = dbClasses;
+                }
+                for (const c of this.classes) {
+                    const cfg = await DatabaseService.getClassConfigs(c.id);
+                    if (cfg && cfg.subjects && cfg.subjects.compulsory) {
+                        this.assignments[c.id] = Object.entries(cfg.subjects.compulsory).map(([id, val]) => {
+                            return typeof val === 'object' && val !== null ? { id, ...val } : { id, name: val, publisher: '' };
+                        });
+                    }
                 }
             }
         } catch (e) {
@@ -116,15 +115,24 @@ export class SetupModule {
     }
 
     async saveToDatabase() {
-        for (const c of this.classes) {
-            await DatabaseService.saveClass(c.id, { name: c.name, order: c.order });
-            const subs = this.assignments[c.id] || [];
-            const subMap = {};
-            for (const s of subs) {
-                subMap[s.id] = { name: s.name, publisher: s.publisher || '' };
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('school_setup_classes', JSON.stringify(this.classes));
+                localStorage.setItem('school_setup_assignments', JSON.stringify(this.assignments));
             }
-            await DatabaseService.saveClassSubject(c.id, 'all', subMap);
+            if (typeof DatabaseService !== 'undefined' && DatabaseService && DatabaseService.saveClass) {
+                for (const c of this.classes) {
+                    await DatabaseService.saveClass(c.id, { name: c.name, order: c.order });
+                    const subs = this.assignments[c.id] || [];
+                    for (const s of subs) {
+                        await DatabaseService.saveClassSubject(c.id, s.id, { name: s.name, publisher: s.publisher || '' });
+                    }
+                }
+            }
+            return { success: true };
+        } catch (e) {
+            console.warn("SetupModule: saved locally, remote offline:", e.message);
+            return { success: true, localOnly: true, error: e.message };
         }
-        return { success: true };
     }
 }
