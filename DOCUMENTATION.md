@@ -44,9 +44,15 @@ The Udayashree School App is a lightweight, responsive management system designe
 │   ├── api.js                   # APIService (HTTP methods, uploads, offline handling)
 │   ├── auth.js                  # AuthService (Sessions, OTP, stamps, role guards)
 │   ├── db.js                    # DatabaseService (Comprehensive Data Access Layer)
+│   ├── setupModule.js           # SetupModule (Dynamic class & subject configurations)
+│   ├── facultyAddModule.js      # FacultyAddModule (Single-responsibility faculty onboarding)
+│   ├── studentAddModule.js      # StudentAddModule (Single-responsibility student onboarding)
+│   ├── studentViewModule.js     # StudentViewModule (Single-responsibility student directory & roster)
+│   ├── teacherViewModule.js     # TeacherViewModule (Single-responsibility faculty directory & workload)
+│   ├── studentEditModule.js     # StudentEditModule (Single-responsibility student profile editor & login sync)
 │   └── package.json             # ES module declaration
 ├── tests/
-│   ├── runner.js                # Complete unit test suite (27 suites / all functions)
+│   ├── runner.js                # Complete unit test suite (68 test suites / all modular systems)
 │   └── package.json             # Test configuration
 ├── uploads/                     # Upload directory for student/teacher photo assets
 ├── admin.html                   # Admin dashboard portal
@@ -152,6 +158,19 @@ Users do not need to re-authenticate every time they launch or refresh the appli
 - Complete DAL covering students, teachers, login mappings, exam windows, marks, attendance, bell schedules, notices, tickets, and feedback.
 
 ---
+
+
+### 5.4 Faculty Architecture & Single-Responsibility Modules
+To eliminate complex monolithic scripts and prevent cross-feature regressions, faculty management is divided into decoupled, single-responsibility modules:
+1. **Faculty Onboarding Module (`modules/facultyAddModule.js` & `admin-faculty-add.js`)**:
+   - Strictly handles registering new faculty members and configuring dynamic class-hierarchical workloads.
+   - **Zero Hardcoding**: Classes and curriculum subjects are loaded dynamically from `school/classes` and `school/class_configs`.
+   - **Identity & Verification**: Includes zero-latency portrait photo upload with preview (falling back to lightweight SVG avatar), National ID / Citizenship number recording, verification document upload (PDF/Image scan), and automated verification status tracking.
+   - **Isolated UI**: Excludes rosters, batch syncing, or edit controls to ensure pure focus on onboarding.
+2. **Faculty Management / Directory Module**:
+   - Manages searching, filtering, and viewing the active faculty roster.
+3. **Faculty Profile Editor Module**:
+   - Handles updating existing faculty records, status modifications, and document uploads.
 
 ## 6. How to Review and Run the Project
 

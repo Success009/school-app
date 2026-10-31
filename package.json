@@ -6,7 +6,15 @@
   "scripts": {
     "start": "node server.js",
     "test": "node tests/runner.js",
-    "build:prod": "node build-prod.js"
+    "build:prod": "node build-prod.js",
+    "sync:server-data": "scp -o StrictHostKeyChecking=no root@100.89.137.102:/home/bb/school-app-server/db.json db.json",
+        "test:server-data": "node tests/runner.js --server-data",
+        "test:faculty-add": "node tests/runner.js --group=faculty-add --server-data",
+    "test:student-add": "node tests/runner.js --group=student-add --server-data",
+        "test:student-view": "node tests/runner.js --group=student-view --server-data",
+        "test:teacher-view": "node tests/runner.js --group=teacher-view --server-data",
+    "test:student-edit": "node tests/runner.js --group=student-edit --server-data",
+    "test:teacher-edit": "node tests/runner.js --group=teacher-edit --server-data"
   },
   "dependencies": {
     "cors": "^2.8.5",

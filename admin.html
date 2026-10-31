@@ -30,11 +30,31 @@
 
     <!-- Logic scripts -->
     <script src="shared.js?v=4.3"></script>
-        <script type="module">
+    <script type="module">
         import { SetupModule } from './modules/setupModule.js';
+        import { FacultyAddModule, DEFAULT_AVATAR } from './modules/facultyAddModule.js';
+        import { StudentAddModule, DEFAULT_STUDENT_AVATAR } from './modules/studentAddModule.js';
+        import { StudentViewModule } from './modules/studentViewModule.js';
+        import { TeacherViewModule } from './modules/teacherViewModule.js';
+        import { StudentEditModule } from './modules/studentEditModule.js';
+        import { TeacherEditModule } from './modules/teacherEditModule.js';
         window.SetupModule = SetupModule;
+        window.FacultyAddModule = FacultyAddModule;
+        window.DEFAULT_AVATAR = DEFAULT_AVATAR;
+        window.StudentAddModule = StudentAddModule;
+        window.DEFAULT_STUDENT_AVATAR = DEFAULT_STUDENT_AVATAR;
+        window.StudentViewModule = StudentViewModule;
+        window.TeacherViewModule = TeacherViewModule;
+        window.StudentEditModule = StudentEditModule;
+        window.TeacherEditModule = TeacherEditModule;
     </script>
     <script src="admin-setup.js?v=5.0"></script>
+    <script src="admin-faculty-add.js?v=1.0"></script>
+    <script src="admin-student-add.js?v=1.0"></script>
+    <script src="admin-student-view.js?v=1.0"></script>
+    <script src="admin-teacher-view.js?v=1.0"></script>
+    <script src="admin-student-edit.js?v=1.0"></script>
+    <script src="admin-teacher-edit.js?v=1.0"></script>
     <script src="admin-subjects.js?v=4.3"></script>
     <script src="admin-students.js?v=4.3"></script>
     <script src="admin-teachers.js?v=4.3"></script>

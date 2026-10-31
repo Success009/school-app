@@ -179,42 +179,48 @@ const adminViews = {
     viewStudents: {
         title: 'Students Directory',
         render: () => {
-            setTimeout(initializeDirectoryFilters, 50);
-            return `
-            <div class="mb-4 space-y-3">
-                <div class="relative">
-                    <input type="text" onkeyup="filterList(this, 'student-list')" class="w-full p-4 bg-white border border-gray-100 rounded-xl shadow-sm outline-none pl-12 text-sm" placeholder="Search students by name...">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-bold"></i>
-                </div>
-                <div class="mobile-card flex items-center justify-between !py-2 bg-white">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-tight">Level</label>
-                    <select id="filter-level" onchange="loadStudentsList()" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-black outline-none w-48 text-right">
-                        <option value="all">ALL CLASSES</option>
-                    </select>
-                    <select id="filter-section" class="hidden">
-                        <option value="all" selected>all</option>
-                    </select>
-                </div>
-            </div>
-            <div id="student-list" class="space-y-3">
-                <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading Directory...</div>
-            </div>
-            <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Panel
-            </button>
-            `;
+            setTimeout(() => {
+                if (typeof initStudentView === 'function') {
+                    initStudentView('student-view-container');
+                }
+            }, 50);
+            return `<div id="student-view-container"></div>`;
         }
     },
     viewTeachers: {
         title: 'Faculty Directory',
-        render: () => `
-            <div id="teacher-list-container" class="space-y-3 pb-10">
-                <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading Faculty...</div>
-            </div>
-            <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Panel
-            </button>
-        `
+        render: () => {
+            setTimeout(() => {
+                if (typeof initTeacherView === 'function') {
+                    initTeacherView('teacher-view-container');
+                }
+            }, 50);
+            return `<div id="teacher-view-container"></div>`;
+        }
+    },
+    editStudent: {
+        title: 'Edit Student Profile',
+        render: (params = {}) => {
+            const sid = (params && params.id) ? params.id : '';
+            setTimeout(() => {
+                if (typeof initStudentEdit === 'function') {
+                    initStudentEdit('student-edit-container', sid);
+                }
+            }, 50);
+            return `<div id="student-edit-container"></div>`;
+        }
+    },
+    editTeacher: {
+        title: 'Edit Faculty Profile',
+        render: (params = {}) => {
+            const tid = (params && params.id) ? params.id : '';
+            setTimeout(() => {
+                if (typeof initTeacherEdit === 'function') {
+                    initTeacherEdit('teacher-edit-container', tid);
+                }
+            }, 50);
+            return `<div id="teacher-edit-container"></div>`;
+        }
     },
     studentDetails: {
         title: 'Details View',
@@ -359,388 +365,25 @@ const adminViews = {
         }
     },
     addStudent: {
-        title: 'Register Student',
+        title: 'Add Student',
         render: () => {
-            setTimeout(async () => {
-                const { classes, sections } = await getSchoolMetadata();
-                const clsSel = document.getElementById('std-class-lvl');
-                if (clsSel) classes.forEach(c => clsSel.add(new Option(`Class ${c}`, c)));
+            setTimeout(() => {
+                if (typeof initStudentAdd === 'function') {
+                    initStudentAdd('student-add-container');
+                }
             }, 50);
-            return `
-            <div class="mb-6">
-                <h2 class="text-xl font-black text-gray-800">Student Enrollment</h2>
-                <p class="text-xs text-gray-500 mt-1">Onboard a new student with complete personal, family, address, and academic records.</p>
-            </div>
-            
-            <div class="space-y-6 pb-16">
-                <!-- Section 1: Personal Details -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-blue-600 mb-3 tracking-wider">1. Student Personal Details</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Student Photo</label>
-                            <div class="flex items-center gap-4">
-                                <div id="std-photo-preview" class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 overflow-hidden border-2 border-dashed border-gray-200">
-                                    <i class="fas fa-camera text-xl"></i>
-                                </div>
-                                <input type="file" id="std-photo-input" class="hidden" accept="image/*" onchange="previewImage(this, 'std-photo-preview')">
-                                <button onclick="document.getElementById('std-photo-input').click()" class="bg-gray-100 px-4 py-2 rounded-lg text-xs font-bold text-gray-600">Select Photo</button>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">First Name</label>
-                                <input type="text" id="std-fname" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="Aarav">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Middle Name</label>
-                                <input type="text" id="std-mname" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="Chandra">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Last Name</label>
-                                <input type="text" id="std-lname" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="Sharma">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gender</label>
-                                <select id="std-gender" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs">
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth (BS)</label>
-                                <input type="text" id="std-dob" placeholder="YYYY-MM-DD (e.g. 2075-04-12)" oninput="calculateNepaliAgeOnboarding()" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Student Age (Auto-calculated)</label>
-                                <input type="number" id="std-age" readonly class="w-full p-2.5 bg-gray-100 border border-gray-100 rounded-xl outline-none text-xs cursor-not-allowed" placeholder="Calculated Age">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Blood Group</label>
-                                <select id="std-blood" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs">
-                                    <option value="Unknown">Unknown</option>
-                                    <option value="A+">A+</option>
-                                    <option value="A-">A-</option>
-                                    <option value="B+">B+</option>
-                                    <option value="B-">B-</option>
-                                    <option value="O+">O+</option>
-                                    <option value="O-">O-</option>
-                                    <option value="AB+">AB+</option>
-                                    <option value="AB-">AB-</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 2: Family & Contact Details -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-blue-600 mb-3 tracking-wider">2. Family & Contact Details</h3>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Father's Name</label>
-                                <input type="text" id="std-father" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="Ramesh Sharma">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Mother's Name</label>
-                                <input type="text" id="std-mother" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="Sita Sharma">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent Mobiles (Comma separated for multiple logins)</label>
-                            <p class="text-[9px] text-gray-400 mb-2">Each phone number entered will have access to log into the parent account.</p>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">+977</span>
-                                <input type="tel" id="std-phone" class="w-full p-2.5 pl-12 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="98XXXXXXXX, 98YYYYYYYY">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent Email</label>
-                            <input type="email" id="std-email" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" placeholder="ramesh.sharma@gmail.com">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 3: Address Details -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-blue-600 mb-3 tracking-wider">3. Address Information</h3>
-                    <div class="space-y-4">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">A. Current Address</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="std-curr-street" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="Street/Tole">
-                            <input type="text" id="std-curr-city" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="City">
-                            <input type="text" id="std-curr-district" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="District">
-                        </div>
-
-                        <div class="flex items-center gap-2 py-1">
-                            <input type="checkbox" id="std-sync-addr" onchange="syncStudentAddress(this)" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <label for="std-sync-addr" class="text-[10px] font-bold text-blue-700 uppercase cursor-pointer">Permanent address same as current</label>
-                        </div>
-
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">B. Permanent Address</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="std-perm-street" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="Street/Tole">
-                            <input type="text" id="std-perm-city" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="City">
-                            <input type="text" id="std-perm-district" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="District">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 4: Academic & Verified Documents -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-blue-600 mb-3 tracking-wider">4. Academic & Document Records</h3>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Level (Class 1-8)</label>
-                                <select id="std-class-lvl" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold">
-                                    <option value="">- Select -</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Join Year</label>
-                                <input type="number" id="std-join" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs" value="2026">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Birth Certificate</label>
-                                <input type="file" id="std-birth-input" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" accept="image/*">
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Transfer Certificate</label>
-                                <input type="file" id="std-transfer-input" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" accept="image/*">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button onclick="saveStudent()" class="w-full bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-                    <i class="fas fa-save mr-2"></i> Register and Generate ID
-                </button>
-                <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-2 text-xs">
-                    Cancel
-                </button>
-            </div>
-            `;
+            return `<div id="student-add-container"></div>`;
         }
     },
-    addTeacher: {
+        addTeacher: {
         title: 'Add Teacher',
         render: () => {
-            return `
-            <div class="mb-6">
-                <h2 class="text-xl font-black text-gray-800">Faculty Registration</h2>
-                <p class="text-xs text-gray-500 mt-1">Register a new teacher and capture complete credentials, qualifications, and official verification details.</p>
-            </div>
-            
-            <div class="space-y-6 pb-16">
-                <!-- Section 1: Personal Details -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">1. Teacher Personal Details</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Profile Photo</label>
-                            <div class="flex items-center gap-4">
-                                <div id="tch-photo-preview" class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 overflow-hidden border-2 border-dashed border-gray-200">
-                                    <i class="fas fa-camera text-xl"></i>
-                                </div>
-                                <input type="file" id="tch-photo-input" class="hidden" accept="image/*" onchange="previewImage(this, 'tch-photo-preview')">
-                                <button onclick="document.getElementById('tch-photo-input').click()" class="bg-gray-100 px-4 py-2 rounded-lg text-xs font-bold text-gray-600">Select Photo</button>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">First Name</label>
-                                <input type="text" id="tch-fname" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="Sunita">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Middle Name</label>
-                                <input type="text" id="tch-mname" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="Kumari">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Last Name</label>
-                                <input type="text" id="tch-lname" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="Rai">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gender</label>
-                                <select id="tch-gender" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
-                                    <option value="Female">Female</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth (BS)</label>
-                                <input type="text" id="tch-dob" placeholder="YYYY-MM-DD" class="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
-                            </div>
-    
-
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Blood Group</label>
-                            <select id="tch-blood" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
-                                <option value="Unknown">Unknown</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 2: Contact Details -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">2. Contact Details</h3>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Primary Mobile (Login)</label>
-                                <input type="tel" id="tch-phone" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="98XXXXXXXX">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Secondary Mobile</label>
-                                <input type="tel" id="tch-phone2" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="98YYYYYYYY">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Email Address</label>
-                            <input type="email" id="tch-email" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="sunita.rai@school.edu">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 3: Address Details -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">3. Address Information</h3>
-                    <div class="space-y-4">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">A. Current Address</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="tch-curr-street" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="Street/Tole">
-                            <input type="text" id="tch-curr-city" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="City">
-                            <input type="text" id="tch-curr-district" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="District">
-                        </div>
-
-                        <div class="flex items-center gap-2 py-1">
-                            <input type="checkbox" id="tch-sync-addr" onchange="syncTeacherAddress(this)" class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                            <label for="tch-sync-addr" class="text-[10px] font-bold text-purple-700 uppercase cursor-pointer">Permanent address same as current</label>
-                        </div>
-
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">B. Permanent Address</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="tch-perm-street" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="Street/Tole">
-                            <input type="text" id="tch-perm-city" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="City">
-                            <input type="text" id="tch-perm-district" class="p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs" placeholder="District">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 4: Professional Qualifications & ID proof -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">4. Professional & Verifiable Records</h3>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Highest Qualification / Degree</label>
-                                <input type="text" id="tch-qualification" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="Master of Science (Math)">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Experience Years</label>
-                                <input type="number" id="tch-experience" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. 5">
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-wider">Verification Document Vault</label>
-                                <button onclick="addDocumentRow('tch-doc-vault')" class="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">
-                                    <i class="fas fa-plus-circle mr-1"></i> Add Document
-                                </button>
-                            </div>
-                            <div id="tch-doc-vault" class="space-y-3">
-                                <div class="doc-row grid grid-cols-12 gap-2 items-end">
-                                    <div class="col-span-5">
-                                        <label class="text-[8px] font-black text-gray-300 uppercase ml-1">Label</label>
-                                        <input type="text" class="doc-label w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold outline-none" value="Citizenship Card">
-                                    </div>
-                                    <div class="col-span-7">
-                                        <input type="file" class="doc-file w-full text-[10px] text-gray-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-purple-600 file:text-white" accept="image/*">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 5: Assignments -->
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-purple-600 mb-3 tracking-wider">5. Assigned Academic Workload & Hierarchy</h3>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Assigned Classes (e.g. 1, 2, 3)</label>
-                                <input type="text" id="tch-classes" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="1, 2, 3">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Primary Subjects</label>
-                                <input type="text" id="tch-subjects" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="Math, Science">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Professional Title</label>
-                                <input type="text" id="tch-title" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. Faculty Member, Principal" value="Faculty Member">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Sort Order (Hierarchy)</label>
-                                <input type="number" id="tch-sortOrder" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs" placeholder="e.g. 1 for Principal, 10 for regular" value="10">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Class Teacher Of</label>
-                            <select id="tch-classTeacherOf" class="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs">
-                                <option value="none">None</option>
-                                <option value="1">Class 1</option>
-                                <option value="2">Class 2</option>
-                                <option value="3">Class 3</option>
-                                <option value="4">Class 4</option>
-                                <option value="5">Class 5</option>
-                                <option value="6">Class 6</option>
-                                <option value="7">Class 7</option>
-                                <option value="8">Class 8</option>
-                            </select>
-                        </div>
-                </div>
-
-                <button onclick="saveTeacher()" class="w-full bg-purple-700 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-                    <i class="fas fa-user-check mr-2"></i> Register and Onboard Faculty
-                </button>
-                <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-2 text-xs">
-                    Cancel
-                </button>
-            </div>
-            `;
+            setTimeout(() => {
+                if (typeof initFacultyAdd === 'function') {
+                    initFacultyAdd();
+                }
+            }, 50);
+            return `<div id="faculty-add-container"></div>`;
         }
     },
     sendNotice: {
@@ -825,14 +468,19 @@ const adminViews = {
     }
 };
 
-function adminRouter(viewName) {
+function adminRouter(viewName, params = {}) {
     const view = adminViews[viewName] || adminViews.dashboard;
-    const backAction = (viewName !== 'dashboard') ? () => adminRouter('dashboard') : null;
-    
+    let backAction = (viewName !== 'dashboard') ? () => adminRouter('dashboard') : null;
+    if (viewName === 'editStudent') {
+        backAction = () => adminRouter('viewStudents');
+    } else if (viewName === 'editTeacher') {
+        backAction = () => adminRouter('viewTeachers');
+    }
+
     renderHeader(view.title, backAction);
     triggerViewTransition();
 
-    document.getElementById('main-content').innerHTML = view.render();
+    document.getElementById('main-content').innerHTML = typeof view.render === 'function' ? view.render(params) : view.render;
 
     db.ref('school/students').off();
     db.ref('school/teachers').off();
@@ -849,12 +497,20 @@ function adminRouter(viewName) {
         loadAdminNotices();
     }
 
-    if (viewName === 'viewStudents') {
-        loadStudentsList();
+        if (viewName === 'viewStudents') {
+        if (typeof initStudentView === 'function') {
+            initStudentView('student-view-container');
+        } else {
+            loadStudentsList();
+        }
     }
 
     if (viewName === 'viewTeachers') {
-        loadTeachersList();
+        if (typeof initTeacherView === 'function') {
+            initTeacherView('teacher-view-container');
+        } else {
+            loadTeachersList();
+        }
     }
 
     if (viewName === 'sendNotice') {

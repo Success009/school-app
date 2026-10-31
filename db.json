@@ -4,14 +4,231 @@
       "9765954850": {
         "name": "Super Admin",
         "role": "admin"
+      },
+      "9809248510": {
+        "name": "Super Admin",
+        "role": "admin"
       }
     },
-    "students": {},
-    "teachers": {},
+    "students": {
+      "US-2083-0001": {
+        "id": "US-2083-0001",
+        "name": {
+          "first": "Aarav",
+          "middle": "Chandra",
+          "last": "Sharma"
+        },
+        "class": "1",
+        "section": "General",
+        "roll": "01",
+        "gender": "male",
+        "dob": "2074-05-12",
+        "age": "9",
+        "bloodGroup": "O+",
+        "fatherName": "Ramesh Sharma",
+        "motherName": "Sita Devi Sharma",
+        "parentEmail": "ramesh.sharma@gmail.com",
+        "phones": [
+          "9845212500"
+        ],
+        "phone": "9845212500",
+        "address": {
+          "current": {
+            "street": "Ward 4, Tole Marg",
+            "city": "Damak",
+            "district": "Jhapa"
+          },
+          "permanent": {
+            "street": "Ward 4, Tole Marg",
+            "city": "Damak",
+            "district": "Jhapa"
+          }
+        },
+        "photo": "/uploads/student-aarav.jpg",
+        "documents": [
+          {
+            "id": "doc_birth_01",
+            "name": "Birth Certificate - Aarav",
+            "type": "Birth Certificate",
+            "url": "/uploads/doc-birth-aarav.pdf",
+            "size": 45200,
+            "uploadedAt": 1710000000000
+          },
+          {
+            "id": "doc_marks_01",
+            "name": "Nursery Progress Card",
+            "type": "Previous Marksheet",
+            "url": "/uploads/doc-marksheet-aarav.pdf",
+            "size": 68100,
+            "uploadedAt": 1710000000000
+          },
+          {
+            "id": "doc_cit_01",
+            "name": "Citizenship Card - Ramesh Sharma",
+            "type": "Parent Citizenship",
+            "url": "/uploads/doc-citizenship-father.pdf",
+            "size": 82400,
+            "uploadedAt": 1710000000000
+          }
+        ],
+        "birthCertificate": "/uploads/doc-birth-aarav.pdf",
+        "transferCertificate": "/uploads/doc-marksheet-aarav.pdf",
+        "academic": {
+          "subjects": [
+            "Play &amp; Activity",
+            "Fun &amp; Games",
+            "Basic Math"
+          ],
+          "session": "2083"
+        },
+        "joinYear": "2083",
+        "status": "active",
+        "createdAt": 1710000000000,
+        "updatedAt": 1793335502072
+      },
+      "US-2083-0002": {
+        "id": "US-2083-0002",
+        "name": {
+          "first": "Pooja",
+          "middle": "",
+          "last": "Sharma"
+        },
+        "gender": "female",
+        "dob": "2076-02-18",
+        "age": "7",
+        "bloodGroup": "B+",
+        "class": "2",
+        "section": "General",
+        "roll": "01",
+        "joinYear": "2083",
+        "fatherName": "Ramesh Sharma",
+        "motherName": "Sita Sharma",
+        "phone": "9845212550",
+        "parentEmail": "sita.sharma@gmail.com",
+        "address": {
+          "current": {
+            "street": "Ward 4, Tole Marg",
+            "city": "Damak",
+            "district": "Jhapa"
+          },
+          "permanent": {
+            "street": "Ward 4, Tole Marg",
+            "city": "Damak",
+            "district": "Jhapa"
+          }
+        },
+        "photo": "/uploads/student-pooja.jpg",
+        "birthCertificate": "/uploads/doc-birth-pooja.pdf",
+        "transferCertificate": "N/A",
+        "documents": [
+          {
+            "id": "doc_birth_02",
+            "name": "Birth Certificate - Pooja",
+            "type": "Birth Certificate",
+            "url": "/uploads/doc-birth-pooja.pdf",
+            "size": 51200,
+            "uploadedAt": 1710000000000
+          },
+          {
+            "id": "doc_med_02",
+            "name": "Immunization Card",
+            "type": "Medical Record",
+            "url": "/uploads/doc-medical-pooja.pdf",
+            "size": 39400,
+            "uploadedAt": 1710000000000
+          }
+        ],
+        "academic": {
+          "subjects": [
+            "General Science",
+            "Math",
+            "English Phonics",
+            "Creative Drawing"
+          ],
+          "session": "2083"
+        },
+        "createdAt": 1710000000000
+      }
+    },
+    "teachers": {
+      "TEA-0218": {
+        "id": "TEA-0218",
+        "name": {
+          "first": "Santosh",
+          "middle": "Kumar",
+          "last": "Adhikari"
+        },
+        "professionalTitle": "Senior Faculty & Class Teacher",
+        "phone": "9865000218",
+        "email": "santosh.adhikari@school.edu.np",
+        "gender": "male",
+        "bloodGroup": "A+",
+        "qualification": "M.Ed. Curriculum & Mathematics",
+        "experience": "8 Years",
+        "classTeacherOf": "1",
+        "workload": {
+          "1": [
+            "Basic Math"
+          ],
+          "2": [
+            "Math",
+            "General Science"
+          ],
+          "3": [
+            "Mathematics"
+          ]
+        },
+        "photo": "/uploads/teacher-santosh.jpg",
+        "verificationDocuments": [
+          {
+            "id": "doc_tea_cit_01",
+            "name": "Citizenship Certificate",
+            "type": "National ID",
+            "url": "/uploads/doc-teacher-citizenship.pdf",
+            "size": 92000,
+            "uploadedAt": 1710000000000
+          },
+          {
+            "id": "doc_tea_app_01",
+            "name": "Appointment Letter 2080",
+            "type": "Appointment Letter",
+            "url": "/uploads/doc-teacher-appointment.pdf",
+            "size": 104000,
+            "uploadedAt": 1710000000000
+          },
+          {
+            "id": "doc_tea_deg_01",
+            "name": "Master Degree Transcript",
+            "type": "Academic Certificate",
+            "url": "/uploads/doc-teacher-degree.pdf",
+            "size": 145000,
+            "uploadedAt": 1710000000000
+          }
+        ],
+        "isVerified": true,
+        "createdAt": 1710000000000
+      }
+    },
     "login_mappings": {
       "9765954850": {
         "role": "admin",
         "studentId": "A-001"
+      },
+      "9809248510": {
+        "role": "admin",
+        "studentId": "ADM-8510"
+      },
+      "9845212500": {
+        "role": "parent",
+        "studentId": "US-2083-0001"
+      },
+      "9845212550": {
+        "role": "parent",
+        "studentId": "US-2083-0002"
+      },
+      "9865000218": {
+        "role": "teacher",
+        "studentId": "TEA-0218"
       }
     },
     "classes": {
@@ -46,6 +263,236 @@
       "8": {
         "name": "Class 8",
         "order": 8
+      }
+    },
+    "class_configs": {
+      "1": {
+        "subjects": {
+          "compulsory": {
+            "sub_play": {
+              "name": "Play & Activity",
+              "publisher": "Primary Play Books"
+            },
+            "sub_fun": {
+              "name": "Fun & Games",
+              "publisher": "School Press"
+            },
+            "sub_math_1": {
+              "name": "Basic Math",
+              "publisher": "Janak Education"
+            }
+          }
+        }
+      },
+      "2": {
+        "subjects": {
+          "compulsory": {
+            "sub_science_2": {
+              "name": "General Science",
+              "publisher": "Janak Education"
+            },
+            "sub_math_2": {
+              "name": "Math",
+              "publisher": "Janak Education"
+            },
+            "sub_english_2": {
+              "name": "English Phonics",
+              "publisher": "Cambridge Press"
+            },
+            "sub_drawing_2": {
+              "name": "Creative Drawing",
+              "publisher": "Color Art"
+            }
+          }
+        }
+      },
+      "3": {
+        "subjects": {
+          "compulsory": {
+            "sub_math_3": {
+              "name": "Mathematics",
+              "publisher": "Janak Education"
+            },
+            "sub_science_3": {
+              "name": "Science & Environment",
+              "publisher": "Janak Education"
+            },
+            "sub_english_3": {
+              "name": "English",
+              "publisher": "Cambridge Press"
+            },
+            "sub_nepali_3": {
+              "name": "Nepali",
+              "publisher": "Janak Education"
+            },
+            "sub_social_3": {
+              "name": "Social Studies",
+              "publisher": "Janak Education"
+            }
+          }
+        }
+      },
+      "4": {
+        "subjects": {
+          "compulsory": {
+            "sub_math_4": {
+              "name": "Mathematics",
+              "publisher": "Janak Education"
+            },
+            "sub_science_4": {
+              "name": "Science",
+              "publisher": "Janak Education"
+            },
+            "sub_english_4": {
+              "name": "English",
+              "publisher": "Oxford"
+            },
+            "sub_nepali_4": {
+              "name": "Nepali",
+              "publisher": "Janak Education"
+            },
+            "sub_social_4": {
+              "name": "Social Studies",
+              "publisher": "Janak Education"
+            },
+            "sub_health_4": {
+              "name": "Health & Physical",
+              "publisher": "Janak Education"
+            }
+          }
+        }
+      },
+      "5": {
+        "subjects": {
+          "compulsory": {
+            "sub_math_5": {
+              "name": "Mathematics",
+              "publisher": "Janak Education"
+            },
+            "sub_science_5": {
+              "name": "Science",
+              "publisher": "Janak Education"
+            },
+            "sub_english_5": {
+              "name": "English",
+              "publisher": "Oxford"
+            },
+            "sub_nepali_5": {
+              "name": "Nepali",
+              "publisher": "Janak Education"
+            },
+            "sub_social_5": {
+              "name": "Social Studies",
+              "publisher": "Janak Education"
+            },
+            "sub_computer_5": {
+              "name": "Computer Science",
+              "publisher": "KEC Publications"
+            }
+          }
+        }
+      },
+      "6": {
+        "subjects": {
+          "compulsory": {
+            "sub_math_6": {
+              "name": "Mathematics",
+              "publisher": "Janak Education"
+            },
+            "sub_science_6": {
+              "name": "Science",
+              "publisher": "Janak Education"
+            },
+            "sub_english_6": {
+              "name": "English Grammar & Reader",
+              "publisher": "Oxford"
+            },
+            "sub_nepali_6": {
+              "name": "Nepali",
+              "publisher": "Janak Education"
+            },
+            "sub_social_6": {
+              "name": "Social Studies",
+              "publisher": "Janak Education"
+            },
+            "sub_computer_6": {
+              "name": "Computer Science",
+              "publisher": "KEC Publications"
+            },
+            "sub_tech_6": {
+              "name": "Occupation & Technology",
+              "publisher": "Janak Education"
+            }
+          }
+        }
+      },
+      "7": {
+        "subjects": {
+          "compulsory": {
+            "sub_math_7": {
+              "name": "Mathematics",
+              "publisher": "Janak Education"
+            },
+            "sub_science_7": {
+              "name": "Science",
+              "publisher": "Janak Education"
+            },
+            "sub_english_7": {
+              "name": "English Grammar & Reader",
+              "publisher": "Oxford"
+            },
+            "sub_nepali_7": {
+              "name": "Nepali",
+              "publisher": "Janak Education"
+            },
+            "sub_social_7": {
+              "name": "Social Studies",
+              "publisher": "Janak Education"
+            },
+            "sub_computer_7": {
+              "name": "Computer Science",
+              "publisher": "KEC Publications"
+            },
+            "sub_tech_7": {
+              "name": "Occupation & Technology",
+              "publisher": "Janak Education"
+            }
+          }
+        }
+      },
+      "8": {
+        "subjects": {
+          "compulsory": {
+            "sub_math_8": {
+              "name": "Compulsory Mathematics",
+              "publisher": "Janak Education"
+            },
+            "sub_science_8": {
+              "name": "Science",
+              "publisher": "Janak Education"
+            },
+            "sub_english_8": {
+              "name": "English",
+              "publisher": "Oxford"
+            },
+            "sub_nepali_8": {
+              "name": "Nepali",
+              "publisher": "Janak Education"
+            },
+            "sub_social_8": {
+              "name": "Social Studies",
+              "publisher": "Janak Education"
+            },
+            "sub_computer_8": {
+              "name": "Computer Science",
+              "publisher": "KEC Publications"
+            },
+            "sub_moral_8": {
+              "name": "Moral & Civic Education",
+              "publisher": "Janak Education"
+            }
+          }
+        }
       }
     }
   }

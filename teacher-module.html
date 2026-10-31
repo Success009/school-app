@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Udayashree School - Faculty Onboarding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans antialiased text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Standard Application Header -->
+    <header class="bg-blue-700 text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-40">
+        <div class="flex items-center gap-3">
+            <h1 class="text-lg font-bold">Udayashree School</h1>
+            <span class="text-xs px-2 py-0.5 bg-blue-800 rounded font-bold text-blue-200">Administration</span>
+        </div>
+    </header>
+
+    <!-- Main Application Canvas -->
+    <main class="flex-grow p-4 md:p-6 max-w-4xl mx-auto w-full">
+        <div id="faculty-add-container"></div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-box" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- Scripts -->
+    <script src="shared.js?v=4.3"></script>
+    <script type="module">
+        import { FacultyAddModule, DEFAULT_AVATAR } from './modules/facultyAddModule.js';
+        window.FacultyAddModule = FacultyAddModule;
+        window.DEFAULT_AVATAR = DEFAULT_AVATAR;
+    </script>
+    <script src="admin-faculty-add.js"></script>
+
+    <script>
+        function showToast(message, type = 'info') {
+            const box = document.getElementById('toast-box');
+            if (!box) return;
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-600 text-white',
+                error: 'bg-red-600 text-white',
+                info: 'bg-blue-700 text-white'
+            };
+            toast.className = `${colors[type] || colors.info} px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2 pointer-events-auto`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            box.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 250);
+            }, 2500);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initFacultyAdd, 50);
+        });
+    </script>
+</body>
+</html>

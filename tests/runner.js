@@ -1,6 +1,7 @@
 // tests/runner.js - Polyfill-based headless test runner for browser modules
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
+const fs = require('fs');
 
 import { APIService } from '../modules/api.js';
 import { AuthService } from '../modules/auth.js';
@@ -8,6 +9,13 @@ import { DatabaseService } from '../modules/db.js';
 import { ValidationService } from '../modules/validation.js';
 import { OfflineStore } from '../modules/offlineStore.js';
 import { SetupModule } from '../modules/setupModule.js';
+import { TeacherModule, DEFAULT_AVATAR } from '../modules/teacherModule.js';
+import { FacultyAddModule } from '../modules/facultyAddModule.js';
+import { StudentAddModule, DEFAULT_STUDENT_AVATAR } from '../modules/studentAddModule.js';
+import { StudentViewModule } from '../modules/studentViewModule.js';
+import { TeacherViewModule } from '../modules/teacherViewModule.js';
+import { StudentEditModule } from '../modules/studentEditModule.js';
+import { TeacherEditModule } from '../modules/teacherEditModule.js';
 import { SmsSecurityService } from '../smsSecurity.js';
 
 const { DbStorageService } = require('../controllers/dbStorage.js');
@@ -135,7 +143,13 @@ const mockDb = {
         attendance: {
             "3": { "2026-10-06": { "US-2026-1234": "P" } }
         },
+        classes: {
+            "1": { name: "Class 1", order: 1 },
+            "2": { name: "Class 2", order: 2 }
+        },
         class_configs: {
+            "1": { subjects: { compulsory: { "sub_play": { name: "Play & Activity" }, "sub_fun": { name: "Fun & Games" } } } },
+            "2": { subjects: { compulsory: { "sub_math": { name: "Math" }, "sub_sci": { name: "Science" } } } },
             "3": { subjects: ["Math", "English"] }
         },
         config: {
@@ -350,7 +364,17 @@ const suite = {
 
         for (let i = 0; i < args.length; i++) {
             const arg = args[i];
-            if (arg.startsWith('--group=')) targetGroup = arg.split('=')[1].toLowerCase();
+            if (arg === '--server-data' || arg === '--live-data') {
+                try {
+                    const serverDb = JSON.parse(fs.readFileSync('db.json', 'utf8'));
+                    if (serverDb && serverDb.school) {
+                        mockDb.school = { ...mockDb.school, ...serverDb.school };
+                        console.log("[36m[Info] Injected live server dataset into isolated test memory.[0m");
+                    }
+                } catch (e) {
+                    console.warn("Could not load db.json for server-data flag:", e.message);
+                }
+            } else if (arg.startsWith('--group=')) targetGroup = arg.split('=')[1].toLowerCase();
             else if (arg.startsWith('-g=')) targetGroup = arg.split('=')[1].toLowerCase();
             else if (arg === '-g' || arg === '--group') {
                 targetGroup = args[i + 1] ? args[i + 1].toLowerCase() : null;
@@ -1293,5 +1317,1091 @@ suite.add("SetupModule: Cascade class and subject removal", () => {
     }
 }, 'setup');
 
+
+// ==========================================
+// 13. Modular Teacher Management Module Tests
+// ==========================================
+suite.add("TeacherModule: Validation and duplicate mobile rejection", () => {
+    const tm = new TeacherModule();
+
+    // 1. Rejects missing first or last name
+    const res1 = tm.addTeacher({ firstName: "", lastName: "Sharma", phone: "9801234567" });
+    if (res1.success) throw new Error("Should reject missing first name");
+
+    const res2 = tm.addTeacher({ firstName: "Ramesh", lastName: "", phone: "9801234567" });
+    if (res2.success) throw new Error("Should reject missing last name");
+
+    // 2. Rejects invalid phone numbers
+    const res3 = tm.addTeacher({ firstName: "Ramesh", lastName: "Sharma", phone: "12345" });
+    if (res3.success) throw new Error("Should reject short phone number");
+
+    // 3. Accepts valid teacher
+    const res4 = tm.addTeacher({
+        firstName: "Ramesh",
+        lastName: "Sharma",
+        phone: "9801234567",
+        professionalTitle: "Senior Mathematics Faculty",
+        classTeacherOf: "5",
+        assignedClasses: ["4", "5", "6"],
+        subjects: ["Mathematics"]
+    });
+    if (!res4.success || !res4.teacher) throw new Error("Failed to add valid teacher: " + (res4.errors || []).join(", "));
+
+    // 4. Rejects duplicate phone number for new teacher
+    const res5 = tm.addTeacher({ firstName: "Suresh", lastName: "Adhikari", phone: "9801234567" });
+    if (res5.success) throw new Error("Should reject duplicate phone number");
+
+    // 5. Allows update with same phone for the same teacher
+    const updateRes = tm.updateTeacher(res4.teacher.id, {
+        firstName: "Ramesh",
+        lastName: "Sharma",
+        phone: "9801234567",
+        professionalTitle: "HOD Mathematics"
+    });
+    if (!updateRes.success) throw new Error("Should allow updating existing teacher with same phone");
+}, "teacher");
+
+suite.add("TeacherModule: Workload mapping, class teacher authority, and default avatar", () => {
+    const tm = new TeacherModule();
+    
+    // 1. Hierarchical Workload by Class
+    const res = tm.addTeacher({
+        firstName: "Anjali",
+        lastName: "Thapa",
+        phone: "9841223344",
+        classTeacherOf: "unassigned",
+        workload: {
+            "3": ["Mathematics", "Science"],
+            "5": ["Mathematics"]
+        }
+    });
+
+    if (!res.success) throw new Error("Failed to add teacher: " + (res.errors || []).join(", "));
+    const t = res.teacher;
+
+    if (!t.id.startsWith("UT-2083-")) throw new Error("Teacher ID format invalid: " + t.id);
+    if (t.classTeacherOf !== "unassigned") throw new Error("classTeacherOf should be unassigned");
+    if (t.assignedClasses.length !== 2 || !t.assignedClasses.includes("3") || !t.assignedClasses.includes("5")) {
+        throw new Error("assignedClasses not derived correctly from workload: " + JSON.stringify(t.assignedClasses));
+    }
+    if (t.subjects.length !== 2 || !t.subjects.includes("Mathematics") || !t.subjects.includes("Science")) {
+        throw new Error("Unique subjects not derived correctly from workload: " + JSON.stringify(t.subjects));
+    }
+    if (t.photo !== DEFAULT_AVATAR) throw new Error("Should use inline SVG fallback avatar");
+    if (t.role !== "teacher") throw new Error("Role should be teacher");
+    if (t.statusLabel !== "Active") throw new Error("statusLabel should default to Active");
+
+    // 2. Class Subject Retrieval
+    const class3Subjects = tm.getSubjectsForClass("3");
+    if (!Array.isArray(class3Subjects) || class3Subjects.length === 0) {
+        throw new Error("getSubjectsForClass should return available curriculum subjects");
+    }
+}, "teacher");
+
+suite.add("TeacherModule: Search and filter functionality", () => {
+    const tm = new TeacherModule();
+    tm.addTeacher({ firstName: "Bikash", lastName: "Karki", phone: "9811111111", subjects: ["Science", "Health"] });
+    tm.addTeacher({ firstName: "Gita", lastName: " श्रेष्ठ", phone: "9822222222", subjects: ["Nepali"] });
+
+    // Filter by name
+    const nameMatch = tm.getFilteredTeachers("Bikash");
+    if (nameMatch.length !== 1 || nameMatch[0].name.first !== "Bikash") throw new Error("Filter by first name failed");
+
+    // Filter by phone
+    const phoneMatch = tm.getFilteredTeachers("9822222222");
+    if (phoneMatch.length !== 1 || phoneMatch[0].name.first !== "Gita") throw new Error("Filter by phone failed");
+
+    // Filter by subject
+    const subjectMatch = tm.getFilteredTeachers("Science");
+    if (subjectMatch.length !== 1 || subjectMatch[0].name.first !== "Bikash") throw new Error("Filter by subject failed");
+}, "teacher");
+
+suite.add("TeacherModule: Local persistence and cache serialization", async () => {
+    const tm = new TeacherModule();
+    const res = tm.addTeacher({
+        firstName: "Hari",
+        lastName: "Prasad",
+        phone: "9855555555",
+        professionalTitle: "Science Faculty"
+    });
+    if (!res.success) throw new Error("Failed to add teacher");
+
+    const saveRes = await tm.saveToDatabase();
+    if (!saveRes.success) throw new Error("saveToDatabase failed");
+
+    const fresh = new TeacherModule();
+    await fresh.loadFromDatabase();
+    const loaded = fresh.getTeacher(res.teacher.id);
+    if (!loaded || loaded.name.first !== "Hari") {
+        throw new Error("Failed to reconstruct teacher from local cache persistence");
+    }
+}, "teacher");
+
+suite.add("TeacherModule: Database schema and login_mapping synchronization", async () => {
+    const tm = new TeacherModule();
+    const res = tm.addTeacher({
+        firstName: "Pooja",
+        lastName: "Rana",
+        phone: "9866666666",
+        classTeacherOf: "1"
+    });
+    if (!res.success) throw new Error("Failed to add teacher");
+
+    await tm.saveToDatabase();
+
+    // Check teacher in mockDb
+    const storedTeacher = getDbValue("school/teachers/" + res.teacher.id);
+    if (!storedTeacher || storedTeacher.name.first !== "Pooja") {
+        throw new Error("Teacher record not saved in school/teachers in database");
+    }
+
+    // Check login mapping in mockDb
+    const storedMapping = getDbValue("school/login_mappings/9866666666");
+    if (!storedMapping || storedMapping.role !== "teacher" || storedMapping.id !== res.teacher.id) {
+        throw new Error("Login mapping not saved in school/login_mappings for phone");
+    }
+}, "teacher");
+
+suite.add("TeacherModule: Faculty removal and deletion", () => {
+    const tm = new TeacherModule();
+    const res = tm.addTeacher({ firstName: "Temporary", lastName: "Teacher", phone: "9877777777" });
+    if (!res.success) throw new Error("Failed to add teacher");
+
+    if (tm.teachers.length !== 1) throw new Error("Teacher count mismatch");
+    const removed = tm.removeTeacher(res.teacher.id);
+    if (!removed || tm.teachers.length !== 0) throw new Error("removeTeacher failed");
+}, "teacher");
+
+
+// ==========================================
+// 14. Modular Faculty Onboarding Module Tests (Single Responsibility)
+// ==========================================
+suite.add("FacultyAddModule: Zero hardcoding and dynamic DB loading", async () => {
+    // 1. Initial State has zero hardcoded classes or subjects
+    const fam = new FacultyAddModule();
+    if (fam.getClasses().length !== 0) throw new Error("Classes should not be hardcoded in constructor");
+    if (fam.getSubjectsForClass("1").length !== 0) throw new Error("Subjects should not be hardcoded in constructor");
+
+    // 2. Dynamic DB Loading
+    await fam.loadFromDatabase();
+    const loadedClasses = fam.getClasses();
+    if (loadedClasses.length === 0) throw new Error("Should load classes dynamically from database");
+    
+    const class1Subs = fam.getSubjectsForClass("1");
+    if (!Array.isArray(class1Subs)) throw new Error("getSubjectsForClass should return array");
+}, "faculty-add");
+
+suite.add("FacultyAddModule: Validation rules for onboarding", () => {
+    const fam = new FacultyAddModule({
+        existingTeachers: [{ phone: "9812345678", id: "UT-EXISTING" }]
+    });
+
+    // 1. Rejects missing names
+    const res1 = fam.validate({ firstName: "", lastName: "Sharma", phone: "9800000001" });
+    if (res1.isValid) throw new Error("Should reject missing first name");
+
+    const res2 = fam.validate({ firstName: "Ramesh", lastName: "", phone: "9800000001" });
+    if (res2.isValid) throw new Error("Should reject missing last name");
+
+    // 2. Rejects invalid mobile numbers
+    const res3 = fam.validate({ firstName: "Ramesh", lastName: "Sharma", phone: "1234" });
+    if (res3.isValid) throw new Error("Should reject short mobile number");
+
+    // 3. Rejects duplicate mobile of existing faculty
+    const res4 = fam.validate({ firstName: "Ramesh", lastName: "Sharma", phone: "9812345678" });
+    if (res4.isValid) throw new Error("Should reject duplicate mobile number");
+
+    // 4. Accepts valid onboarding data
+    const res5 = fam.validate({ firstName: "Ramesh", lastName: "Sharma", phone: "9800000001" });
+    if (!res5.isValid) throw new Error("Valid data should pass validation");
+}, "faculty-add");
+
+suite.add("FacultyAddModule: Dynamic workload mapping and unassigned class teacher", () => {
+    const fam = new FacultyAddModule();
+    const validation = fam.validate({
+        firstName: "Anjali",
+        lastName: "Thapa",
+        phone: "9841223344",
+        classTeacherOf: "unassigned",
+        workload: {
+            "1": ["Play & Activity", "Basic Math"],
+            "2": ["Math"]
+        },
+        nationalId: "12-01-78-05432",
+        photo: "/uploads/anjali-portrait.jpg",
+        verificationDoc: "/uploads/citizenship-doc.pdf"
+    });
+
+    if (!validation.isValid) throw new Error("Validation failed: " + validation.errors.join(", "));
+    const clean = validation.cleanData;
+
+    if (clean.classTeacherOf !== "unassigned") throw new Error("classTeacherOf should default to unassigned");
+    if (clean.assignedClasses.length !== 2 || !clean.assignedClasses.includes("1") || !clean.assignedClasses.includes("2")) {
+        throw new Error("assignedClasses not derived correctly from workload: " + JSON.stringify(clean.assignedClasses));
+    }
+    if (clean.subjects.length !== 3 || !clean.subjects.includes("Play & Activity") || !clean.subjects.includes("Math")) {
+        throw new Error("Unique subjects not derived correctly from workload: " + JSON.stringify(clean.subjects));
+    }
+        if (clean.statusLabel !== "Active") throw new Error("statusLabel should default to Active");
+    if (clean.nationalId !== "12-01-78-05432") throw new Error("nationalId not preserved: " + clean.nationalId);
+    if (clean.photo !== "/uploads/anjali-portrait.jpg") throw new Error("photo URL not preserved: " + clean.photo);
+    if (clean.verificationDoc !== "/uploads/citizenship-doc.pdf") throw new Error("verificationDoc URL not preserved: " + clean.verificationDoc);
+    if (clean.verificationStatus !== "verified") throw new Error("verificationStatus should be verified when nationalId present");
+
+    // Test multiple documents support in validation
+    const multiDocVal = fam.validate({
+        firstName: "Anjali",
+        lastName: "Thapa",
+        phone: "9841223344",
+        documents: [
+            { name: "Citizenship Card", type: "National ID / Citizenship", url: "/uploads/cit-front.jpg", size: 45000 },
+            { name: "M.Sc Degree", type: "Academic Degree / Transcript", url: "/uploads/degree.pdf", size: 120000 }
+        ]
+    });
+    if (!multiDocVal.isValid) throw new Error("Multiple docs validation failed");
+    if (multiDocVal.cleanData.documents.length !== 2) throw new Error("Should parse exactly 2 documents");
+    if (multiDocVal.cleanData.documents[0].name !== "Citizenship Card") throw new Error("Document 1 name mismatch");
+    if (multiDocVal.cleanData.documents[1].name !== "M.Sc Degree") throw new Error("Document 2 name mismatch");
+    if (multiDocVal.cleanData.verificationDoc !== "/uploads/cit-front.jpg") throw new Error("Primary verificationDoc fallback mismatch");
+}, "faculty-add");
+
+suite.add("FacultyAddModule: Registration persistence and duplicate mobile rejection", async () => {
+    const fam = new FacultyAddModule();
+    await fam.loadFromDatabase();
+
+    const regResult = await fam.registerTeacher({
+        firstName: "Sita",
+        lastName: "Devi",
+        phone: "9849998888",
+        professionalTitle: "Primary Faculty",
+        classTeacherOf: "unassigned",
+        nationalId: "10-02-77-99887",
+        photo: "/uploads/sita-photo-compressed.jpg",
+        documents: [
+            { name: "Citizenship Card", type: "National ID / Citizenship", url: "/uploads/sita-id.pdf", size: 54000 },
+            { name: "Appointment Letter", type: "Appointment Letter", url: "/uploads/sita-appt.pdf", size: 32000 }
+        ],
+        workload: {
+            "1": ["Play & Activity"]
+        }
+    });
+
+    if (!regResult.success) throw new Error("registerTeacher failed: " + (regResult.errors || []).join(", "));
+    const teacher = regResult.teacher;
+
+    if (!teacher.id.startsWith("UT-2083-")) throw new Error("Teacher ID format invalid: " + teacher.id);
+        if (teacher.nationalId !== "10-02-77-99887") throw new Error("teacher.nationalId not saved: " + teacher.nationalId);
+    if (teacher.photo !== "/uploads/sita-photo-compressed.jpg") throw new Error("teacher.photo not saved: " + teacher.photo);
+    if (teacher.verificationDoc !== "/uploads/sita-id.pdf") throw new Error("teacher.verificationDoc not saved: " + teacher.verificationDoc);
+    if (teacher.documents.length !== 2) throw new Error("teacher.documents length should be 2");
+    if (teacher.verificationStatus !== "verified") throw new Error("teacher.verificationStatus not set: " + teacher.verificationStatus);
+
+    // Verify stored teacher in mockDb
+    const storedTeacher = getDbValue("school/teachers/" + teacher.id);
+    if (!storedTeacher || storedTeacher.name.first !== "Sita") {
+        throw new Error("Teacher record not saved in school/teachers in database");
+    }
+    if (storedTeacher.nationalId !== "10-02-77-99887" || storedTeacher.photo !== "/uploads/sita-photo-compressed.jpg") {
+        throw new Error("National ID and Photo not saved in database record");
+    }
+    if (!Array.isArray(storedTeacher.documents) || storedTeacher.documents.length !== 2) {
+        throw new Error("Multiple documents not properly persisted in database teacher record");
+    }
+
+    // Verify stored login mapping in mockDb
+    const storedMapping = getDbValue("school/login_mappings/9849998888");
+    if (!storedMapping || storedMapping.role !== "teacher" || storedMapping.id !== teacher.id) {
+        throw new Error("Login mapping not saved in school/login_mappings for phone");
+    }
+
+        // Subsequent registration with same phone should fail
+    const dupResult = await fam.registerTeacher({
+        firstName: "Another",
+        lastName: "Teacher",
+        phone: "9849998888"
+    });
+    if (dupResult.success) throw new Error("Duplicate registration with same phone should fail");
+}, "faculty-add");
+
+// ==========================================
+// 15. Modular Student Enrollment Module Tests (Single Responsibility)
+// ==========================================
+suite.add("StudentAddModule: Zero hardcoding and dynamic DB loading", async () => {
+    // 1. Initial State has zero hardcoded classes or subjects
+    const sam = new StudentAddModule();
+    if (sam.getClasses().length !== 0) throw new Error("Classes should not be hardcoded in constructor");
+    if (sam.getSubjectsForClass("1").length !== 0) throw new Error("Subjects should not be hardcoded in constructor");
+
+    // 2. Dynamic DB Loading
+    await sam.loadFromDatabase();
+    const loadedClasses = sam.getClasses();
+    if (loadedClasses.length === 0) throw new Error("Should load classes dynamically from database");
+
+    const class1Subs = sam.getSubjectsForClass("1");
+    if (!Array.isArray(class1Subs)) throw new Error("getSubjectsForClass should return an array");
+
+    // 3. Roll number generation
+    const roll = sam.getNextRollNumber("1");
+    if (typeof roll !== 'string' || roll.length < 2) throw new Error("getNextRollNumber should return padded string: " + roll);
+}, "student-add");
+
+suite.add("StudentAddModule: Validation rules for student enrollment", () => {
+    const sam = new StudentAddModule({
+        classes: [{ id: "1", name: "Class 1" }, { id: "2", name: "Class 2" }]
+    });
+
+    // 1. Rejects missing first name
+    const res1 = sam.validate({ firstName: "", lastName: "Sharma", class: "1", phone: "9801234567" });
+    if (res1.isValid) throw new Error("Should reject missing first name");
+
+    // 2. Rejects missing last name
+    const res2 = sam.validate({ firstName: "Aarav", lastName: "", class: "1", phone: "9801234567" });
+    if (res2.isValid) throw new Error("Should reject missing last name");
+
+    // 3. Rejects missing class
+    const res3 = sam.validate({ firstName: "Aarav", lastName: "Sharma", class: "", phone: "9801234567" });
+    if (res3.isValid) throw new Error("Should reject missing class");
+
+    // 4. Rejects unrecognized class
+    const res4 = sam.validate({ firstName: "Aarav", lastName: "Sharma", class: "99", phone: "9801234567" });
+    if (res4.isValid) throw new Error("Should reject unrecognized class");
+
+    // 5. Rejects invalid parent phone numbers
+    const res5 = sam.validate({ firstName: "Aarav", lastName: "Sharma", class: "1", phone: "12345" });
+    if (res5.isValid) throw new Error("Should reject invalid parent phone");
+
+    // 6. Accepts valid comma-separated multiple parent phones
+    const res6 = sam.validate({
+        firstName: "Aarav",
+        lastName: "Sharma",
+        class: "1",
+        phone: "+977-9801234567, 9841987654"
+    });
+    if (!res6.isValid) throw new Error("Should accept valid comma-separated parent phones: " + res6.errors.join(", "));
+    if (res6.cleanData.phones.length !== 2) throw new Error("Should parse exactly 2 valid parent phones");
+    if (!res6.cleanData.phones.includes("9801234567") || !res6.cleanData.phones.includes("9841987654")) {
+        throw new Error("Phone numbers not properly cleaned and extracted: " + JSON.stringify(res6.cleanData.phones));
+    }
+}, "student-add");
+
+suite.add("StudentAddModule: Dynamic class subjects, age computation, and address sync", () => {
+    const sam = new StudentAddModule({
+        classes: [{ id: "1", name: "Class 1" }],
+        classSubjects: {
+            "1": ["Basic Math", "Nepali", "English"]
+        }
+    });
+
+    // 1. Age computation from BS date
+    const age = StudentAddModule.calculateAgeFromBS("2075-04-12");
+    if (age !== "8") throw new Error("Age calculation mismatch: expected 8, got " + age);
+
+    // 2. Dynamic compulsory subjects assignment
+    const val = sam.validate({
+        firstName: "Kiran",
+        lastName: "Oli",
+        class: "1",
+        phone: "9811223344",
+        dob: "2075-04-12",
+        currentAddress: { street: "Ward 4", city: "Kathmandu", district: "Kathmandu" }
+    });
+
+    if (!val.isValid) throw new Error("Validation failed: " + val.errors.join(", "));
+    const clean = val.cleanData;
+
+    if (clean.academic.subjects.length !== 3 || !clean.academic.subjects.includes("Basic Math")) {
+        throw new Error("Subjects not dynamically populated from class configs: " + JSON.stringify(clean.academic.subjects));
+    }
+    if (clean.age !== "8") throw new Error("Age not auto-computed from dob: " + clean.age);
+
+    // 3. Address fallback: permanent address falls back to current address
+    if (clean.address.permanent.city !== "Kathmandu") {
+        throw new Error("Permanent address did not fall back to current address: " + JSON.stringify(clean.address));
+    }
+}, "student-add");
+
+suite.add("StudentAddModule: Registration persistence, multiple documents, and multi-parent login mappings", async () => {
+    const sam = new StudentAddModule();
+    await sam.loadFromDatabase();
+
+    const regResult = await sam.registerStudent({
+        firstName: "Pooja",
+        lastName: "Karki",
+        class: "1",
+        phone: "9851122334, 9861122334",
+        fatherName: "Bishnu Karki",
+        motherName: "Radha Karki",
+        dob: "2076-02-15",
+        bloodGroup: "O+",
+        photo: "/uploads/pooja-photo-compressed.jpg",
+        documents: [
+            { name: "Birth Certificate", type: "Birth Certificate", url: "/uploads/pooja-birth.jpg", size: 48000 },
+            { name: "Grade Nursery Card", type: "Previous Marksheet", url: "/uploads/pooja-marks.pdf", size: 85000 }
+        ],
+        currentAddress: { street: "Main Road", city: "Damak", district: "Jhapa" }
+    });
+
+    if (!regResult.success) throw new Error("registerStudent failed: " + (regResult.errors || []).join(", "));
+    const student = regResult.student;
+
+    if (!student.id.startsWith("US-2083-")) throw new Error("Student ID format invalid: " + student.id);
+    if (student.photo !== "/uploads/pooja-photo-compressed.jpg") throw new Error("Student photo not preserved");
+    if (student.documents.length !== 2) throw new Error("Student documents count should be 2");
+    if (student.birthCertificate !== "/uploads/pooja-birth.jpg") throw new Error("birthCertificate backward compatibility not set");
+
+    // 1. Verify student record stored in mockDb
+    const storedStudent = getDbValue("school/students/" + student.id);
+    if (!storedStudent || storedStudent.name.first !== "Pooja") {
+        throw new Error("Student record not saved in school/students in database");
+    }
+    if (storedStudent.photo !== "/uploads/pooja-photo-compressed.jpg") {
+        throw new Error("Student photo not persisted in database");
+    }
+    if (!Array.isArray(storedStudent.documents) || storedStudent.documents.length !== 2) {
+        throw new Error("Multiple documents not properly persisted in database student record");
+    }
+
+    // 2. Verify parent login mappings for both phones
+    const mapping1 = getDbValue("school/login_mappings/9851122334");
+    if (!mapping1 || mapping1.role !== "parent" || mapping1.studentId !== student.id) {
+        throw new Error("Login mapping for parent phone 1 not created");
+    }
+        const mapping2 = getDbValue("school/login_mappings/9861122334");
+    if (!mapping2 || mapping2.role !== "parent" || mapping2.studentId !== student.id) {
+        throw new Error("Login mapping for parent phone 2 not created");
+    }
+}, "student-add");
+
+suite.add("StudentAddModule: Default avatar fallback, optional fields, and special phone characters", async () => {
+    const sam = new StudentAddModule({
+        classes: [{ id: "2", name: "Class 2" }],
+        classSubjects: { "2": ["English", "Nepali"] }
+    });
+
+    // 1. Phone number with messy spaces, parentheses, dashes
+    const res = sam.validate({
+        firstName: "Bikash",
+        lastName: "Thapa",
+        class: "2",
+        phone: " (981) 234-5678 , +977 980-111-2222 "
+    });
+    if (!res.isValid) throw new Error("Should handle formatted phone numbers: " + res.errors.join(", "));
+    if (res.cleanData.phones.length !== 2) throw new Error("Should parse both formatted phones");
+    if (res.cleanData.phones[0] !== "9812345678" || res.cleanData.phones[1] !== "9801112222") {
+        throw new Error("Normalized phones mismatch: " + JSON.stringify(res.cleanData.phones));
+    }
+
+    // 2. Default avatar fallback
+    if (res.cleanData.photo !== DEFAULT_STUDENT_AVATAR) {
+        throw new Error("Should fall back to DEFAULT_STUDENT_AVATAR when no photo provided");
+    }
+
+    // 3. Optional fields safe defaults
+    if (res.cleanData.fatherName !== "N/A" || res.cleanData.motherName !== "N/A") {
+        throw new Error("Missing father/mother should safely default to N/A");
+    }
+        if (res.cleanData.parentEmail !== "N/A") {
+        throw new Error("Missing parent email should safely default to N/A");
+    }
+}, "student-add");
+
+// ==========================================
+// 16. Modular Student Directory & Viewer Module Tests
+// ==========================================
+suite.add("StudentViewModule: Zero hardcoding and dynamic DB loading", async () => {
+    const svm = new StudentViewModule();
+    if (svm.getClasses().length !== 0) throw new Error("Classes should be empty initially");
+    if (svm.getFilteredStudents().length !== 0) throw new Error("Students should be empty initially");
+
+    await svm.loadFromDatabase();
+    if (svm.getClasses().length === 0) throw new Error("Should load classes dynamically from database");
+}, "student-view");
+
+suite.add("StudentViewModule: Class filtering, counts, and statistics", () => {
+    const mockClasses = [
+        { id: "1", name: "Class 1", order: 1 },
+        { id: "2", name: "Class 2", order: 2 }
+    ];
+    const mockStudents = [
+        { id: "US-01", name: { first: "Aarav", last: "Sharma" }, class: "1", roll: "01", gender: "male", phone: "9801234567" },
+        { id: "US-02", name: { first: "Diya", last: "Shrestha" }, class: "1", roll: "02", gender: "female", phone: "9801234568", documents: [{ name: "Birth Cert", url: "x.jpg" }] },
+        { id: "US-03", name: { first: "Kiran", last: "Tamang" }, class: "2", roll: "01", gender: "male", phone: "9801234569" }
+    ];
+
+    const svm = new StudentViewModule({ classes: mockClasses, students: mockStudents });
+
+    // 1. Class Counts
+    const counts = svm.getClassCounts();
+    if (counts.all !== 3 || counts["1"] !== 2 || counts["2"] !== 1) {
+        throw new Error("Class counts mismatch: " + JSON.stringify(counts));
+    }
+
+    // 2. Class Statistics
+    const stats1 = svm.getClassStatistics("1");
+    if (stats1.totalStudents !== 2 || stats1.maleCount !== 1 || stats1.femaleCount !== 1 || stats1.withDocsCount !== 1) {
+        throw new Error("Class 1 statistics mismatch: " + JSON.stringify(stats1));
+    }
+
+    // 3. Class Filtering
+    svm.setSelectedClass("1");
+    const class1Students = svm.getFilteredStudents();
+    if (class1Students.length !== 2) throw new Error("Should return exactly 2 students for Class 1");
+    if (!class1Students.some(s => s.id === "US-01") || !class1Students.some(s => s.id === "US-02")) {
+        throw new Error("Class 1 students list mismatch");
+    }
+}, "student-view");
+
+suite.add("StudentViewModule: Search fuzzy matching across name, ID, phone, and parents", () => {
+    const mockStudents = [
+        { id: "US-2083-0001", name: { first: "Aarav", middle: "Chandra", last: "Sharma" }, class: "1", roll: "01", fatherName: "Ramesh Sharma", phone: "9801234567" },
+        { id: "US-2083-0002", name: { first: "Pooja", last: "Adhikari" }, class: "2", roll: "02", motherName: "Sunita Adhikari", phone: "9841987654" }
+    ];
+    const svm = new StudentViewModule({ students: mockStudents });
+
+    // 1. Search by student first name
+    const res1 = svm.getFilteredStudents({ query: "aarav" });
+    if (res1.length !== 1 || res1[0].id !== "US-2083-0001") throw new Error("Search by first name failed");
+
+    // 2. Search by student ID
+    const res2 = svm.getFilteredStudents({ query: "0002" });
+    if (res2.length !== 1 || res2[0].id !== "US-2083-0002") throw new Error("Search by ID failed");
+
+    // 3. Search by parent phone
+    const res3 = svm.getFilteredStudents({ query: "984198" });
+    if (res3.length !== 1 || res3[0].id !== "US-2083-0002") throw new Error("Search by phone failed");
+
+    // 4. Search by parent name
+    const res4 = svm.getFilteredStudents({ query: "Ramesh" });
+    if (res4.length !== 1 || res4[0].id !== "US-2083-0001") throw new Error("Search by father name failed");
+}, "student-view");
+
+suite.add("StudentViewModule: Sorting and student profile formatting", () => {
+    const mockStudents = [
+        { id: "US-B", name: { first: "Bikash", last: "KC" }, class: "1", roll: "12", birthCertificate: "/uploads/bc.jpg" },
+        { id: "US-A", name: { first: "Anil", last: "Giri" }, class: "1", roll: "03" }
+    ];
+    const svm = new StudentViewModule({ students: mockStudents });
+
+    // 1. Sort by roll number
+    const byRoll = svm.getFilteredStudents({ sortBy: "roll" });
+    if (byRoll[0].id !== "US-A" || byRoll[1].id !== "US-B") {
+        throw new Error("Sort by roll failed: expected US-A (roll 03) first");
+    }
+
+    // 2. Sort by name
+    const byName = svm.getFilteredStudents({ sortBy: "name" });
+    if (byName[0].fullName !== "Anil Giri") {
+        throw new Error("Sort by name failed");
+    }
+
+    // 3. Profile formatting
+    const formatted = svm.getStudentById("US-B");
+    if (!formatted) throw new Error("getStudentById failed");
+    if (formatted.fullName !== "Bikash KC") throw new Error("fullName formatting mismatch: " + formatted.fullName);
+    if (formatted.roll !== "12") throw new Error("roll formatting mismatch: " + formatted.roll);
+    if (formatted.documentCount !== 1 || formatted.documents[0].type !== "Birth Certificate") {
+        throw new Error("Document normalization mismatch: " + JSON.stringify(formatted.documents));
+    }
+}, "student-view");
+
+// ==========================================
+// 17. Modular Faculty Directory & Viewer Module Tests
+// ==========================================
+suite.add("TeacherViewModule: Zero hardcoding and dynamic DB loading", async () => {
+    const tvm = new TeacherViewModule();
+    if (tvm.getClasses().length !== 0) throw new Error("Classes should be empty initially");
+    if (tvm.getTeachers().length !== 0) throw new Error("Teachers should be empty initially");
+
+    await tvm.loadFromDatabase();
+    if (tvm.getClasses().length === 0) throw new Error("Should load classes dynamically from database");
+    if (tvm.getTeachers().length === 0) throw new Error("Should load teachers dynamically from database");
+}, "teacher-view");
+
+suite.add("TeacherViewModule: Category and class filtering, counts, and statistics", () => {
+    const mockClasses = [
+        { id: "1", name: "Class 1", order: 1 },
+        { id: "2", name: "Class 2", order: 2 },
+        { id: "3", name: "Class 3", order: 3 }
+    ];
+    const mockTeachers = [
+        {
+            id: "TEA-01",
+            name: { first: "Santosh", last: "Adhikari" },
+            classTeacherOf: "1",
+            workload: { "1": ["Basic Math"], "2": ["Math"] },
+            isVerified: true
+        },
+        {
+            id: "TEA-02",
+            name: { first: "Puspa", last: "Dahal" },
+            classTeacherOf: "None",
+            workload: { "2": ["Nepali"], "3": ["Social Studies"] },
+            verificationDocuments: [{ id: "d1", name: "Degree", url: "/d1.pdf" }]
+        },
+        {
+            id: "TEA-03",
+            name: { first: "Sunil", last: "Karki" },
+            classTeacherOf: "2",
+            workload: { "3": ["Science"] }
+        }
+    ];
+
+    const tvm = new TeacherViewModule({ classes: mockClasses, teachers: mockTeachers });
+
+    // 1. Filter Counts
+    const counts = tvm.getFilterCounts();
+    if (counts.all !== 3 || counts.class_teachers !== 2 || counts.subject_teachers !== 1) {
+        throw new Error("Filter counts mismatch: " + JSON.stringify(counts));
+    }
+    // Class 1 has TEA-01 (class teacher) -> 1
+    // Class 2 has TEA-01 (teaches Math), TEA-02 (teaches Nepali), TEA-03 (class teacher) -> 3
+    if (counts["1"] !== 1 || counts["2"] !== 3 || counts["3"] !== 2) {
+        throw new Error("Per-class counts mismatch: " + JSON.stringify(counts));
+    }
+
+    // 2. Statistics
+    const stats = tvm.getStatistics();
+    if (stats.totalFaculty !== 3 || stats.classTeachersCount !== 2 || stats.subjectTeachersCount !== 1) {
+        throw new Error("Statistics faculty counts mismatch: " + JSON.stringify(stats));
+    }
+    if (stats.verifiedCount !== 2) {
+        throw new Error("Verified faculty count mismatch, expected 2, got: " + stats.verifiedCount);
+    }
+    if (stats.totalClassesCovered !== 3) {
+        throw new Error("Total classes covered mismatch, expected 3, got: " + stats.totalClassesCovered);
+    }
+
+    // 3. Category Filtering
+    const ctList = tvm.getFilteredTeachers({ filter: "class_teachers" });
+    if (ctList.length !== 2 || !ctList.some(t => t.id === "TEA-01") || !ctList.some(t => t.id === "TEA-03")) {
+        throw new Error("class_teachers filter mismatch");
+    }
+
+    const stList = tvm.getFilteredTeachers({ filter: "subject_teachers" });
+    if (stList.length !== 1 || stList[0].id !== "TEA-02") {
+        throw new Error("subject_teachers filter mismatch");
+    }
+
+    // 4. Class-specific Filtering
+    const c1List = tvm.getFilteredTeachers({ filter: "1" });
+    if (c1List.length !== 1 || c1List[0].id !== "TEA-01") {
+        throw new Error("Class 1 filter mismatch");
+    }
+}, "teacher-view");
+
+suite.add("TeacherViewModule: Search fuzzy matching across name, ID, phone, subjects, and title", () => {
+    const mockTeachers = [
+        {
+            id: "TEA-0218",
+            name: { first: "Santosh", middle: "Kumar", last: "Adhikari" },
+            professionalTitle: "Senior Mathematics Lecturer",
+            phone: "9865000218",
+            email: "santosh@school.edu.np",
+            qualification: "M.Ed. Mathematics",
+            workload: { "1": ["Basic Math"], "2": ["Calculus", "Geometry"] }
+        },
+        {
+            id: "TEA-0219",
+            name: { first: "Anita", last: "Rai" },
+            professionalTitle: "Science Faculty",
+            phone: "9842111222",
+            email: "anita.rai@school.edu.np",
+            qualification: "B.Sc. Physics",
+            workload: { "3": ["Astrophysics", "General Science"] }
+        }
+    ];
+
+    const tvm = new TeacherViewModule({ teachers: mockTeachers });
+
+    // 1. Search by name
+    const r1 = tvm.getFilteredTeachers({ query: "santosh" });
+    if (r1.length !== 1 || r1[0].id !== "TEA-0218") throw new Error("Search by first name failed");
+
+    // 2. Search by faculty ID
+    const r2 = tvm.getFilteredTeachers({ query: "0219" });
+    if (r2.length !== 1 || r2[0].id !== "TEA-0219") throw new Error("Search by ID failed");
+
+    // 3. Search by phone number
+    const r3 = tvm.getFilteredTeachers({ query: "9865000" });
+    if (r3.length !== 1 || r3[0].id !== "TEA-0218") throw new Error("Search by phone failed");
+
+    // 4. Search by title
+    const r4 = tvm.getFilteredTeachers({ query: "Science Faculty" });
+    if (r4.length !== 1 || r4[0].id !== "TEA-0219") throw new Error("Search by title failed");
+
+    // 5. Search by subject in workload
+    const r5 = tvm.getFilteredTeachers({ query: "geometry" });
+    if (r5.length !== 1 || r5[0].id !== "TEA-0218") throw new Error("Search by workload subject failed");
+}, "teacher-view");
+
+suite.add("TeacherViewModule: Sorting and teacher profile formatting with workload breakdown", () => {
+    const mockClasses = [
+        { id: "1", name: "Class 1", order: 1 },
+        { id: "2", name: "Class 2", order: 2 }
+    ];
+    const mockTeachers = [
+        {
+            id: "TEA-Z",
+            name: { first: "Zenith", last: "Shrestha" },
+            experience: "10 Years",
+            classTeacherOf: "1",
+            workload: { "1": ["English"], "2": ["Grammar"] },
+            verificationDocuments: [{ id: "doc1", name: "Master Degree", type: "Certificate", url: "/d1.pdf" }]
+        },
+        {
+            id: "TEA-A",
+            name: { first: "Amod", last: "Basnet" },
+            experience: "3 Years",
+            classTeacherOf: "None"
+        }
+    ];
+
+    const tvm = new TeacherViewModule({ classes: mockClasses, teachers: mockTeachers });
+
+    // 1. Sort by name
+    const byName = tvm.getFilteredTeachers({ sortBy: "name" });
+    if (byName[0].id !== "TEA-A" || byName[1].id !== "TEA-Z") {
+        throw new Error("Sort by name failed");
+    }
+
+    // 2. Sort by ID
+    const byId = tvm.getFilteredTeachers({ sortBy: "id" });
+    if (byId[0].id !== "TEA-A" || byId[1].id !== "TEA-Z") {
+        throw new Error("Sort by ID failed");
+    }
+
+    // 3. Sort by Experience (highest first)
+    const byExp = tvm.getFilteredTeachers({ sortBy: "experience" });
+    if (byExp[0].id !== "TEA-Z" || byExp[1].id !== "TEA-A") {
+        throw new Error("Sort by experience failed");
+    }
+
+    // 4. Profile formatting & workload breakdown
+    const formatted = tvm.getTeacherById("TEA-Z");
+    if (!formatted) throw new Error("getTeacherById failed");
+    if (formatted.fullName !== "Zenith Shrestha") throw new Error("fullName mismatch");
+    if (formatted.classTeacherBadge !== "Class Teacher (Class 1)") {
+        throw new Error("classTeacherBadge mismatch: " + formatted.classTeacherBadge);
+    }
+    if (formatted.documentCount !== 1) throw new Error("documentCount mismatch");
+    if (formatted.workload.length !== 2 || formatted.workload[0].className !== "Class 1") {
+        throw new Error("workload formatting mismatch: " + JSON.stringify(formatted.workload));
+    }
+        if (formatted.totalSubjectsCount !== 2) throw new Error("totalSubjectsCount mismatch");
+}, "teacher-view");
+
+// ==========================================
+// 18. Modular Student Record Editor Module Tests
+// ==========================================
+suite.add("StudentEditModule: Zero hardcoding and dynamic DB loading", async () => {
+    const sem = new StudentEditModule();
+    if (sem.getClasses().length !== 0) throw new Error("Classes should be empty initially");
+    if (sem.existingStudents.length !== 0) throw new Error("Existing students should be empty initially");
+
+    await sem.loadFromDatabase();
+    if (sem.getClasses().length === 0) throw new Error("Should load classes dynamically from DB");
+    if (sem.existingStudents.length === 0) throw new Error("Should load student records dynamically from DB");
+}, "student-edit");
+
+suite.add("StudentEditModule: Strict validation and input sanitization (XSS defense)", () => {
+    const sem = new StudentEditModule({
+        classes: [{ id: "1", name: "Class 1" }, { id: "2", name: "Class 2" }],
+        classSubjects: { "1": ["Nepali", "English"], "2": ["Math", "Science"] }
+    });
+
+    const baseRecord = {
+        id: "US-2083-0001",
+        name: { first: "Aarav", last: "Sharma" },
+        class: "1",
+        phone: "9845212500"
+    };
+
+    // 1. Missing First Name
+    const failRes = sem.validate("US-2083-0001", { firstName: "   ", lastName: "Sharma" }, baseRecord);
+    if (failRes.isValid) throw new Error("Validation should fail when first name is empty");
+
+    // 2. Missing Last Name
+    const failRes2 = sem.validate("US-2083-0001", { firstName: "Aarav", lastName: "" }, baseRecord);
+    if (failRes2.isValid) throw new Error("Validation should fail when last name is empty");
+
+    // 3. XSS / Malicious Script Sanitization
+    const xssRes = sem.validate("US-2083-0001", {
+        firstName: "<script>alert('xss')</script>Aarav",
+        lastName: "Sharma",
+        fatherName: "<b>Ramesh</b>",
+        phone: "9845212500"
+    }, baseRecord);
+
+    if (!xssRes.isValid) throw new Error("Validation should pass with sanitized inputs: " + JSON.stringify(xssRes.errors));
+    if (xssRes.cleanData.name.first.includes("<script>")) {
+        throw new Error("Script tag was not sanitized in first name: " + xssRes.cleanData.name.first);
+    }
+    if (xssRes.cleanData.fatherName.includes("<b>")) {
+        throw new Error("HTML tags were not sanitized in fatherName: " + xssRes.cleanData.fatherName);
+    }
+
+    // 4. Invalid Phone Number
+    const badPhone = sem.validate("US-2083-0001", { firstName: "Aarav", lastName: "Sharma", phone: "123" }, baseRecord);
+    if (badPhone.isValid) throw new Error("Validation should reject invalid phone");
+
+    // 5. Valid 10-digit Phone Normalization with Country Code
+    const normPhone = sem.validate("US-2083-0001", { firstName: "Aarav", lastName: "Sharma", phone: "+977 9845212500, 9801234567" }, baseRecord);
+    if (!normPhone.isValid) throw new Error("Failed to validate valid normalized phones: " + JSON.stringify(normPhone.errors));
+    if (normPhone.cleanData.phones.length !== 2 || normPhone.cleanData.phones[0] !== "9845212500") {
+        throw new Error("Phone normalization mismatch: " + JSON.stringify(normPhone.cleanData.phones));
+    }
+}, "student-edit");
+
+suite.add("StudentEditModule: Dynamic class change & automatic curriculum subject reassignment", () => {
+    const sem = new StudentEditModule({
+        classes: [{ id: "1", name: "Class 1" }, { id: "2", name: "Class 2" }],
+        classSubjects: {
+            "1": ["Basic Math", "Fun & Games"],
+            "2": ["Integrated Science", "Mathematics", "English II"]
+        }
+    });
+
+    const studentClass1 = {
+        id: "US-2083-0001",
+        name: { first: "Aarav", last: "Sharma" },
+        class: "1",
+        phone: "9845212500",
+        academic: { subjects: ["Basic Math", "Fun & Games"] }
+    };
+
+    // Promote to Class 2
+    const promoted = sem.validate("US-2083-0001", { class: "2" }, studentClass1);
+    if (!promoted.isValid) throw new Error("Promotion validation failed: " + JSON.stringify(promoted.errors));
+    if (promoted.cleanData.class !== "2") throw new Error("Class was not updated to 2");
+
+    // Subjects should automatically reassign to Class 2's curriculum
+    const newSubjects = promoted.cleanData.academic.subjects;
+    if (newSubjects.length !== 3 || !newSubjects.includes("Integrated Science")) {
+        throw new Error("Subjects were not dynamically updated to Class 2 curriculum: " + JSON.stringify(newSubjects));
+    }
+}, "student-edit");
+
+suite.add("StudentEditModule: Parent phone updates and atomic login mapping synchronization", async () => {
+    const sem = new StudentEditModule({
+        classes: [{ id: "1", name: "Class 1" }],
+        classSubjects: { "1": ["Nepali"] }
+    });
+
+    const originalRecord = {
+        id: "US-TEST-P1",
+        name: { first: "Pooja", last: "Sharma" },
+        class: "1",
+        phone: "9845212550", // Old phone
+        status: "active"
+    };
+
+    sem.existingStudents = [originalRecord];
+
+    // Change parent phone from 9845212550 to 9809998877
+    const result = await sem.updateStudent("US-TEST-P1", {
+        phone: "9809998877"
+    });
+
+    if (!result.success) throw new Error("updateStudent failed: " + JSON.stringify(result.errors));
+    if (!result.loginMappingsChanged) throw new Error("loginMappingsChanged flag should be true");
+    if (!result.removedPhones.includes("9845212550")) throw new Error("Old phone 9845212550 should be in removedPhones");
+    if (!result.addedPhones.includes("9809998877")) throw new Error("New phone 9809998877 should be in addedPhones");
+
+    // Verify stored student has updated phone
+    const updated = sem.existingStudents.find(s => s.id === "US-TEST-P1");
+    if (updated.phone !== "9809998877") throw new Error("Student record phone was not updated");
+}, "student-edit");
+
+suite.add("StudentEditModule: Verification document management and secure URL protocol enforcement", () => {
+    const sem = new StudentEditModule({
+        classes: [{ id: "1", name: "Class 1" }],
+        classSubjects: { "1": ["Math"] }
+    });
+
+    const baseRecord = {
+        id: "US-DOC-01",
+        name: { first: "Aarav", last: "Sharma" },
+        class: "1",
+        phone: "9845212500",
+        documents: [
+            { id: "d1", name: "Old Doc", type: "Birth Certificate", url: "/uploads/old.pdf" }
+        ]
+    };
+
+    // 1. Insecure protocol detection (e.g. javascript:)
+    const badDocRes = sem.validate("US-DOC-01", {
+        documents: [
+            { id: "d1", name: "Hacked", type: "Exploit", url: "javascript:alert(1)" }
+        ]
+    }, baseRecord);
+    if (badDocRes.isValid) throw new Error("Should reject insecure javascript: protocol in document URL");
+
+    // 2. Safe addition and update of verification documents
+    const safeDocRes = sem.validate("US-DOC-01", {
+        documents: [
+            { id: "d1", name: "Birth Certificate", type: "Birth Certificate", url: "/uploads/birth.pdf" },
+            { id: "d2", name: "Grade 1 Marksheet", type: "Previous Marksheet", url: "/uploads/marksheet.pdf" }
+        ]
+    }, baseRecord);
+
+        if (!safeDocRes.isValid) throw new Error("Safe documents failed validation: " + JSON.stringify(safeDocRes.errors));
+    if (safeDocRes.cleanData.documents.length !== 2) throw new Error("Should have 2 documents attached");
+    if (safeDocRes.cleanData.birthCertificate !== "/uploads/birth.pdf") {
+        throw new Error("Legacy birthCertificate mapping mismatch");
+    }
+}, "student-edit");
+
+// ==========================================
+// 19. Modular Faculty Record Editor Module Tests
+// ==========================================
+suite.add("TeacherEditModule: Zero hardcoding and dynamic DB loading", async () => {
+    const tem = new TeacherEditModule();
+    if (tem.getClasses().length !== 0) throw new Error("Classes should be empty initially");
+    if (tem.existingTeachers.length !== 0) throw new Error("Existing teachers should be empty initially");
+
+    await tem.loadFromDatabase();
+    if (tem.getClasses().length === 0) throw new Error("Should load classes dynamically from DB");
+    if (tem.existingTeachers.length === 0) throw new Error("Should load teacher records dynamically from DB");
+}, "teacher-edit");
+
+suite.add("TeacherEditModule: Strict validation, phone uniqueness, and XSS sanitization", () => {
+    const tem = new TeacherEditModule({
+        classes: [{ id: "1", name: "Class 1" }],
+        existingTeachers: [
+            { id: "TEA-OTHER", phone: "9841000000" }
+        ]
+    });
+
+    const baseRecord = {
+        id: "TEA-0218",
+        name: { first: "Santosh", last: "Dahal" },
+        phone: "9842686121"
+    };
+
+    // 1. Missing First Name
+    const failRes = tem.validate("TEA-0218", { firstName: "", lastName: "Dahal" }, baseRecord);
+    if (failRes.isValid) throw new Error("Validation should fail when first name is empty");
+
+    // 2. Missing Last Name
+    const failRes2 = tem.validate("TEA-0218", { firstName: "Santosh", lastName: "" }, baseRecord);
+    if (failRes2.isValid) throw new Error("Validation should fail when last name is empty");
+
+    // 3. Duplicate phone collision with another teacher
+    const dupRes = tem.validate("TEA-0218", { firstName: "Santosh", lastName: "Dahal", phone: "9841000000" }, baseRecord);
+    if (dupRes.isValid) throw new Error("Validation should reject phone collision with another faculty member");
+
+    // 4. Same phone for self should pass
+    const selfRes = tem.validate("TEA-0218", { firstName: "Santosh", lastName: "Dahal", phone: "9842686121" }, baseRecord);
+    if (!selfRes.isValid) throw new Error("Retaining existing phone should pass: " + JSON.stringify(selfRes.errors));
+
+    // 5. XSS Defense
+    const xssRes = tem.validate("TEA-0218", {
+        firstName: "<img src=x onerror=alert(1)>Santosh",
+        lastName: "Dahal",
+        qualification: "<b>M.Sc Mathematics</b>"
+    }, baseRecord);
+
+    if (!xssRes.isValid) throw new Error("XSS sanitization should pass validation: " + JSON.stringify(xssRes.errors));
+    if (xssRes.cleanData.name.first.includes("<img")) {
+        throw new Error("HTML tags were not sanitized in firstName: " + xssRes.cleanData.name.first);
+    }
+    if (xssRes.cleanData.qualification.includes("<b>")) {
+        throw new Error("HTML tags were not sanitized in qualification: " + xssRes.cleanData.qualification);
+    }
+}, "teacher-edit");
+
+suite.add("TeacherEditModule: Workload assignment and class teacher authority changes", () => {
+    const tem = new TeacherEditModule({
+        classes: [{ id: "1", name: "Class 1" }, { id: "2", name: "Class 2" }],
+        classSubjects: {
+            "1": ["Basic Math", "Fun & Games"],
+            "2": ["Integrated Science", "Mathematics"]
+        }
+    });
+
+    const baseRecord = {
+        id: "TEA-0218",
+        name: { first: "Santosh", last: "Dahal" },
+        phone: "9842686121",
+        classTeacherOf: "1",
+        workload: {
+            "1": ["Basic Math"]
+        }
+    };
+
+    // Reassign class teacher to Class 2 and expand workload
+    const res = tem.validate("TEA-0218", {
+        classTeacherOf: "2",
+        workload: {
+            "1": ["Basic Math"],
+            "2": ["Mathematics", "Integrated Science"]
+        }
+    }, baseRecord);
+
+    if (!res.isValid) throw new Error("Workload update validation failed: " + JSON.stringify(res.errors));
+    if (res.cleanData.classTeacherOf !== "2") throw new Error("Class teacher was not updated to Class 2");
+    if (res.cleanData.assignedClasses.length !== 2) throw new Error("Assigned classes count should be 2");
+    if (!res.cleanData.subjects.includes("Integrated Science")) {
+        throw new Error("Derived subjects missing Integrated Science: " + JSON.stringify(res.cleanData.subjects));
+    }
+}, "teacher-edit");
+
+suite.add("TeacherEditModule: Faculty phone updates and atomic login mapping synchronization", async () => {
+    const tem = new TeacherEditModule();
+
+    const originalRecord = {
+        id: "TEA-SYNC-01",
+        name: { first: "Bina", last: "Rai" },
+        phone: "9801112233"
+    };
+
+    tem.existingTeachers = [originalRecord];
+
+    // Change faculty mobile from 9801112233 to 9804445566
+    const result = await tem.updateTeacher("TEA-SYNC-01", {
+        phone: "9804445566"
+    });
+
+    if (!result.success) throw new Error("updateTeacher failed: " + JSON.stringify(result.errors));
+    if (!result.loginMappingChanged) throw new Error("loginMappingChanged flag should be true");
+    if (result.oldPhone !== "9801112233" || result.newPhone !== "9804445566") {
+        throw new Error("Phone diff mismatch: old=" + result.oldPhone + ", new=" + result.newPhone);
+    }
+
+    // Verify stored teacher record
+    const updated = tem.existingTeachers.find(t => t.id === "TEA-SYNC-01");
+    if (updated.phone !== "9804445566") throw new Error("Stored teacher phone was not updated");
+}, "teacher-edit");
+
+suite.add("TeacherEditModule: Verification document management and secure URL protocol enforcement", () => {
+    const tem = new TeacherEditModule();
+
+    const baseRecord = {
+        id: "TEA-DOCS-01",
+        name: { first: "Santosh", last: "Dahal" },
+        phone: "9842686121",
+        documents: [{ id: "d1", name: "Degree", type: "Degree", url: "/uploads/deg.pdf" }]
+    };
+
+    // Insecure URL protocol rejection
+    const badDocRes = tem.validate("TEA-DOCS-01", {
+        documents: [{ id: "d1", name: "Malicious", type: "Certificate", url: "data:text/html,<script>alert(1)</script>" }]
+    }, baseRecord);
+    if (badDocRes.isValid) throw new Error("Should reject data:text/html protocol in document URL");
+
+    // Safe document update
+    const safeDocRes = tem.validate("TEA-DOCS-01", {
+        documents: [
+            { id: "d1", name: "Degree Certificate", type: "M.Sc Degree", url: "/uploads/msc.pdf" },
+            { id: "d2", name: "Citizenship Card", type: "National ID", url: "/uploads/cit.pdf" }
+        ]
+    }, baseRecord);
+
+    if (!safeDocRes.isValid) throw new Error("Safe document update failed: " + JSON.stringify(safeDocRes.errors));
+    if (safeDocRes.cleanData.documents.length !== 2) throw new Error("Should have 2 verification documents");
+}, "teacher-edit");
+
 // Run test runner
 suite.run();
+
+

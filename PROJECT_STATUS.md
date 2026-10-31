@@ -72,6 +72,23 @@
 
 ---
 
+
+10. **Single-Responsibility Faculty Onboarding Engine (`modules/facultyAddModule.js` & `admin-faculty-add.js`)**:
+    - **Single Responsibility**: Dedicated solely to onboarding new faculty with zero extraneous roster lists or batch sync buttons.
+    - **Zero Hardcoding**: All school classes and curriculum subjects are read dynamically from `school/classes` and `school/class_configs` in the database.
+    - **Photo & Verification Support**: Real-time portrait photo upload with instant visual preview (and zero-cost fallback to inline SVG default avatar), National ID / Citizenship number capture, verification document upload (PDF/Image scan), and automated verification status tracking.
+    - **Dynamic Workload Matrix**: Selecting a class reveals its configured database subjects, allowing granular workload assignments.
+    - **Dual Persistence**: Registers profile in `school/teachers/{id}` and creates corresponding entry in `school/login_mappings/{phone}` for cellular SMS OTP authentication.
+    - **Automated Verification**: **50/50 tests passing** in accumulated test suite (`node tests/runner.js --group=faculty-add`).
+
+11. **Single-Responsibility Student Onboarding Engine (`modules/studentAddModule.js` & `admin-student-add.js`)**:
+    - **User-Centric Architecture**: Stripped of all tutorial text, redundant badges, and irrelevant roll number/subject clutter. Features a straightforward 5-step form (Personal, Family, Address, Enrollment, Documents).
+    - **Client-Side Image Compression**: Automatic canvas-based portrait downsampling to ~30KB JPEG (400×400 at 0.8 quality) prior to server upload.
+    - **Multi-Document Verification Roster**: Flexible document attachments supporting Birth Certificates, Transfer Certificates (TC), Previous Marksheets, Medical Records, and Parent Citizenship with preview and removal capabilities.
+    - **Multi-Parent SMS Login Mappings**: Parses comma-separated mobile numbers to provide each guardian instant SMS OTP parent portal access.
+    - **Core Application Integration**: Replaced legacy monolithic form in `admin-core.js` (`adminRouter('addStudent')`) and `admin.html`.
+    - **Automated Verification**: All **54/54 test suites pass** (`npm run test:student-add && npm test`).
+
 ## Active Configuration
 
 - **Production Web Application**: `https://school.success0.com.np`
