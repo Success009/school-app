@@ -20,52 +20,6 @@ const adminViews = {
             return `<div id="setup-engine-container"></div>`;
         }
     },
-
-    subjectManager: {
-        title: 'Subject Configuration',
-        render: () => `
-            <div class="space-y-6">
-                <div class="mobile-card">
-                    <h3 class="text-xs font-black uppercase text-indigo-600 mb-4 tracking-wider">Configure Class Subjects</h3>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Select Class</label>
-                            <select id="subj-class-select" onchange="loadClassSubjects()" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
-                                <option value="">- Choose -</option>
-                                <option value="1">Class 1</option>
-                                <option value="2">Class 2</option>
-                                <option value="3">Class 3</option>
-                                <option value="4">Class 4</option>
-                                <option value="5">Class 5</option>
-                                <option value="6">Class 6</option>
-                                <option value="7">Class 7</option>
-                                <option value="8">Class 8</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Subject Type</label>
-                            <select id="subj-type" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-xs font-bold">
-                                <option value="compulsory">Compulsory</option>
-                                <option value="optional_1">Optional I</option>
-                                <option value="optional_2">Optional II</option>
-                                <option value="optional_3">Optional III</option>
-                                <option value="optional_4">Optional IV</option>
-                                <option value="optional_5">Optional V</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="text" id="subj-name-input" class="flex-grow p-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-bold" placeholder="Subject Name (e.g. Science)">
-                        <button onclick="addSubjectToClass()" class="bg-indigo-600 text-white px-6 rounded-xl font-black text-xs active:scale-95 transition-transform">ADD</button>
-                    </div>
-                </div>
-
-                <div id="class-subjects-display" class="space-y-4 pb-20">
-                    <div class="text-center py-10 text-gray-300 text-xs italic">Select a class to view/manage subjects</div>
-                </div>
-            </div>
-        `
-    },
     dashboard: {
         title: 'Central Command',
         render: () => `
@@ -87,25 +41,7 @@ const adminViews = {
                 </div>
             </div>
 
-                        <!-- Quick Launch School Setup Banner (Desktop & Mobile) -->
-            <div onclick="adminRouter('schoolSetup')" class="mobile-card !p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800 text-white rounded-2xl shadow-lg mb-6 cursor-pointer active:scale-98 transition-all flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl backdrop-blur-sm">
-                        <i class="fas fa-layer-group"></i>
-                    </div>
-                    <div>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-200">System Foundation</span>
-                        <h3 class="text-base font-black">Configure Classes & Subjects</h3>
-                        <p class="text-xs text-blue-100 opacity-80 mt-0.5">Define classes, curriculum, and book publications.</p>
-                    </div>
-                </div>
-                <div class="hidden sm:flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-colors">
-                    <span>Open Setup</span>
-                    <i class="fas fa-arrow-right text-xs"></i>
-                </div>
-            </div>
-
-            <h3 class="font-bold text-gray-800 mb-4">Management Core</h3>
+                        <h3 class="font-bold text-gray-800 mb-4">Management Core</h3>
             <div class="grid grid-cols-2 gap-4 mb-8">
                 <button onclick="adminRouter('addStudent')" class="mobile-card flex flex-col items-center justify-center p-6 text-blue-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-user-plus text-xl mb-2"></i>
@@ -124,9 +60,9 @@ const adminViews = {
                     <span class="text-[10px] font-black uppercase">Send Notice</span>
                 </button>
     
-                <button onclick="adminRouter('subjectManager')" class="mobile-card flex flex-col items-center justify-center p-6 text-indigo-700 bg-white hover:bg-gray-50">
+                <button onclick="adminRouter('schoolSetup')" class="mobile-card flex flex-col items-center justify-center p-6 text-indigo-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-book text-xl mb-2"></i>
-                    <span class="text-[10px] font-black uppercase">Subject Manager</span>
+                    <span class="text-[10px] font-black uppercase">Class &amp; Subject Mgmt</span>
                 </button>
                 <button onclick="adminRouter('periodSettings')" class="mobile-card flex flex-col items-center justify-center p-6 text-pink-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-clock text-xl mb-2"></i>
@@ -240,10 +176,6 @@ const adminViews = {
             <div id="admin-helpdesk-list" class="space-y-3 pb-16">
                 <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading active tickets...</div>
             </div>
-
-            <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Panel
-            </button>
         `
     },
     examsManagement: {
@@ -304,10 +236,6 @@ const adminViews = {
                 <div id="admin-exams-list" class="space-y-3">
                     <div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading scheduled terms...</div>
                 </div>
-
-                <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
-                    <i class="fas fa-arrow-left mr-1"></i> Back to Panel
-                </button>
             </div>
         `
     },
@@ -356,10 +284,6 @@ const adminViews = {
                 <div id="admin-periods-list" class="space-y-3">
                     <div class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading school timings...</div>
                 </div>
-
-                <button onclick="adminRouter('dashboard')" class="w-full text-gray-400 font-bold py-6 text-xs text-center block">
-                    <i class="fas fa-arrow-left mr-1"></i> Back to Panel
-                </button>
             </div>
             `;
         }
@@ -531,10 +455,6 @@ function adminRouter(viewName, params = {}) {
 
     if (viewName === 'helpDesk') {
         loadHelpDeskTicketsList();
-    }
-
-    if (viewName === 'subjectManager') {
-        loadClassSubjects();
     }
 
     if (viewName === 'parentSuggestionsBoard') {

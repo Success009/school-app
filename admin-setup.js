@@ -39,12 +39,9 @@ function renderInitialLayout() {
             <!-- Top Action Header (Single clean navigation) -->
             <div class="flex justify-between items-center pb-3 border-b border-gray-200 gap-3">
                 <div class="flex items-center gap-2.5">
-                    <button onclick="handleBackNavigation()" class="text-gray-600 hover:text-blue-700 p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center text-sm font-bold" title="Back to Dashboard">
-                        <i class="fas fa-arrow-left"></i>
-                        <span class="hidden sm:inline ml-1.5 text-xs">Dashboard</span>
-                    </button>
+                    
                     <div>
-                        <h2 class="text-base font-black text-gray-800 leading-tight">Classes & Curriculum</h2>
+                        <h2 class="text-base font-black text-gray-800 leading-tight">Class &amp; Subject Management</h2>
                         <p class="text-[11px] text-gray-400 hidden sm:block">Configure school classes and compulsory subjects</p>
                     </div>
                 </div>

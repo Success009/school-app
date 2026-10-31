@@ -70,14 +70,10 @@ function renderStudentAddView(container) {
     `).join('');
 
     container.innerHTML = `
-        <div class="space-y-6 pb-12">
-                                    <!-- Header with Back Navigation -->
+        <div class="space-y-6 pb-12 max-w-3xl mx-auto">
+            <!-- Title Header (back navigation handled by universal header arrow) -->
             <div class="flex items-center justify-between pb-3 border-b border-gray-200">
                 <div class="flex items-center gap-3">
-                    <button type="button" onclick="handleStudentBackNavigation()" class="text-gray-600 hover:text-blue-700 p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center text-sm font-bold" title="Back to Dashboard">
-                        <i class="fas fa-arrow-left"></i>
-                        <span class="ml-1.5 text-xs">Dashboard</span>
-                    </button>
                     <div>
                         <h2 class="text-lg font-black text-gray-800 leading-tight">Student Enrollment</h2>
                     </div>

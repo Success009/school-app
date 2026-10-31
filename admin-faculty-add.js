@@ -49,13 +49,9 @@ function renderFacultyAddForm() {
 
     container.innerHTML = `
         <div class="max-w-3xl mx-auto space-y-5">
-            <!-- Navigation & Title Header (Single Clean Navigation) -->
+            <!-- Title Header (back navigation handled by universal header arrow) -->
             <div class="flex items-center justify-between pb-3 border-b border-gray-200">
                 <div class="flex items-center gap-3">
-                    <button onclick="handleBackNavigation()" class="text-gray-600 hover:text-blue-700 p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center text-sm font-bold" title="Back to Dashboard">
-                        <i class="fas fa-arrow-left"></i>
-                        <span class="ml-1.5 text-xs">Dashboard</span>
-                    </button>
                     <div>
                         <h2 class="text-lg font-black text-gray-800 leading-tight">Onboard Faculty Member</h2>
                         <p class="text-[11px] text-gray-400">Register new teaching faculty and assign dynamic class workloads</p>

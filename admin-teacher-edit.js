@@ -100,10 +100,7 @@ function renderTeacherEditForm(container, t) {
             <!-- Header Bar -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200">
                 <div class="flex items-center gap-3">
-                    <button type="button" onclick="handleTeacherEditBack()" class="text-gray-600 hover:text-blue-700 p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center text-sm font-bold" title="Back">
-                        <i class="fas fa-arrow-left"></i>
-                        <span class="ml-1.5 text-xs">Directory</span>
-                    </button>
+                    
                     <div>
                         <div class="flex items-center gap-2">
                             <h2 class="text-lg font-black text-gray-800 leading-tight">Edit Faculty Profile</h2>
